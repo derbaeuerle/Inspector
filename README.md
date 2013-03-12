@@ -1,4 +1,4 @@
-JCommunicator
-=============
+HTML5Audio
+==========
 
-JCommunicator
+HTML5 audio service
