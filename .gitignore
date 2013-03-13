@@ -1,6 +1,4 @@
-Android/bin/*
-.class
-.apk
-.ap_
-.dex
-
+.classpath
+.project
+Android/bin
+*.class
