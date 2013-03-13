@@ -2,8 +2,6 @@ package de.hsrm.jcommunicator.web.handler;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.protocol.HttpContext;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.net.Uri;
@@ -16,14 +14,8 @@ public class SystemTimeHandler extends DefaultHandler {
 	}
 
 	@Override
-	public JSONObject handleRequest(HttpRequest request, HttpContext context, Uri requestLine) {
-		JSONObject obj = new JSONObject();
-		try {
-			obj.put("time", System.currentTimeMillis());
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		return obj;
+	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) {
+		return System.currentTimeMillis();
 	}
 
 }
