@@ -4,12 +4,13 @@
 <meta charset=utf-8>
 <title>JCommunicator Test</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script type="text/javascript" src="js/jcommunicator.js"></script>
+<script type="text/javascript" src="js/example.js"></script>
 </head>
 <body>
-    <input type="button" onclick="testRequest();" value="test" /><br />
-    <input type="button" onclick="getSystemTime();" value="Get system time" /><br />
-    <input type="button" onclick="getJsonData();" value="Get JSON data" />
+    <input type="button" id="obj" value="request object" />
+    <input type="button" id="url" value="request string" /><br />
+    <input type="text" id="input_url" /><input type="button" id="input" value="request url from field" /><br />
     <div id="console"></div>
-    <script type="text/javascript" src="js/jcommunicator.js"></script>
 </body>
 </html>

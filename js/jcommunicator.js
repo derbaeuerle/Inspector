@@ -1,122 +1,129 @@
-var jc = {
+var $ = {
 
 	DEBUG: true,
-	SERVER_PORT: '9018',
+	SERVER_PORT: '80',
 
 	appServer: null,
 	head: null,
+	cb: null,
 
 	/**
 	 * Get JSON data from configured server and method. JSON object will be
 	 * reached to the defined callback method.
-	 * Possible properties in 'opt':
+	 * 'opt' can be a string or object. String defines complete url to request
+	 * and 'opt' as object can contain followin porperties:
 	 *		- server: IP or domain of Android application server.
+	 *		- port: Server port.
 	 *		- method (required): Method name to be called on server.
 	 *		- callback (required): Javascript callback function with JSON object as parameter.
 	 *		- params: JSON object (e.g. '{"name": "will", "age": 34}')
+	 * @param opt
 	 */
 	sendRequest: function(opt) {
-		if('method' in opt && 'callback' in opt) {
-			var server = opt.server || jc.appServer;
-			var method = opt.method;
-			var callback = opt.callback;
-			var params = opt.params || {};
+		script = document.createElement("script");
+		script.setAttribute("type", "text/javascript");
 
-			if(server == 'undefined' || server == null || server == "") {
-				if(jc.DEBUG)
-					alert("No valid server has been defined!");
+		var id = Math.floor((new Date()).getTime() / Math.random());
+
+		if(typeof(opt) === typeof({})) {
+			if('method' in opt && 'callback' in opt) {
+				var server = opt.server || $.appServer;
+				var method = opt.method;
+				var port = opt.port || null;
+				var params = opt.params || {};
+				$.cb = opt.callback;
+
+				if(server == 'undefined' || server == null || server == "") {
+					if($.DEBUG)
+						alert("No valid server has been defined!");
+					else {
+						throw "No valid server has been defined!";
+					}
+				}
+				var apiSrc = server;
+				apiSrc = apiSrc + ((port != null) ? ":" + port : "") + method + "?callback=defaultCallback";
+
+				if('params' in opt) {
+					for(var key in params) {
+				        if(params.hasOwnProperty(key)) {
+				        	apiSrc += "&" + key + "=" + params[key];
+				        }
+				    }
+				}
+			} else {
+				if($.DEBUG)
+					alert("Your have to define 'method' and 'callback' in opt!");
 				else {
-					throw "No valid server has been defined!";
+					throw "Your have to define 'method' and 'callback' in opt!";
 				}
 			}
-			script = document.createElement("script");
-			script.setAttribute("type", "text/javascript");
+		} else if (typeof(opt) === typeof("")) {
+			apiSrc = opt;
+		}
+		console.log("url: " + apiSrc);
 
-		    var id = Math.floor((new Date()).getTime() / Math.random());
-			var apiSrc = "http://" + server + ":" + jc.SERVER_PORT + "/" + method + "?callback=callback";
+		script.setAttribute("src", apiSrc);
+		script.setAttribute("id", "$" + id);
+		$.head.appendChild(script);
+	},
 
-			if('params' in opt) {
-				for(var key in params) {
-			        if(params.hasOwnProperty(key)) {
-			        	apiSrc += "&" + key + "=" + params[key];
-			        }
-			    }
-			}
+	/**
+	 * Load JSON data from url with params.
+	 * 
+	 * @param url
+	 * @param params
+	 * @param callback
+	 */
+	loadJSON: function(url, params, callback) {
+		script = document.createElement("script");
+		script.setAttribute("type", "text/javascript");
 
-			log("url: " + apiSrc);
-			
-			script.setAttribute("src", apiSrc);
-			script.setAttribute("id", "jc" + id);
-			jc.head.appendChild(script);
+		var id = Math.floor((new Date()).getTime() / Math.random());
 
-			if (callback && typeof(callback) === "function") {  
-		        callback(JSON.parse(JSON.stringify(json, undefined, 2)));  
-		    }  
-		} else {
-			if(jc.DEBUG)
-				alert("Your have to define 'method' and 'callback' in opt!");
-			else {
-				throw "Your have to define 'method' and 'callback' in opt!";
+		if(typeof(callback) === typeof($.loadJSON)) {
+			if(callback.name === "") {
+				callback.name = "tmp" + id;
+				tmp = callback;
+				callback = tempCallback.name;
+			} else {
+				callback = callback.name;
 			}
 		}
+
+		if(url.indexOf("callback=") == -1) {
+			url += ((url.indexOf("?") == -1) ? "?" : "&") + "callback=" + callback;
+		}
+		for(var key in params) {
+	        if(params.hasOwnProperty(key)) {
+	        	url += "&" + key + "=" + params[key];
+	        }
+	    }
+
+		console.log("url: " + url);
+		script.setAttribute("src", url);
+		script.setAttribute("id", "$" + id);
+		$.head.appendChild(script);
 	},
 
 	init: function(e) {
-		head = document.getElementsByTagName("head")[0];
+		$.head = document.getElementsByTagName("head")[0];
 		if('appServer' in e) {
-			jc.appServer = e.appServer;
+			$.appServer = e.appServer;
 		}
+		return this;
 	}
 
 };
 
-com = jc.init({'appServer': 'http://localhost/'});
 
-/*
-cons = document.getElementById("console");
-cons.innerHTML += "script started<br />";
-
-function sendRequest(server, method, callback, params) {
-	log("sendRequest("+server+", "+method+", "+callback+", "+params+")");
-	script = document.createElement("script");
-	script.setAttribute("type", "text/javascript");
-    var id = Math.floor((new Date()).getTime() / Math.random());
-    log("generated id: " + id);
-	var apiSrc = "http://" + server + ":9018/" + method + "?callback=" + callback;
-	for(var key in params) {
-        if(params.hasOwnProperty(key)) {
-        	apiSrc += "&" + key + "=" + params[key];
-        }
-    }
-	log(params);
-	log("url: " + apiSrc);
-	script.setAttribute("src", apiSrc);
-	script.setAttribute("id", "jc" + id);
-	head.appendChild(script);
+var tmp = null;
+function tempCallback(json) {
+	if(tmp != null && typeof(tmp) === typeof(tempCallback)) {
+		tmp(json);
+	}
+	tmp = null;
 }
 
-function testRequest() {
-	log("testing ...");
-	sendRequest("localhost", "time", "callback", {"test": "testvalue"});
-	log("test ended");
+function defaultCallback(json) {
+	$.cb(json);
 }
-
-function getSystemTime() {
-	sendRequest("localhost", "time", "callback", {});
-	log("loaded");
-}
-
-function getJsonData() {
-	sendRequest("localhost", "data", "callback", {});
-	log("loaded");
-}
-
-function callback(json) {
-	log("callback");
-	log(JSON.stringify(json, undefined, 2));
-}
-
-function log(message) {
-	cons.innerHTML += message + "<br />";
-}
-*/
