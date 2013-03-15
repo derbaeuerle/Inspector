@@ -5,20 +5,17 @@ import org.apache.http.protocol.HttpContext;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 import de.hsrm.jcommunicator.web.defaults.DefaultHandler;
 
-public class SystemTimeHandler extends DefaultHandler {
+public class SystemReleaseHandler extends DefaultHandler {
 
-	public SystemTimeHandler(Context context) {
+	public SystemReleaseHandler(Context context) {
 		super(context);
 	}
 
 	@Override
 	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) {
-		long time = System.currentTimeMillis();
-		Log.d("", "time: " + time);
-		return time;
+		return android.os.Build.VERSION.RELEASE;
 	}
 
 }

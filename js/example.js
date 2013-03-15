@@ -3,6 +3,19 @@ window.onload = function() {
 	document.getElementById("url").addEventListener('click', sendString, false);
 	document.getElementById("obj").addEventListener('click', sendRequest, false);
 	document.getElementById("input").addEventListener('click', sendInput, false);
+
+	document.getElementById("time").addEventListener('click', getTime, false);
+	document.getElementById("release").addEventListener('click', getRelease, false);
+}
+
+function getTime() {
+	$.loadJSON("http://localhost:9018/time/", {}, function(json) {
+		log(json);
+	});
+}
+
+function getRelease() {
+	$.loadJSON("http://localhost:9018/release/", {}, testCallback);
 }
 
 function sendRequest() {

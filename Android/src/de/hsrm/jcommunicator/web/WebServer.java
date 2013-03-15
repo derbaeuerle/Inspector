@@ -23,6 +23,7 @@ import org.apache.http.protocol.ResponseServer;
 import android.content.Context;
 import android.util.Log;
 import de.hsrm.jcommunicator.web.handler.MessageHandler;
+import de.hsrm.jcommunicator.web.handler.SystemReleaseHandler;
 import de.hsrm.jcommunicator.web.handler.SystemTimeHandler;
 
 public class WebServer extends Thread {
@@ -31,6 +32,7 @@ public class WebServer extends Thread {
 	public static final int SERVER_BACKLOG = 50;
 
 	private static final String TIME_PATTERN = "/time*";
+	private static final String RELEASE_PATTERN = "/release*";
 	private static final String DEFAULT_PATTERN = "*";
 
 	private ServerSocket mSocket;
@@ -62,6 +64,7 @@ public class WebServer extends Thread {
 		registry = new HttpRequestHandlerRegistry();
 
 		registry.register(TIME_PATTERN, new SystemTimeHandler(context));
+		registry.register(RELEASE_PATTERN, new SystemReleaseHandler(context));
 		registry.register(DEFAULT_PATTERN, new MessageHandler());
 		httpService.setHandlerResolver(registry);
 	}

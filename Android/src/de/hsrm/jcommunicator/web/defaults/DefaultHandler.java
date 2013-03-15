@@ -26,11 +26,11 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 
 	public DefaultHandler() {
 		this(null);
-		mGson = new Gson();
 	}
 
 	public DefaultHandler(Context context) {
 		mContext = context;
+		mGson = new Gson();
 	}
 
 	public abstract Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
@@ -54,6 +54,7 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 					public void writeTo(final OutputStream outstream) throws IOException {
 						OutputStreamWriter writer = new OutputStreamWriter(outstream, "UTF-8");
 						String resp = callback + "(" + json + ")";
+						Log.d("RESPONSE:", resp);
 						writer.write(resp);
 						writer.flush();
 					}
