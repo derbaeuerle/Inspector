@@ -1,4 +1,4 @@
-package de.hsrm.jcommunicator.services;
+package de.hsrm.inspector.services;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,7 +16,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
-import de.hsrm.jcommunicator.web.WebServer;
+import de.hsrm.inspector.web.WebServer;
 
 public class WebService extends Service {
 

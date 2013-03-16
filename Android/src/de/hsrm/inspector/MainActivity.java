@@ -1,4 +1,4 @@
-package de.hsrm.jcommunicator;
+package de.hsrm.inspector;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -11,7 +11,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-import de.hsrm.jcommunicator.services.WebService;
+import de.hsrm.inspector.services.WebService;
 
 public class MainActivity extends Activity implements OnClickListener {
 

@@ -12,7 +12,7 @@ var $ = {
 	 * reached to the defined callback method.
 	 * 'opt' can be a string or object. String defines complete url to request
 	 * and 'opt' as object can contain followin porperties:
-	 *		- server: IP or domain of Android application server.
+	 *		- server: IP or domain of Android application server with leading protocoll.
 	 *		- port: Server port.
 	 *		- method (required): Method name to be called on server.
 	 *		- callback (required): Javascript callback function with JSON object as parameter.
@@ -41,15 +41,18 @@ var $ = {
 					}
 				}
 				var apiSrc = server;
-				apiSrc = apiSrc + ((port != null) ? ":" + port : "") + method + "?callback=defaultCallback";
+				apiSrc = apiSrc + ((port != null) ? ":" + port : "") + method;
 
+				$.loadJSON(apiSrc, params, opt.callback);
+
+				/*
 				if('params' in opt) {
 					for(var key in params) {
 				        if(params.hasOwnProperty(key)) {
 				        	apiSrc += "&" + key + "=" + params[key];
 				        }
 				    }
-				}
+				}*/
 			} else {
 				if($.DEBUG)
 					alert("Your have to define 'method' and 'callback' in opt!");
@@ -57,14 +60,14 @@ var $ = {
 					throw "Your have to define 'method' and 'callback' in opt!";
 				}
 			}
-		} else if (typeof(opt) === typeof("")) {
+		} /*else if (typeof(opt) === typeof("")) {
 			apiSrc = opt;
 		}
 		console.log("url: " + apiSrc);
 
 		script.setAttribute("src", apiSrc);
 		script.setAttribute("id", "$" + id);
-		$.head.appendChild(script);
+		$.head.appendChild(script);*/
 	},
 
 	/**

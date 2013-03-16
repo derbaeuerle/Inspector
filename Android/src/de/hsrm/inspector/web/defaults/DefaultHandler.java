@@ -1,8 +1,9 @@
-package de.hsrm.jcommunicator.web.defaults;
+package de.hsrm.inspector.web.defaults;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -48,7 +49,20 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 		try {
 			final String callback = requestLine.getQueryParameter("callback");
 			try {
-				final String json = mGson.toJson(handleRequest(request, context, requestLine));
+				String jsonReturn = null;
+				try {
+					jsonReturn = mGson.toJson(handleRequest(request, context, requestLine));
+				} catch (Exception e) {
+					StringBuilder b = new StringBuilder();
+					for (StackTraceElement s : e.getStackTrace()) {
+						b.append(s.toString() + "\n");
+					}
+					HashMap<String, String> map = new HashMap<String, String>();
+					map.put("message", e.getMessage());
+					map.put("stacktrace", b.toString());
+					jsonReturn = mGson.toJson(map);
+				}
+				final String json = jsonReturn;
 
 				HttpEntity entity = new EntityTemplate(new ContentProducer() {
 					public void writeTo(final OutputStream outstream) throws IOException {

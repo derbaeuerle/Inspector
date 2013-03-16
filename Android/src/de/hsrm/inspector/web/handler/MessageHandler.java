@@ -1,4 +1,4 @@
-package de.hsrm.jcommunicator.web.handler;
+package de.hsrm.inspector.web.handler;
 
 import java.io.IOException;
 import java.io.OutputStream;
