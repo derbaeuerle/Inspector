@@ -34,6 +34,10 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 		mGson = new Gson();
 	}
 
+	public void setContext(Context context) {
+		mContext = context;
+	}
+
 	public abstract Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
 
 	@Override

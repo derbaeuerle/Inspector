@@ -8,4 +8,10 @@
     <string name="send_request">Request senden</string>
     <string name="stop_service">Service stoppen</string>
 
+    <!-- WebServer Configuration keys -->
+    <string name="configuration">inspector.xml</string>
+    <string name="configuration_gadgets">Gadget</string>
+    <string name="configuration_url_pattern">url-pattern</string>
+    <string name="configuration_handler">handler</string>
+
 </resources>

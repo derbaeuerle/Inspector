@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Inspector>    
+
+    <Gadget>
+        <url-pattern>/get/integer/\d{1,4}</url-pattern>
+        <handler>de.hsrm.inspector.web.handler.IntegerHandler</handler>
+    </Gadget>
+    
+</Inspector>

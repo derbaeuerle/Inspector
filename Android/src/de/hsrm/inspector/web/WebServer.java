@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.HttpException;
@@ -20,24 +21,24 @@ import org.apache.http.protocol.ResponseConnControl;
 import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
-import de.hsrm.inspector.web.handler.ExceptionHandler;
-import de.hsrm.inspector.web.handler.MessageHandler;
-import de.hsrm.inspector.web.handler.SystemReleaseHandler;
-import de.hsrm.inspector.web.handler.SystemTimeHandler;
+import de.hsrm.inspector.R;
+import de.hsrm.inspector.web.defaults.DefaultHandler;
+import de.hsrm.inspector.web.defaults.PatternHandler;
 
 public class WebServer extends Thread {
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9018;
 	public static final int SERVER_BACKLOG = 50;
 
-	private static final String TIME_PATTERN = "/time*";
-	private static final String RELEASE_PATTERN = "/release*";
-	private static final String EXCEPTION_PATTERN = "/exception*";
 	private static final String DEFAULT_PATTERN = "*";
 
 	private ServerSocket mSocket;
@@ -51,13 +52,14 @@ public class WebServer extends Thread {
 	private BasicHttpContext httpContext = null;
 	private HttpService httpService = null;
 	private HttpRequestHandlerRegistry registry = null;
+	private PatternHandler mHandler;
 
 	private Context mContext;
 
 	public WebServer(Context context) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
-		mServerAccesType = ServerAccessType.GLOBAL;
+		mServerAccesType = ServerAccessType.LOCALHOST;
 		mContext = context;
 
 		this.setContext(context);
@@ -73,11 +75,9 @@ public class WebServer extends Thread {
 		httpService = new HttpService(httpproc, new DefaultConnectionReuseStrategy(), new DefaultHttpResponseFactory());
 
 		registry = new HttpRequestHandlerRegistry();
+		mHandler = new PatternHandler(context);
 
-		registry.register(TIME_PATTERN, new SystemTimeHandler(context));
-		registry.register(RELEASE_PATTERN, new SystemReleaseHandler(context));
-		registry.register(EXCEPTION_PATTERN, new ExceptionHandler());
-		registry.register(DEFAULT_PATTERN, new MessageHandler());
+		registry.register(DEFAULT_PATTERN, mHandler);
 		httpService.setHandlerResolver(registry);
 	}
 
@@ -85,6 +85,26 @@ public class WebServer extends Thread {
 	public void run() {
 		super.run();
 		try {
+			SAXBuilder builder = new SAXBuilder();
+			Element root = ((Document) builder.build(mContext.getResources().openRawResource(R.raw.inspector)))
+					.getRootElement();
+			List<Element> gadgets = root.getChildren(mContext.getString(R.string.configuration_gadgets));
+
+			for (Element gadget : gadgets) {
+				try {
+					Class c = Class.forName(gadget.getChildText(mContext.getString(R.string.configuration_handler)));
+					DefaultHandler h = (DefaultHandler) c.newInstance();
+					h.setContext(mContext);
+
+					String urlPattern = gadget.getChildText(mContext.getString(R.string.configuration_url_pattern))
+							+ ".*";
+
+					mHandler.registerHandler(urlPattern, h);
+				} catch (ClassCastException e) {
+					e.printStackTrace();
+				}
+			}
+
 			if (mSocket == null) {
 				switch (mServerAccesType) {
 				case GLOBAL:
@@ -116,6 +136,14 @@ public class WebServer extends Thread {
 			mSocket.close();
 			mSocket = null;
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (JDOMException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
 			e.printStackTrace();
 		}
 	}

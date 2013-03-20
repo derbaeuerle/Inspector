@@ -6,6 +6,7 @@ window.onload = function() {
 
 	document.getElementById("time").addEventListener('click', getTime, false);
 	document.getElementById("release").addEventListener('click', getRelease, false);
+	document.getElementById("integer").addEventListener('click', getInteger, false);
 }
 
 function getTime() {
@@ -16,6 +17,12 @@ function getTime() {
 
 function getRelease() {
 	$.loadJSON("http://localhost:9018/release/", {}, testCallback);
+}
+
+function getInteger() {
+	//$.loadJSON("http://localhost:9018/get/integer/666", {}, testCallback);
+	log("getInteger()");
+	$.loadJSON("http://localhost:9018/get/integer/666", {}, testCallback);
 }
 
 function sendRequest() {
