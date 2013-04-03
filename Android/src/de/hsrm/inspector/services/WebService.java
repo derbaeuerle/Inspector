@@ -13,9 +13,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Service;
 import android.content.Intent;
-import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import de.hsrm.inspector.services.helper.ServiceBinder;
 import de.hsrm.inspector.web.WebServer;
 
 public class WebService extends Service {
@@ -23,8 +23,9 @@ public class WebService extends Service {
 	private WebServer mServer;
 	private IBinder mBinder = new WebBinder();
 
-	public class WebBinder extends Binder {
-		public WebService getService() {
+	public class WebBinder extends ServiceBinder {
+		@Override
+		public Service getService() {
 			return WebService.this;
 		}
 	}
@@ -56,7 +57,7 @@ public class WebService extends Service {
 	public String getJsonData() {
 		try {
 			HttpClient cl = new DefaultHttpClient();
-			HttpGet request = new HttpGet("http://localhost:" + WebServer.SERVER_PORT);
+			HttpGet request = new HttpGet("http://localhost:" + WebServer.SERVER_PORT + "/audio/test");
 			HttpResponse response = cl.execute(request);
 			InputStream in = response.getEntity().getContent();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));

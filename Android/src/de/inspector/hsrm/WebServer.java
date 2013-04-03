@@ -1,4 +1,4 @@
-package de.hsrm.inspector.web;
+package de.inspector.hsrm;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -31,6 +31,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 import de.hsrm.inspector.R;
+import de.hsrm.inspector.web.ServerAccessType;
 import de.hsrm.inspector.web.defaults.DefaultHandler;
 import de.hsrm.inspector.web.defaults.PatternHandler;
 

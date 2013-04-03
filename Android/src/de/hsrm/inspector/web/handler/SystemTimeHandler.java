@@ -15,7 +15,7 @@ public class SystemTimeHandler extends DefaultHandler {
 	}
 
 	@Override
-	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) {
+	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
 		long time = System.currentTimeMillis();
 		Log.d("", "time: " + time);
 		return time;

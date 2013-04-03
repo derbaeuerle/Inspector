@@ -9,7 +9,7 @@ import de.hsrm.inspector.web.defaults.DefaultHandler;
 public class ExceptionHandler extends DefaultHandler {
 
 	@Override
-	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
+	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
 		throw new Exception("This handler always throws an exception!");
 	}
 

@@ -38,7 +38,7 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 		mContext = context;
 	}
 
-	public abstract Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
+	public abstract Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
 
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
@@ -55,8 +55,9 @@ public abstract class DefaultHandler implements HttpRequestHandler {
 			try {
 				String jsonReturn = null;
 				try {
-					jsonReturn = mGson.toJson(handleRequest(request, context, requestLine));
+					jsonReturn = mGson.toJson(gogo(request, context, requestLine));
 				} catch (Exception e) {
+					e.printStackTrace();
 					StringBuilder b = new StringBuilder();
 					for (StackTraceElement s : e.getStackTrace()) {
 						b.append(s.toString() + "\n");

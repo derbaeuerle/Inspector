@@ -9,8 +9,8 @@ import de.hsrm.inspector.web.defaults.DefaultHandler;
 public class IntegerHandler extends DefaultHandler {
 
 	@Override
-	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
-		throw new Exception("This handler always throws an exception!");
+	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
+		return null;
 	}
 
 }

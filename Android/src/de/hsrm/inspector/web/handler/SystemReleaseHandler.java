@@ -14,7 +14,7 @@ public class SystemReleaseHandler extends DefaultHandler {
 	}
 
 	@Override
-	public Object handleRequest(HttpRequest request, HttpContext context, Uri requestLine) {
+	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
 		return android.os.Build.VERSION.RELEASE;
 	}
 

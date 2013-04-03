@@ -23,7 +23,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	private ServiceConnection mConnection = new ServiceConnection() {
 
 		public void onServiceConnected(ComponentName className, IBinder binder) {
-			mService = ((WebService.WebBinder) binder).getService();
+			mService = (WebService) ((WebService.WebBinder) binder).getService();
 			mServiceConnected = true;
 		}
 
