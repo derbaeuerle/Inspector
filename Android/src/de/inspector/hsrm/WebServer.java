@@ -1,6 +1,7 @@
 package de.inspector.hsrm;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -31,9 +32,10 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 import de.hsrm.inspector.R;
-import de.hsrm.inspector.web.ServerAccessType;
-import de.hsrm.inspector.web.defaults.DefaultHandler;
-import de.hsrm.inspector.web.defaults.PatternHandler;
+import de.inspector.hsrm.converter.JsonConverter;
+import de.inspector.hsrm.converter.intf.IResponseConverter;
+import de.inspector.hsrm.gadgets.Gadget;
+import de.inspector.hsrm.handler.PatternHandler;
 
 public class WebServer extends Thread {
 	public static final String SERVER_NAME = "html5audio";
@@ -56,12 +58,14 @@ public class WebServer extends Thread {
 	private PatternHandler mHandler;
 
 	private Context mContext;
+	private InputStream mConfigurationFile;
 
-	public WebServer(Context context) {
+	public WebServer(Context context, InputStream configuration) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
 		mServerAccesType = ServerAccessType.LOCALHOST;
 		mContext = context;
+		mConfigurationFile = configuration;
 
 		this.setContext(context);
 
@@ -85,27 +89,30 @@ public class WebServer extends Thread {
 	@Override
 	public void run() {
 		super.run();
+
 		try {
 			SAXBuilder builder = new SAXBuilder();
-			Element root = ((Document) builder.build(mContext.getResources().openRawResource(R.raw.inspector)))
-					.getRootElement();
+			Element root = ((Document) builder.build(mConfigurationFile)).getRootElement();
 			List<Element> gadgets = root.getChildren(mContext.getString(R.string.configuration_gadgets));
 
 			for (Element gadget : gadgets) {
 				try {
 					Class<?> c = Class.forName(gadget.getChildText(mContext.getString(R.string.configuration_handler)));
-					DefaultHandler h = (DefaultHandler) c.newInstance();
-					h.setContext(mContext);
+					Gadget g = (Gadget) c.newInstance();
 
-					String urlPattern = gadget.getChildText(mContext.getString(R.string.configuration_url_pattern))
-							+ ".*";
-
+					g.setPattern(gadget.getChildText(mContext.getString(R.string.configuration_url_pattern)) + ".*");
 					Element service = gadget.getChild(mContext.getString(R.string.configuration_service));
 					if (service != null) {
-						mHandler.registerHandler(urlPattern, h, service.getText());
-					} else {
-						mHandler.registerHandler(urlPattern, h);
+						g.setService(service.getText());
 					}
+					Element converter = gadget.getChild(mContext.getString(R.string.configuration_converter));
+					if (converter != null) {
+						c = Class.forName(converter.getText());
+						g.setConverter((IResponseConverter) c.newInstance());
+					} else {
+						g.setConverter(new JsonConverter());
+					}
+					mHandler.registerHandler(g);
 				} catch (ClassCastException e) {
 					e.printStackTrace();
 				}
@@ -154,7 +161,7 @@ public class WebServer extends Thread {
 		}
 	}
 
-	public synchronized void startThread() {
+	public void startThread() {
 		Log.d("WebServer", "starting ...");
 		if (!isRunning.get()) {
 			isRunning.set(true);
@@ -162,7 +169,7 @@ public class WebServer extends Thread {
 		}
 	}
 
-	public synchronized void stopThread() {
+	public void stopThread() {
 		Log.d("WebServer", "stopping ...");
 		if (isRunning.get()) {
 			isRunning.set(false);

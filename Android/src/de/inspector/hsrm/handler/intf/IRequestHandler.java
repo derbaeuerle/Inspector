@@ -7,6 +7,6 @@ import android.net.Uri;
 
 public interface IRequestHandler {
 
-	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine);
+	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
 
 }

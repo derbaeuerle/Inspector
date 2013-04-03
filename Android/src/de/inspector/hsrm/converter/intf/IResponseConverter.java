@@ -4,4 +4,6 @@ public interface IResponseConverter {
 
 	public Object convert(Object data);
 
+	public String getMimeType();
+
 }

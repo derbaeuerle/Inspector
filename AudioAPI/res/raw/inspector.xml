@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Inspector>
+
+    <Gadget>
+        <url-pattern>/get/integer/\d{1,4}</url-pattern>
+        <handler>de.hsrm.audioapi.gadgets.IntegerGadget</handler>
+    </Gadget>
+
+    <Gadget>
+        <url-pattern>/audio/play</url-pattern>
+        <handler>de.hsrm.audioapi.gadgets.AudioGadget</handler>
+        <uses-service>de.hsrm.audioapi.service.AudioService</uses-service>
+    </Gadget>
+
+    <Gadget>
+        <url-pattern>/audio/pause</url-pattern>
+        <handler>de.hsrm.audioapi.gadgets.AudioGadget</handler>
+        <uses-service>de.hsrm.audioapi.service.AudioService</uses-service>
+    </Gadget>
+
+    <Gadget>
+        <url-pattern>/audio/stop</url-pattern>
+        <handler>de.hsrm.audioapi.gadgets.AudioGadget</handler>
+        <uses-service>de.hsrm.audioapi.service.AudioService</uses-service>
+    </Gadget>
+
+</Inspector>

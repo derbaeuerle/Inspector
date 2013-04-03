@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.util.Log;
 import de.inspector.hsrm.gadgets.Gadget;
 
 public class AsyncServiceBinder extends FutureTask<Object> {
@@ -21,6 +22,7 @@ public class AsyncServiceBinder extends FutureTask<Object> {
 	private ServiceConnection mConnection = new ServiceConnection() {
 
 		public void onServiceConnected(ComponentName className, IBinder binder) {
+			Log.d("", "onServiceConnected");
 			if (binder instanceof ServiceBinder) {
 				mService = ((ServiceBinder) binder).getService();
 				mCallable.getGadget().setBoundService(mService);
@@ -43,8 +45,11 @@ public class AsyncServiceBinder extends FutureTask<Object> {
 	}
 
 	public Object process() throws ClassNotFoundException, InterruptedException, ExecutionException {
-		Intent i = new Intent(mApplicationContext, Class.forName(mCallable.getGadget().getService()));
-		mApplicationContext.bindService(i, mConnection, Context.BIND_AUTO_CREATE);
+		Intent i = new Intent(mApplicationContext, Class.forName(AsyncServiceBinder.this.mCallable.getGadget()
+				.getService()));
+		mApplicationContext.bindService(i, AsyncServiceBinder.this.mConnection, Context.BIND_AUTO_CREATE);
+		Log.d("THREAD", "Intent sent");
+		Log.d("", "start waiting");
 		return get();
 	}
 

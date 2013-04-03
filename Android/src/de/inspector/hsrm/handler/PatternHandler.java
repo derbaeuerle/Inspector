@@ -6,9 +6,6 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -19,11 +16,13 @@ import org.apache.http.entity.EntityTemplate;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
-import com.google.gson.Gson;
-
 import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+
+import com.google.gson.Gson;
+
+import de.hsrm.inspector.R;
 import de.inspector.hsrm.gadgets.Gadget;
 import de.inspector.hsrm.service.utils.AsyncServiceBinder;
 import de.inspector.hsrm.service.utils.AsyncServiceBinderCallable;
@@ -42,10 +41,6 @@ public class PatternHandler implements HttpRequestHandler {
 		mGadgetRegistry.add(gadget);
 	}
 
-	public void registerHandler(String urlPattern, Gadget gadget) {
-		mGadgetRegistry.add(gadget);
-	}
-
 	public List<Gadget> getRegistry() {
 		return mGadgetRegistry;
 	}
@@ -53,9 +48,6 @@ public class PatternHandler implements HttpRequestHandler {
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
-		response.setHeader("Content-Type", "application/json");
-		response.addHeader("Access-Control-Allow-Origin", "*");
-		response.addHeader("Access-Control-Allow-Methods", "*");
 
 		Log.d("REQUEST:", request.getRequestLine().toString());
 		String uri = request.getRequestLine().getUri();
@@ -76,6 +68,7 @@ public class PatternHandler implements HttpRequestHandler {
 					} else {
 						tmpResponseContent = gadget.getConverter().convert(gadget.gogo(request, context, requestLine));
 					}
+					response.setHeader("Content-Type", gadget.getConverter().getMimeType());
 				} catch (Exception e) {
 					e.printStackTrace();
 
@@ -85,10 +78,13 @@ public class PatternHandler implements HttpRequestHandler {
 						b.append(s.toString() + "\n");
 					}
 					HashMap<String, String> map = new HashMap<String, String>();
-					map.put("message", e.getMessage());
-					map.put("stacktrace", b.toString());
+					map.put(mContext.getString(R.string.exception_message), e.getMessage());
+					map.put(mContext.getString(R.string.exception_stacktrace), b.toString());
 					tmpResponseContent = gson.toJson(map);
+					response.setHeader("Content-Type", mContext.getString(R.string.mime_json));
 				}
+				response.addHeader("Access-Control-Allow-Origin", "*");
+				response.addHeader("Access-Control-Allow-Methods", "*");
 				responseContent = tmpResponseContent;
 
 				HttpEntity entity = new EntityTemplate(new ContentProducer() {
