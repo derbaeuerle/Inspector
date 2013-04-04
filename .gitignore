@@ -1,4 +1,7 @@
 .classpath
 .project
 Android/bin
+Android/gen
+AudioAPI/gen
+AudioAPI/bin
 *.class
