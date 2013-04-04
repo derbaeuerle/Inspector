@@ -12,12 +12,12 @@ public class AudioGadget extends Gadget {
 	@Override
 	public Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception {
 		String url = requestLine.toString();
-		if (url.contains("play")) {
-			((AudioService) getBoundService()).play();
-		} else if (url.contains("pause")) {
-			((AudioService) getBoundService()).pause();
-		} else if (url.contains("stop")) {
-			((AudioService) getBoundService()).stop();
+		if (url.contains("/play?")) {
+			((AudioService) getBoundService()).play(request);
+		} else if (url.contains("/pause?")) {
+			((AudioService) getBoundService()).pause(request);
+		} else if (url.contains("/stop?")) {
+			((AudioService) getBoundService()).stop(request);
 		}
 		return requestLine.getLastPathSegment();
 	}
