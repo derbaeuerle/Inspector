@@ -80,6 +80,9 @@ var $ = {
 	loadJSON: function(url, params, callback) {
 		script = document.createElement("script");
 		script.setAttribute("type", "text/javascript");
+		console.log(url);
+		console.log(params);
+		console.log(callback);
 
 		var id = Math.floor((new Date()).getTime() / Math.random());
 

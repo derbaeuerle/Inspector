@@ -1,3 +1,9 @@
+var settings = {
+	'audiofile' : 'http://www.mi.hs-rm.de/~dbaeu001/jc/grux.mp3',
+	'autoprepare' : true,
+	'playerid' : 1,
+};
+
 window.onload = function() {
 	$.init({'appServer': 'http://gd.geobytes.com/'});
 	/*document.getElementById("url").addEventListener('click', sendString, false);
@@ -14,63 +20,21 @@ window.onload = function() {
 }
 
 function play() {
-	$.loadJSON("http://localhost:9018/audio/play", {}, function(json) {
+	$.loadJSON("http://localhost:9018/audio/play", settings, function(json) {
 		log(json);
 	});
 }
 
 function pause() {
-	$.loadJSON("http://localhost:9018/audio/pause", {}, function(json) {
+	$.loadJSON("http://localhost:9018/audio/pause", settings, function(json) {
 		log(json);
 	});
 }
 
 function stop() {
-	$.loadJSON("http://localhost:9018/audio/stop", {}, function(json) {
+	$.loadJSON("http://localhost:9018/audio/stop", settings, function(json) {
 		log(json);
 	});
-}
-
-function getTime() {
-	$.loadJSON("http://localhost:9018/time/", {}, function(json) {
-		log(json);
-	});
-}
-
-function getRelease() {
-	$.loadJSON("http://localhost:9018/release/", {}, testCallback);
-}
-
-function getInteger() {
-	//$.loadJSON("http://localhost:9018/get/integer/666", {}, testCallback);
-	log("getInteger()");
-	$.loadJSON("http://localhost:9018/get/integer/666", {}, testCallback);
-}
-
-function sendRequest() {
-	$.sendRequest({
-		'method': 'AutoCompleteCity',
-		'callback': testCallback,
-		'params': {
-			'q': 'Wiesb'
-		}
-	});
-}
-
-var i = 0;
-function sendString() {
-	log(++i);
-	$.loadJSON("http://gd.geobytes.com/AutoCompleteCity", {"q": "Wiesb" }, function(json) {
-		log(json);
-	});
-}
-
-function sendInput() {
-	$.loadJSON(document.getElementById("input_url").value, {}, testCallback);
-}
-
-function testCallback(json) {
-	log(json);
 }
 
 function log(message) {
