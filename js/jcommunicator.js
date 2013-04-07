@@ -6,6 +6,8 @@ var $ = {
 	appServer: null,
 	head: null,
 	cb: null,
+	timeout: null,
+	timeoutIn: 4000,
 
 	/**
 	 * Get JSON data from configured server and method. JSON object will be
@@ -20,8 +22,6 @@ var $ = {
 	 * @param opt
 	 */
 	sendRequest: function(opt) {
-		script = document.createElement("script");
-		script.setAttribute("type", "text/javascript");
 
 		var id = Math.floor((new Date()).getTime() / Math.random());
 
@@ -44,15 +44,6 @@ var $ = {
 				apiSrc = apiSrc + ((port != null) ? ":" + port : "") + method;
 
 				$.loadJSON(apiSrc, params, opt.callback);
-
-				/*
-				if('params' in opt) {
-					for(var key in params) {
-				        if(params.hasOwnProperty(key)) {
-				        	apiSrc += "&" + key + "=" + params[key];
-				        }
-				    }
-				}*/
 			} else {
 				if($.DEBUG)
 					alert("Your have to define 'method' and 'callback' in opt!");
@@ -60,14 +51,7 @@ var $ = {
 					throw "Your have to define 'method' and 'callback' in opt!";
 				}
 			}
-		} /*else if (typeof(opt) === typeof("")) {
-			apiSrc = opt;
 		}
-		console.log("url: " + apiSrc);
-
-		script.setAttribute("src", apiSrc);
-		script.setAttribute("id", "$" + id);
-		$.head.appendChild(script);*/
 	},
 
 	/**
@@ -77,23 +61,26 @@ var $ = {
 	 * @param params
 	 * @param callback
 	 */
-	loadJSON: function(url, params, callback) {
+	loadJSON: function(url, params, callback, onerror) {
 		script = document.createElement("script");
 		script.setAttribute("type", "text/javascript");
-		console.log(url);
-		console.log(params);
-		console.log(callback);
 
 		var id = Math.floor((new Date()).getTime() / Math.random());
+
+		var errorHandler = $.onError;
 
 		if(typeof(callback) === typeof($.loadJSON)) {
 			if(callback.name === "") {
 				callback.name = "tmp" + id;
-				tmp = callback;
-				callback = tempCallback.name;
-			} else {
-				callback = callback.name;
 			}
+			tmp = callback;
+			callback = defaultCallback.name;
+		}
+		if(typeof(onerror) === typeof(errorHandler)) {
+			if(onerror.name === "") {
+				onerror.name = "onError" + id;
+			}
+			errorHandler = onerror;
 		}
 
 		if(url.indexOf("callback=") == -1) {
@@ -104,17 +91,27 @@ var $ = {
 	        	url += "&" + key + "=" + params[key];
 	        }
 	    }
-
-		console.log("url: " + url);
 		script.setAttribute("src", url);
 		script.setAttribute("id", "$" + id);
+		script.onerror = errorHandler;
+		$.timeout = setTimeout($.onError, $.timeoutIn);
 		$.head.appendChild(script);
 	},
 
+	onError: function(e) {
+		clearTimeout($.timeout);
+		if(e != undefined && e.srcElement != undefined) {
+			throw "Couldn't load " + e.srcElement.src;
+		}
+	},
+
 	init: function(e) {
+		window.onerror = $.onError;
 		$.head = document.getElementsByTagName("head")[0];
-		if('appServer' in e) {
-			$.appServer = e.appServer;
+		if(e != undefined) {
+			if('appServer' in e) {
+				$.appServer = e.appServer;
+			}
 		}
 		return this;
 	}
@@ -123,13 +120,10 @@ var $ = {
 
 
 var tmp = null;
-function tempCallback(json) {
-	if(tmp != null && typeof(tmp) === typeof(tempCallback)) {
+function defaultCallback(json) {
+	if(tmp != null && typeof(tmp) === typeof(defaultCallback)) {
+		clearTimeout($.timeout);
 		tmp(json);
 	}
 	tmp = null;
-}
-
-function defaultCallback(json) {
-	$.cb(json);
 }
