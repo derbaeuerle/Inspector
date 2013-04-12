@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">AudioAPI</string>
+    <string name="app_name">Audio Support</string>
     <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="pref_general">Allgemeine Einstellungen</string>
+    <string name="activate_support">Support aktivieren</string>
+    <string name="pref_system_integration">Systemintegration</string>
     <string name="stop_server">Stop server</string>
     <string name="send_integer">Send Integer</string>
+
+    <!-- Preferences keys -->
+    <string name="pref_activate_support">activate_support</string>
+
+    <!-- System integration -->
+    <string name="integration_bc">BroadcastReceiver</string>
+    <string name="integration_time">Zeitgesteuert</string>
+    <string name="integration_user">Benutzergesteuert</string>
+
+    <!-- Integration by time -->
+    <string name="integration_time_from">Von</string>
+    <string name="integration_time_to">Bis</string>
 
 </resources>

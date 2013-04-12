@@ -39,7 +39,7 @@ import de.inspector.hsrm.handler.PatternHandler;
 
 public class WebServer extends Thread {
 	public static final String SERVER_NAME = "html5audio";
-	public static final int SERVER_PORT = 9018;
+	public static final int SERVER_PORT = 9090;
 	public static final int SERVER_BACKLOG = 50;
 
 	private static final String DEFAULT_PATTERN = "*";
@@ -181,6 +181,7 @@ public class WebServer extends Thread {
 				e.printStackTrace();
 			}
 		}
+		super.interrupt();
 	}
 
 	public void setContext(Context context) {

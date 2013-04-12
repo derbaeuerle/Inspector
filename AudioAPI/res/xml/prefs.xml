@@ -2,31 +2,27 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <PreferenceCategory
-        android:summary="Username and password information"
-        android:title="Login information" >
-        <EditTextPreference
-            android:key="username"
-            android:summary="Please enter your login username"
-            android:title="Username" />
-        <EditTextPreference
-            android:key="password"
-            android:summary="Enter your password"
-            android:title="Password" />
-    </PreferenceCategory>
-    <PreferenceCategory
-        android:summary="Username and password information"
-        android:title="Settings" >
+        android:summary="@string/pref_general"
+        android:title="@string/pref_general" >
         <CheckBoxPreference
-            android:key="checkBox"
-            android:summary="On/Off"
-            android:title="Keep me logged in" />
+            android:key="@string/pref_activate_support"
+            android:title="@string/activate_support" />
 
         <ListPreference
-            android:entries="@array/listOptions"
-            android:entryValues="@array/listValues"
-            android:key="listpref"
-            android:summary="List preference example"
-            android:title="List preference" />
+            android:entries="@array/system_integration_options"
+            android:entryValues="@array/system_integration_options"
+            android:key="system_integration"
+            android:title="@string/pref_system_integration" />
+    </PreferenceCategory>
+    <PreferenceCategory
+        android:summary="@string/integration_time"
+        android:title="@string/integration_time" >
+        <de.hsrm.audioapi.ui.widgets.TimePreference
+            android:key="@string/integration_time_from"
+            android:title="@string/integration_time_from" />
+        <de.hsrm.audioapi.ui.widgets.TimePreference
+            android:key="@string/integration_time_to"
+            android:title="@string/integration_time_to" />
     </PreferenceCategory>
 
 </PreferenceScreen>
