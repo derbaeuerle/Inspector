@@ -20,7 +20,7 @@ public class MainActivity extends PreferenceActivity implements SharedPreference
 		addPreferencesFromResource(R.xml.prefs);
 		mPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 		mPreferences.registerOnSharedPreferenceChangeListener(this);
-		mServer = new WebServer(getApplicationContext(), getResources().openRawResource(R.raw.inspector));
+		mServer = new WebServer(getApplicationContext(), getResources().openRawResource(R.raw.inspector_config));
 	}
 
 	@Override

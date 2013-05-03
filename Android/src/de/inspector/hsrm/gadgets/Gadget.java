@@ -6,7 +6,20 @@ import org.apache.http.protocol.HttpContext;
 import android.app.Service;
 import android.net.Uri;
 import de.inspector.hsrm.converter.intf.IResponseConverter;
+import de.inspector.hsrm.service.utils.AsyncServiceBinder;
 
+/**
+ * A {@link Gadget} represents a restful handler and contains following
+ * attributes. {@link String} {@link #mService} for optional needed
+ * {@link Service}, {@link Service} {@link #mService} for
+ * {@link AsyncServiceBinder} to inject the bound {@link Service} object,
+ * {@link String} {@link #mPattern} to describe the restful URL pattern via
+ * regular expression and {@link IResponseConverter} {@link #mConverter} to
+ * convert the processed data into suitable data form.
+ * 
+ * @author Dominic Baeuerle
+ * 
+ */
 public abstract class Gadget {
 
 	private String mService;
@@ -14,6 +27,19 @@ public abstract class Gadget {
 	private String mPattern;
 	private IResponseConverter mConverter;
 
+	/**
+	 * Abstract class to overwrite in specific {@link Gadget}. Processes
+	 * requests into repsonse content.
+	 * 
+	 * @param request
+	 *            {@link HttpRequest} of current request.
+	 * @param context
+	 *            {@link HttpContext} of current request.
+	 * @param requestLine
+	 *            {@link Uri} to provide the whole request URL.
+	 * @return {@link Object}
+	 * @throws Exception
+	 */
 	public abstract Object gogo(HttpRequest request, HttpContext context, Uri requestLine) throws Exception;
 
 	public boolean usesService() {
@@ -21,7 +47,7 @@ public abstract class Gadget {
 	}
 
 	/**
-	 * @return the mBoundService
+	 * @return the bound service.
 	 */
 	public Service getBoundService() {
 		return mBoundService;
@@ -36,7 +62,7 @@ public abstract class Gadget {
 	}
 
 	/**
-	 * @return the mService
+	 * @return the service path.
 	 */
 	public String getService() {
 		return mService;
@@ -51,7 +77,7 @@ public abstract class Gadget {
 	}
 
 	/**
-	 * @return the mPattern
+	 * @return the restful url pattern.
 	 */
 	public String getPattern() {
 		return mPattern;
@@ -66,7 +92,7 @@ public abstract class Gadget {
 	}
 
 	/**
-	 * @return the mConverter
+	 * @return the {@link IResponseConverter} converter.
 	 */
 	public IResponseConverter getConverter() {
 		return mConverter;

@@ -18,6 +18,7 @@ import org.apache.http.protocol.HttpRequestHandler;
 
 import android.content.Context;
 import android.net.Uri;
+import android.net.UrlQuerySanitizer;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -53,7 +54,9 @@ public class PatternHandler implements HttpRequestHandler {
 		String uri = request.getRequestLine().getUri();
 		Uri requestLine = Uri.parse(request.getRequestLine().getUri());
 
-		final String callback = requestLine.getQueryParameter("callback");
+		UrlQuerySanitizer query = new UrlQuerySanitizer(requestLine.toString());
+		final String callback = query.getValue("callback");
+
 		final Object responseContent;
 
 		for (final Gadget gadget : mGadgetRegistry) {
@@ -91,6 +94,7 @@ public class PatternHandler implements HttpRequestHandler {
 					public void writeTo(final OutputStream outstream) throws IOException {
 						OutputStreamWriter writer = new OutputStreamWriter(outstream, "UTF-8");
 						String resp = callback + "(" + responseContent.toString() + ")";
+						Log.d("", "returning: " + resp);
 						Log.d("RESPONSE:", resp);
 						writer.write(resp);
 						writer.flush();

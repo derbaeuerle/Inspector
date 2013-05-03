@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Inspector>
+<Inspector xmlns:i='http://schemas.inspector.de'>
 
     <Gadget>
         <url-pattern>/get/integer/\d{1,4}</url-pattern>
@@ -23,5 +23,16 @@
         <handler>de.hsrm.audioapi.gadgets.AudioGadget</handler>
         <uses-service>de.hsrm.audioapi.service.AudioService</uses-service>
     </Gadget>
+
+    <!-- <Gadget name="de.hsrm.audioapi.gadgets.AudioGadget">
+        <url-patterns>
+            <pattern>/audio/play</pattern>
+            <pattern>/audio/pause</pattern>
+            <pattern>/audio/stop</pattern>
+        </url-patterns>
+        <uses-services>
+            <service>de.hsrm.audioapi.service.AudioService</service>
+        </uses-services>
+    </Gadget> -->
 
 </Inspector>

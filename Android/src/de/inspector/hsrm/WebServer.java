@@ -37,6 +37,13 @@ import de.inspector.hsrm.converter.intf.IResponseConverter;
 import de.inspector.hsrm.gadgets.Gadget;
 import de.inspector.hsrm.handler.PatternHandler;
 
+/**
+ * WebServer Thread to parse inspector's config file and start apache server
+ * with pattern handler.
+ * 
+ * @author Dominic Baeuerle
+ * 
+ */
 public class WebServer extends Thread {
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9090;
@@ -60,6 +67,14 @@ public class WebServer extends Thread {
 	private Context mContext;
 	private InputStream mConfigurationFile;
 
+	/**
+	 * Constructor for web server.
+	 * 
+	 * @param context
+	 *            Android application context.
+	 * @param configuration
+	 *            InputStream for configuration file.
+	 */
 	public WebServer(Context context, InputStream configuration) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
@@ -89,7 +104,6 @@ public class WebServer extends Thread {
 	@Override
 	public void run() {
 		super.run();
-
 		try {
 			SAXBuilder builder = new SAXBuilder();
 			Element root = ((Document) builder.build(mConfigurationFile)).getRootElement();
@@ -136,6 +150,7 @@ public class WebServer extends Thread {
 			while (isRunning.get()) {
 				try {
 					final Socket socket = mSocket.accept();
+					socket.setReuseAddress(true);
 					DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
 					serverConnection.bind(socket, new BasicHttpParams());
 					httpService.handleRequest(serverConnection, httpContext);
@@ -161,6 +176,9 @@ public class WebServer extends Thread {
 		}
 	}
 
+	/**
+	 * Safe method to start server.
+	 */
 	public void startThread() {
 		Log.d("WebServer", "starting ...");
 		if (!isRunning.get()) {
@@ -169,6 +187,9 @@ public class WebServer extends Thread {
 		}
 	}
 
+	/**
+	 * Safe method to stop server.
+	 */
 	public void stopThread() {
 		Log.d("WebServer", "stopping ...");
 		if (isRunning.get()) {
@@ -184,14 +205,30 @@ public class WebServer extends Thread {
 		super.interrupt();
 	}
 
+	/**
+	 * Setting android application context.
+	 * 
+	 * @param context
+	 *            Android application context.
+	 */
 	public void setContext(Context context) {
 		this.context = context;
 	}
 
+	/**
+	 * Retrieve current android application context.
+	 * 
+	 * @return Android application context.
+	 */
 	public Context getContext() {
 		return context;
 	}
 
+	/**
+	 * Get wifi address for wifi access.
+	 * 
+	 * @return InetAddress WiFi address.
+	 */
 	private InetAddress getWifiInetAddress() {
 		WifiManager wifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
 		if (wifiManager.isWifiEnabled()) {
