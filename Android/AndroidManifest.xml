@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.hsrm.inspector"
-    android:versionCode="1"
-    android:versionName="1.0" >
+          package="de.inspector.hsrm"
+          android:versionCode="1"
+          android:versionName="1.0">
 
     <uses-sdk
-        android:minSdkVersion="8"
-        android:targetSdkVersion="8" />
+            android:minSdkVersion="8"
+            android:targetSdkVersion="8"/>
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
 
     <application
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name" >
+            android:allowBackup="true"
+            android:icon="@drawable/ic_launcher"
+            android:label="@string/app_name">
+        <receiver android:name=".broadcasts.ServiceReceiver">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="inspector" android:host="de.inspector.hsrm.intent"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

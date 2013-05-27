@@ -11,10 +11,9 @@
     <!-- WebServer Configuration keys -->
     <string name="configuration">inspector.xml</string>
     <string name="configuration_gadgets">Gadget</string>
-    <string name="configuration_url_pattern">url-pattern</string>
-    <string name="configuration_service">uses-service</string>
-    <string name="configuration_handler">handler</string>
-    <string name="configuration_converter">converter</string>
+    <string name="configuration_identifier">identifier</string>
+    <string name="configuration_multiinstance">multi-instance</string>
+    <string name="configuration_class">class</string>
 
     <!-- WebServer Exception keys -->
     <string name="exception_message">message</string>

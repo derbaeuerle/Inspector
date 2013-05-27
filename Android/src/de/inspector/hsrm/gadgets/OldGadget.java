@@ -6,10 +6,10 @@ import org.apache.http.protocol.HttpContext;
 import android.app.Service;
 import android.net.Uri;
 import de.inspector.hsrm.converter.intf.IResponseConverter;
-import de.inspector.hsrm.service.utils.AsyncServiceBinder;
+import de.inspector.hsrm.services.utils.AsyncServiceBinder;
 
 /**
- * A {@link Gadget} represents a restful handler and contains following
+ * A {@link OldGadget} represents a restful handler and contains following
  * attributes. {@link String} {@link #mService} for optional needed
  * {@link Service}, {@link Service} {@link #mService} for
  * {@link AsyncServiceBinder} to inject the bound {@link Service} object,
@@ -20,7 +20,7 @@ import de.inspector.hsrm.service.utils.AsyncServiceBinder;
  * @author Dominic Baeuerle
  * 
  */
-public abstract class Gadget {
+public abstract class OldGadget {
 
 	private String mService;
 	private Service mBoundService;
@@ -28,7 +28,7 @@ public abstract class Gadget {
 	private IResponseConverter mConverter;
 
 	/**
-	 * Abstract class to overwrite in specific {@link Gadget}. Processes
+	 * Abstract class to overwrite in specific {@link OldGadget}. Processes
 	 * requests into repsonse content.
 	 * 
 	 * @param request
