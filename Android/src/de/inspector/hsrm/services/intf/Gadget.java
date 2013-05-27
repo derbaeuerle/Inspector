@@ -130,10 +130,6 @@ public abstract class Gadget {
         return this;
     }
 
-    public Class getRealClass() {
-        return mClass;
-    }
-
     public void setClass(Class clazz) {
         this.mClass = clazz;
     }

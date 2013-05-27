@@ -16,8 +16,15 @@ public class AudioGadget extends Gadget implements MediaPlayer.OnPreparedListene
     private boolean mIsPlaying = false;
 
     @Override
-    public void onRegister(Context context) {
+    public void onCreate(Context context) {
+        super.onCreate(context);
         mMediaPlayer = new MediaPlayer();
+    }
+
+    @Override
+    public void onRegister(Context context) {
+        mMediaPlayer.setOnPreparedListener(this);
+        mMediaPlayer.setOnCompletionListener(this);
     }
 
     @Override

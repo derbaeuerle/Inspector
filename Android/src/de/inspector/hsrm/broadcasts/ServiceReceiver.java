@@ -49,14 +49,18 @@ public class ServiceReceiver extends BroadcastReceiver {
             }
         } else if (paths.contains("register")) {
             for (int i = paths.indexOf("register") + 1; i < paths.size(); i++) {
-                mManager.initGadget(paths.get(i));
+                mManager.register(paths.get(i));
             }
         } else if (paths.contains("unregister")) {
             for (int i = paths.indexOf("unregister") + 1; i < paths.size(); i++) {
-                mManager.initGadget(paths.get(i));
+                mManager.unregister(paths.get(i));
             }
         } else if (paths.contains("destroy")) {
-            mManager.unregisterAllGadgets();
+            for (int i = paths.indexOf("init") + 1; i < paths.size(); i++) {
+                mManager.destroy(paths.get(i));
+            }
+        } else if (paths.contains("close")) {
+            mManager.destroyAll();
             context.unbindService(mConnection);
         }
     }
@@ -105,12 +109,26 @@ public class ServiceReceiver extends BroadcastReceiver {
     private void createGadget(Context context, Element gadget) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         try {
             Class<?> c = Class.forName(gadget.getChildText(context.getString(R.string.configuration_gadgets)));
-            Gadget g = (Gadget) c.newInstance();
 
-            g.setIdentifier(gadget.getChildText(context.getString(R.string.configuration_identifier)));
-            g.setMultiinstance(Boolean.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_multiinstance))));
-            g.setClass(Class.forName(gadget.getChildText(context.getString(R.string.configuration_class))));
-            mGadgetConfiguration.put(g.getIdentifier(), g);
+            boolean multi = Boolean.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_multiinstance), "false"));
+            Class gadgetClass = Class.forName(gadget.getChildText(context.getString(R.string.configuration_class)));
+
+            if (gadget.getChild(context.getString(R.string.configuration_identifiers)) != null) {
+                Element identifiers = gadget.getChild(context.getString(R.string.configuration_identifiers));
+                for (Element identifier : identifiers.getChildren(context.getString(R.string.configuration_identifier))) {
+                    Gadget g = (Gadget) c.newInstance();
+                    g.setIdentifier(identifier.getText());
+                    g.setMultiinstance(multi);
+                    g.setClass(gadgetClass);
+                    mGadgetConfiguration.put(g.getIdentifier(), g);
+                }
+            } else {
+                Gadget g = (Gadget) c.newInstance();
+                g.setIdentifier(gadget.getChildText(context.getString(R.string.configuration_identifier)));
+                g.setMultiinstance(multi);
+                g.setClass(gadgetClass);
+                mGadgetConfiguration.put(g.getIdentifier(), g);
+            }
         } catch (ClassCastException e) {
             e.printStackTrace();
         }

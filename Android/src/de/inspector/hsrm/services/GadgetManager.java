@@ -7,6 +7,7 @@ import de.inspector.hsrm.exceptions.GadgetException;
 import de.inspector.hsrm.services.intf.Gadget;
 import de.inspector.hsrm.services.utils.ServiceBinder;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,6 +30,8 @@ public class GadgetManager extends Service {
                 return GadgetManager.this;
             }
         };
+        mGadgetsRunning = new HashMap<String, AtomicBoolean>();
+        mGadgetInstances = new HashMap<String, Gadget>();
     }
 
     @Override
@@ -47,6 +50,7 @@ public class GadgetManager extends Service {
                 try {
                     Gadget instance = g.createInstance();
                     mGadgetInstances.put(instance.getUniqueIdentifier(), instance);
+                    instance.onCreate(getApplicationContext());
                 } catch (GadgetException e) {
                     e.printStackTrace();
                 }
@@ -54,19 +58,25 @@ public class GadgetManager extends Service {
         }
     }
 
-    public void register(String identifier) {
-        setGadgetRunning(identifier, true);
-        mGadgetInstances.get(identifier).onRegister(getApplicationContext());
+    public void register(String uid) {
+        setGadgetRunning(uid, true);
+        mGadgetInstances.get(uid).onRegister(getApplicationContext());
     }
 
-    public void unregister(String identifier) {
-        setGadgetRunning(identifier, false);
-        mGadgetInstances.get(identifier).onUnregister(getApplicationContext());
+    public void unregister(String uid) {
+        setGadgetRunning(uid, false);
+        mGadgetInstances.get(uid).onUnregister(getApplicationContext());
     }
 
-    public void unregisterAllGadgets() {
+    public void destroy(String uid) {
+        mGadgetInstances.get(uid).onUnregister(getApplicationContext());
+        mGadgetInstances.get(uid).onDestroy(getApplicationContext());
+    }
+
+    public void destroyAll() {
         for (Map.Entry<String, Gadget> r : mGadgetInstances.entrySet()) {
             r.getValue().onUnregister(getApplicationContext());
+            r.getValue().onDestroy(getApplicationContext());
         }
     }
 

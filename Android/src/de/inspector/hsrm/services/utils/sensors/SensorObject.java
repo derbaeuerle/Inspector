@@ -11,7 +11,6 @@ import android.hardware.SensorManager;
  */
 public class SensorObject implements SensorEventListener {
 
-    private final String SENSOR_TYPE_KEY = "INTENT_SENSOR_TYPE";
     private int SENSOR_TYPE;
     private Sensor mSensor;
     private SensorManager mSensorManager;
