@@ -5,3 +5,10 @@ Android/gen
 AudioAPI/gen
 AudioAPI/bin
 *.class
+.idea
+Inspector/bin
+Inspector/gen
+Inspector/libs
+lint.xml
+proguard-project.txt
+project.properties
