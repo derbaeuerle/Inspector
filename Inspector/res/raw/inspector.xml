@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Inspector>
+
+    <Gadget multi-instance="true">
+        <identifier>AUDIOGADGET</identifier>
+        <class>de.inspector.hsrm.gadgets.AudioGadget</class>
+    </Gadget>
+
+    <Gadget>
+        <identifiers>
+            <identifier>ACCELERATION</identifier>
+            <identifier>GYROSCOPE</identifier>
+            <identifier>TEMPERATURE</identifier>
+            <identifier>LIGHT</identifier>
+            <identifier>MAGNETIC</identifier>
+            <identifier>ORIENTATION</identifier>
+            <identifier>PRESSURE</identifier>
+            <identifier>PROXIMITY</identifier>
+        </identifiers>
+        <class>de.inspector.hsrm.gadgets.SensorGadget</class>
+    </Gadget>
+
+</Inspector>
