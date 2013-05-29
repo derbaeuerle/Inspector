@@ -5,6 +5,7 @@ Android/gen
 AudioAPI/gen
 AudioAPI/bin
 *.class
+*.iml
 .idea
 Inspector/bin
 Inspector/gen
@@ -12,3 +13,7 @@ Inspector/libs
 lint.xml
 proguard-project.txt
 project.properties
+TestInspector/bin
+TestInspector/gen
+out
+settings.gradle

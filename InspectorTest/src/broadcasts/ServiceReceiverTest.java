@@ -11,11 +11,12 @@ public class ServiceReceiverTest extends AndroidTestCase {
 
     private ServiceReceiver mServiceReceiver;
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    public ServiceReceiverTest() {
+        super();
+    }
 
-        mServiceReceiver = new ServiceReceiver();
+    public void testSomething() throws Throwable {
+        assertTrue((1 + 1) == 2);
     }
 
     public void testReceiver() {
