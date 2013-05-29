@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Inspector>
 
-    <Gadget multi-instance="true">
+    <Gadget timeout="120" keep-alive="true">
         <identifier>AUDIOGADGET</identifier>
         <class>de.inspector.hsrm.gadgets.AudioGadget</class>
+        <keep-alive />
+        <timeout>120</timeout>
     </Gadget>
 
-    <Gadget>
+    <Gadget timeout="5">
         <identifiers>
             <identifier>ACCELERATION</identifier>
             <identifier>GYROSCOPE</identifier>

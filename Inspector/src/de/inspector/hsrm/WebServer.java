@@ -5,15 +5,23 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
 import de.inspector.hsrm.handler.PatternHandler;
+import de.inspector.hsrm.services.intf.Gadget;
+import org.apache.http.HttpException;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
+import org.apache.http.impl.DefaultHttpServerConnection;
+import org.apache.http.params.BasicHttpParams;
 import org.apache.http.protocol.*;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.UnknownHostException;
+import java.net.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -28,7 +36,6 @@ public class WebServer extends Thread {
     public static final int SERVER_BACKLOG = 50;
     private static final String DEFAULT_PATTERN = "*";
     private ServerSocket mSocket;
-    private ServerAccessType mServerAccesType;
     private AtomicBoolean isRunning;
     private Context context = null;
     private BasicHttpProcessor httpproc = null;
@@ -48,7 +55,6 @@ public class WebServer extends Thread {
     public WebServer(Context context, InputStream configuration) {
         super(SERVER_NAME);
         isRunning = new AtomicBoolean(false);
-        mServerAccesType = ServerAccessType.LOCALHOST;
         mContext = context;
         mConfigurationFile = configuration;
 
@@ -66,6 +72,7 @@ public class WebServer extends Thread {
 
         registry = new HttpRequestHandlerRegistry();
         mHandler = new PatternHandler(context);
+        mHandler.setGadgetConfiguration(readConfiguration(mContext, mConfigurationFile));
 
         registry.register(DEFAULT_PATTERN, mHandler);
         httpService.setHandlerResolver(registry);
@@ -74,76 +81,37 @@ public class WebServer extends Thread {
     @Override
     public void run() {
         super.run();
-        /*try {
-            SAXBuilder builder = new SAXBuilder();
-            Element root = ((Document) builder.build(mConfigurationFile)).getRootElement();
-            List<Element> gadgets = root.getChildren(mContext.getString(R.string.configuration_gadgets));
+        try {
+            mSocket = new ServerSocket(SERVER_PORT, SERVER_BACKLOG, InetAddress.getByName("localhost"));
 
-            for (Element gadget : gadgets) {
-                try {
-                    Class<?> c = Class.forName(gadget.getChildText(mContext.getString(R.string.configuration_multiinstance)));
-                    Gadget g = (Gadget) c.newInstance();
-
-                    g.setPattern(gadget.getChildText(mContext.getString(R.string.configuration_identifier)) + ".*");
-                    Element service = gadget.getChild(mContext.getString(R.string.configuration_service));
-                    if (service != null) {
-                        g.setService(service.getText());
-                    }
-                    Element converter = gadget.getChild(mContext.getString(R.string.configuration_class));
-                    if (converter != null) {
-                        c = Class.forName(converter.getText());
-                        g.setConverter((IResponseConverter) c.newInstance());
-                    } else {
-                        g.setConverter(new JsonConverter());
-                    }
-                    mHandler.registerHandler(g);
-                } catch (ClassCastException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            if (mSocket == null) {
-                switch (mServerAccesType) {
-                    case GLOBAL:
-                        mSocket = new ServerSocket(SERVER_PORT);
-                        break;
-                    case WIFI:
-                        mSocket = new ServerSocket(SERVER_PORT, SERVER_BACKLOG, getWifiInetAddress());
-                        break;
-                    default:
-                        mSocket = new ServerSocket(SERVER_PORT, SERVER_BACKLOG, InetAddress.getByName("localhost"));
-                        break;
-                }
-            }
             Log.d("SERVER", mSocket.getInetAddress().getHostAddress());
-            mSocket.setReuseAddress(true);
-            while (isRunning.get()) {
-                try {
-                    final Socket socket = mSocket.accept();
-                    socket.setReuseAddress(true);
-                    DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
-                    serverConnection.bind(socket, new BasicHttpParams());
-                    httpService.handleRequest(serverConnection, httpContext);
-                    serverConnection.shutdown();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (HttpException e) {
-                    e.printStackTrace();
+            try {
+                mSocket.setReuseAddress(true);
+                mSocket.setReceiveBufferSize(10);
+                while (isRunning.get()) {
+                    try {
+                        final Socket socket = mSocket.accept();
+                        socket.setReuseAddress(true);
+                        DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
+                        serverConnection.bind(socket, new BasicHttpParams());
+                        httpService.handleRequest(serverConnection, httpContext);
+                        serverConnection.shutdown();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (HttpException e) {
+                        e.printStackTrace();
+                    }
                 }
+                mSocket.close();
+                mSocket = null;
+            } catch (SocketException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            mSocket.close();
-            mSocket = null;
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (JDOMException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        }*/
+        }
     }
 
     /**
@@ -176,15 +144,6 @@ public class WebServer extends Thread {
     }
 
     /**
-     * Retrieve current android application context.
-     *
-     * @return Android application context.
-     */
-    public Context getContext() {
-        return context;
-    }
-
-    /**
      * Setting android application context.
      *
      * @param context Android application context.
@@ -212,5 +171,73 @@ public class WebServer extends Thread {
             }
         }
         return null;
+    }
+
+    private Map<String, Gadget> readConfiguration(Context context, InputStream configurationFile) {
+        try {
+            Map<String, Gadget> config = new HashMap<String, Gadget>();
+            SAXBuilder builder = new SAXBuilder();
+            Element root = builder.build(configurationFile).getRootElement();
+            List<Element> gadgets =
+                    root.getChildren(context.getString(R.string.configuration_gadgets));
+
+            for (Element gadget : gadgets) {
+                createGadget(context, gadget, config);
+            }
+            return config;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JDOMException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private void createGadget(Context context, Element gadget, Map<String, Gadget> gadgets) throws ClassNotFoundException, IllegalAccessException,
+            InstantiationException {
+        try {
+			// Class<?> c =
+			// Class.forName(gadget.getChildText(context.getString(R.string.configuration_gadgets)));
+			//
+			// boolean keepAlive =
+			// Boolean.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_keep_alive),
+			// "false"));
+			// int timeout =
+			// Integer.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_timeout)));
+			// Class gadgetClass =
+			// Class.forName(gadget.getChildText(context.getString(R.string.configuration_class)));
+			//
+			// if
+			// (gadget.getChild(context.getString(R.string.configuration_identifiers))
+			// != null) {
+			// Element identifiers =
+			// gadget.getChild(context.getString(R.string.configuration_identifiers));
+			// for (Element identifier :
+			// identifiers.getChildren(context.getString(R.string.configuration_identifier)))
+			// {
+			// Gadget g = (Gadget) c.newInstance();
+			// g.setIdentifier(identifier.getText());
+			// g.setKeepAlive(keepAlive);
+			// g.setTimeout(timeout);
+			// g.setClass(gadgetClass);
+			// gadgets.put(g.getIdentifier(), g);
+			// }
+			// } else {
+			// Gadget g = (Gadget) c.newInstance();
+			// g.setIdentifier(gadget.getChildText(context.getString(R.string.configuration_identifier)));
+			// g.setKeepAlive(keepAlive);
+			// g.setTimeout(timeout);
+			// g.setClass(gadgetClass);
+			// gadgets.put(g.getIdentifier(), g);
+			// }
+        } catch (ClassCastException e) {
+            e.printStackTrace();
+        }
     }
 }

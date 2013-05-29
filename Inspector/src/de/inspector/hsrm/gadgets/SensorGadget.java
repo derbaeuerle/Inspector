@@ -1,6 +1,7 @@
 package de.inspector.hsrm.gadgets;
 
 import android.content.Context;
+import de.inspector.hsrm.handler.utils.InspectorRequest;
 import de.inspector.hsrm.services.constants.SensorTypes;
 import de.inspector.hsrm.services.intf.Gadget;
 import de.inspector.hsrm.services.utils.sensors.SensorObject;
@@ -32,8 +33,7 @@ public class SensorGadget extends Gadget {
     }
 
     @Override
-    public Object gogo(Context context, HttpRequest request, HttpResponse response, HttpContext http_context) throws Exception {
+    public Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response, HttpContext http_context) throws Exception {
         return mSensorObject.getData();
     }
-
 }

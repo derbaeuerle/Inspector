@@ -16,10 +16,6 @@ public class SensorObject implements SensorEventListener {
     private SensorManager mSensorManager;
     private SensorEvent mLastEvent;
 
-    public SensorObject(Context context) {
-        mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-    }
-
     public SensorObject(Context context, int type) {
         mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         setSensorType(type);

@@ -2,6 +2,7 @@ package de.inspector.hsrm.gadgets;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import de.inspector.hsrm.handler.utils.InspectorRequest;
 import de.inspector.hsrm.services.intf.Gadget;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -35,7 +36,7 @@ public class AudioGadget extends Gadget implements MediaPlayer.OnPreparedListene
     }
 
     @Override
-    public Object gogo(Context context, HttpRequest request, HttpResponse response, HttpContext http_context) throws Exception {
+    public Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response, HttpContext http_context) throws Exception {
         String s = "";
         mMediaPlayer.setDataSource(s);
         mMediaPlayer.setLooping(false);
