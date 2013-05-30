@@ -1,4 +1,4 @@
-package de.hsrm.inspector.services.intf;
+package de.hsrm.inspector.gadgets.intf;
 
 public interface GadgetObserver {
 

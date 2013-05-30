@@ -1,9 +1,9 @@
 package de.hsrm.inspector.gadgets;
 
 import android.content.Context;
+import de.hsrm.inspector.constants.SensorTypes;
+import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
-import de.hsrm.inspector.services.constants.SensorTypes;
-import de.hsrm.inspector.services.intf.Gadget;
 import de.hsrm.inspector.services.utils.sensors.SensorObject;
 
 import org.apache.http.HttpRequest;

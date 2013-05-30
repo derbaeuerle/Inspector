@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-                android:name="de.hsrm.inspector.activities.BroadcastActivity"
+                android:name="de.hsrm.inspector.activities.BroadcastProxyActivity"
                 android:theme="@android:style/Theme.NoDisplay">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
@@ -36,7 +36,7 @@
         </activity>
 
         <receiver
-                android:name="de.hsrm.inspector.broadcasts.ServiceReceiver"
+                android:name="de.hsrm.inspector.broadcasts.InspectorReceiver"
                 android:enabled="true">
             <intent-filter>
                 <action android:name="de.inspector.intents"/>

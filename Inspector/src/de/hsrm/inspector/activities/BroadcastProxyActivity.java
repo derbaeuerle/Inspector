@@ -7,7 +7,7 @@ import android.net.Uri;
 /**
  * Created by dobae on 29.05.13.
  */
-public class BroadcastActivity extends Activity {
+public class BroadcastProxyActivity extends Activity {
 
 	@Override
 	protected void onResume() {

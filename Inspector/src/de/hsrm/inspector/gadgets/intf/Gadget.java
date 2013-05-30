@@ -1,4 +1,4 @@
-package de.hsrm.inspector.services.intf;
+package de.hsrm.inspector.gadgets.intf;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -6,9 +6,9 @@ import org.apache.http.protocol.HttpContext;
 
 import android.content.Context;
 import de.hsrm.inspector.exceptions.GadgetException;
+import de.hsrm.inspector.gadgets.intf.GadgetObserver.EVENT;
+import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
-import de.hsrm.inspector.handler.utils.TimeoutTimer;
-import de.hsrm.inspector.services.intf.GadgetObserver.EVENT;
 
 /**
  * Created by dobae on 25.05.13.
@@ -24,7 +24,7 @@ public abstract class Gadget {
 	private TimeoutTimer mTimeoutTimer;
 
 	public Gadget() {
-		this("", de.hsrm.inspector.services.intf.Gadget.class);
+		this("", de.hsrm.inspector.gadgets.intf.Gadget.class);
 	}
 
 	/**

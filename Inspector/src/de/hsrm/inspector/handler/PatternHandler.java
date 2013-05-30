@@ -6,9 +6,9 @@ import android.util.Log;
 import com.google.gson.Gson;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.exceptions.GadgetException;
+import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
-import de.hsrm.inspector.services.intf.Gadget;
-import de.hsrm.inspector.services.intf.GadgetObserver;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;

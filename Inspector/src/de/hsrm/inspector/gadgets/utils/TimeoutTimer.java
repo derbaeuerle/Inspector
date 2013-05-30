@@ -1,11 +1,11 @@
-package de.hsrm.inspector.handler.utils;
+package de.hsrm.inspector.gadgets.utils;
 
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.content.Context;
-import de.hsrm.inspector.services.intf.Gadget;
+import de.hsrm.inspector.gadgets.intf.Gadget;
 
 public class TimeoutTimer {
 

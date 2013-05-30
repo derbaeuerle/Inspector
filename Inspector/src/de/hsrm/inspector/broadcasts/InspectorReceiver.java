@@ -10,7 +10,7 @@ import de.hsrm.inspector.WebServer;
 /**
  * Created by dobae on 25.05.13.
  */
-public class ServiceReceiver extends BroadcastReceiver {
+public class InspectorReceiver extends BroadcastReceiver {
 
 	private WebServer mServer;
 

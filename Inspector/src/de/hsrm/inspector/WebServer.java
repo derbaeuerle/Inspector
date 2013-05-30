@@ -30,8 +30,8 @@ import org.jdom2.input.SAXBuilder;
 
 import android.content.Context;
 import android.util.Log;
+import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.handler.PatternHandler;
-import de.hsrm.inspector.services.intf.Gadget;
 
 /**
  * WebServer Thread to parse inspector's config file and start apache server

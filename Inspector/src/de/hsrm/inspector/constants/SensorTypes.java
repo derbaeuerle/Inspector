@@ -1,4 +1,4 @@
-package de.hsrm.inspector.services.constants;
+package de.hsrm.inspector.constants;
 
 import android.hardware.Sensor;
 
