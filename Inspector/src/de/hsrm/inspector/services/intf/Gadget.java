@@ -1,8 +1,13 @@
 package de.hsrm.inspector.services.intf;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.Context;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
+import de.hsrm.inspector.handler.utils.TimeoutTimer;
+import de.hsrm.inspector.services.intf.GadgetObserver.EVENT;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -13,122 +18,162 @@ import org.apache.http.protocol.HttpContext;
  */
 public abstract class Gadget {
 
-    private String mIdentifier;
-    private Class mClass;
-    private boolean mKeepAlive;
-    private int mTimeout;
+	private List<GadgetObserver> mObserver;
 
-    public Gadget() {
-        this("", de.hsrm.inspector.services.intf.Gadget.class);
-    }
+	private String mIdentifier;
+	private Class<Gadget> mClass;
+	private boolean mKeepAlive;
+	private long mTimeout;
+	private TimeoutTimer mTimeoutTimer;
 
-    /**
-     * Constructor for configuration objects.
-     *
-     * @param identifier
-     * @param clazz
-     */
-    public Gadget(String identifier, Class clazz) {
-        super();
-        mIdentifier = identifier;
-        mClass = clazz;
-    }
+	public Gadget() {
+		this("", de.hsrm.inspector.services.intf.Gadget.class);
+	}
 
-    /**
-     * Creating instances of this Gadget for runtime.
-     *
-     * @param context {Context}
-     * @return {Gadget}
-     */
-    public Gadget createInstance(Context context) throws GadgetException {
-        Gadget g = null;
-        try {
-            g = (Gadget) mClass.newInstance();
-            g.setIdentifier(mIdentifier);
-            g.onCreate(context);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        }
-        return g;
-    }
+	/**
+	 * Constructor for configuration objects.
+	 * 
+	 * @param identifier
+	 * @param clazz
+	 */
+	public Gadget(String identifier, Class<Gadget> clazz) {
+		super();
+		mIdentifier = identifier;
+		mClass = clazz;
+		mObserver = new ArrayList<GadgetObserver>();
+	}
 
-    /**
-     * Gets called when a instance of this gadget gets created.
-     *
-     * @param context {Context}
-     */
-    public void onCreate(Context context) {
+	/**
+	 * Creating instances of this Gadget for runtime.
+	 * 
+	 * @param context
+	 *            {Context}
+	 * @return {Gadget}
+	 */
+	public Gadget createInstance(Context context) throws GadgetException {
+		Gadget g = null;
+		try {
+			g = (Gadget) mClass.newInstance();
+			g.setIdentifier(mIdentifier);
+			g.setKeepAlive(mKeepAlive);
+			g.setTimeout(mTimeout);
+			g.onCreate(context);
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		}
+		return g;
+	}
 
-    }
+	/**
+	 * Gets called when a instance of this gadget gets created.
+	 * 
+	 * @param context
+	 *            {Context}
+	 */
+	public void onCreate(Context context) {
+		if (mTimeout != 0) {
+			mTimeoutTimer = new TimeoutTimer(context, this);
+		}
+	}
 
-    /**
-     * Gets called when a instance of this gadget gets removed from runtime process.
-     *
-     * @param context {Context}
-     */
-    public void onDestroy(Context context) {
+	/**
+	 * Gets called when a instance of this gadget gets removed from runtime
+	 * process.
+	 * 
+	 * @param context
+	 *            {Context}
+	 */
+	public void onDestroy(Context context) {
+		for (GadgetObserver o : mObserver) {
+			o.notifyGadgetEvent(EVENT.DESTROY, this);
+		}
+	}
 
-    }
+	/**
+	 * Gets called when a instance of this gadget gets registered to runtime
+	 * process.
+	 * 
+	 * @param context
+	 *            {Context}
+	 */
+	public void onRegister(Context context) {
+	}
 
-    /**
-     * Gets called when a instance of this gadget gets registered to runtime process.
-     *
-     * @param context {Context}
-     */
-    public void onRegister(Context context) {
+	/**
+	 * Gets called when a instance of this gadget gets unregistered to runtime
+	 * process.
+	 * 
+	 * @param context
+	 *            {Context}
+	 */
+	public void onUnregister(Context context) {
+	}
 
-    }
+	/**
+	 * Handles a request from browser for this gadget and returns Object which
+	 * will be serialized to JSON.
+	 * 
+	 * @param context
+	 *            {Context}
+	 * @param iRequest
+	 *            {InspectorRequest}
+	 * @param request
+	 *            {HttpRequest}
+	 * @param response
+	 *            {HttpResponse}
+	 * @param http_context
+	 *            {HttpContext}
+	 * @return {Object}
+	 * @throws Exception
+	 */
+	public abstract Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response,
+			HttpContext http_context) throws Exception;
 
-    /**
-     * Gets called when a instance of this gadget gets unregistered to runtime process.
-     *
-     * @param context {Context}
-     */
-    public void onUnregister(Context context) {
-    }
+	public String getIdentifier() {
+		return mIdentifier;
+	}
 
-    /**
-     * Handles a request from browser for this gadget and returns Object which will be serialized to JSON.∞
-     *
-     * @param context      {Context}
-     * @param iRequest     {InspectorRequest}
-     * @param request      {HttpRequest}
-     * @param response     {HttpResponse}
-     * @param http_context {HttpContext}
-     * @return {Object}
-     * @throws Exception
-     */
-    public abstract Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response, HttpContext http_context) throws Exception;
+	public Gadget setIdentifier(String identifier) {
+		mIdentifier = identifier;
+		return this;
+	}
 
-    public String getIdentifier() {
-        return mIdentifier;
-    }
+	public void setClass(Class<Gadget> clazz) {
+		this.mClass = clazz;
+	}
 
-    public Gadget setIdentifier(String identifier) {
-        mIdentifier = identifier;
-        return this;
-    }
+	public boolean isKeepAlive() {
+		return mKeepAlive;
+	}
 
-    public void setClass(Class clazz) {
-        this.mClass = clazz;
-    }
+	public void setKeepAlive(boolean keepAlive) {
+		this.mKeepAlive = keepAlive;
+	}
 
-    public boolean isKeepAlive() {
-        return mKeepAlive;
-    }
+	public long getTimeout() {
+		return mTimeout;
+	}
 
-    public void setKeepAlive(boolean mKeepAlive) {
-        this.mKeepAlive = mKeepAlive;
-    }
+	public void setTimeout(long timeout) {
+		this.mTimeout = timeout;
+	}
 
-    public int getTimeout() {
-        return mTimeout;
-    }
+	public void startTimeout() {
+		if (mTimeoutTimer != null) {
+			mTimeoutTimer.start();
+		}
+	}
 
-    public void setTimeout(int mTimeout) {
-        this.mTimeout = mTimeout;
-    }
+	public void cancelTimeout() {
+		if (mTimeoutTimer != null) {
+			mTimeoutTimer.cancel();
+		}
+	}
+
+	public void observe(GadgetObserver observer) {
+		mObserver.add(observer);
+	}
 
 }

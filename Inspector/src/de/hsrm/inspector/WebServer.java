@@ -1,30 +1,37 @@
 package de.hsrm.inspector;
 
-import android.content.Context;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.util.Log;
-import de.hsrm.inspector.R;
-import de.hsrm.inspector.handler.PatternHandler;
-import de.hsrm.inspector.services.intf.Gadget;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.HttpException;
 import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.DefaultHttpResponseFactory;
 import org.apache.http.impl.DefaultHttpServerConnection;
 import org.apache.http.params.BasicHttpParams;
-import org.apache.http.protocol.*;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.BasicHttpProcessor;
+import org.apache.http.protocol.HttpRequestHandlerRegistry;
+import org.apache.http.protocol.HttpService;
+import org.apache.http.protocol.ResponseConnControl;
+import org.apache.http.protocol.ResponseContent;
+import org.apache.http.protocol.ResponseDate;
+import org.apache.http.protocol.ResponseServer;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import android.content.Context;
+import android.util.Log;
+import de.hsrm.inspector.handler.PatternHandler;
+import de.hsrm.inspector.services.intf.Gadget;
 
 /**
  * WebServer Thread to parse inspector's config file and start apache server
@@ -39,7 +46,6 @@ public class WebServer extends Thread {
 	private static final String DEFAULT_PATTERN = "*";
 	private ServerSocket mSocket;
 	private AtomicBoolean isRunning;
-	private Context context = null;
 	private BasicHttpProcessor httpproc = null;
 	private BasicHttpContext httpContext = null;
 	private HttpService httpService = null;
@@ -76,7 +82,12 @@ public class WebServer extends Thread {
 
 		registry = new HttpRequestHandlerRegistry();
 		mHandler = new PatternHandler(context);
-		mHandler.setGadgetConfiguration(readConfiguration(mContext, mConfigurationFile));
+		Map<String, Gadget> defaultConfig = readConfiguration(mContext,
+				context.getResources().openRawResource(R.raw.inspector_default));
+		if (configuration != null) {
+			defaultConfig.putAll(readConfiguration(mContext, mConfigurationFile));
+		}
+		mHandler.setGadgetConfiguration(defaultConfig);
 
 		registry.register(DEFAULT_PATTERN, mHandler);
 		httpService.setHandlerResolver(registry);
@@ -154,28 +165,7 @@ public class WebServer extends Thread {
 	 *            Android application context.
 	 */
 	public void setContext(Context context) {
-		this.context = context;
-	}
-
-	/**
-	 * Get wifi address for wifi access.
-	 * 
-	 * @return InetAddress WiFi address.
-	 */
-	private InetAddress getWifiInetAddress() {
-		WifiManager wifiManager = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
-		if (wifiManager.isWifiEnabled()) {
-			WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-			int ipAddress = wifiInfo.getIpAddress();
-			String ip = String.format("%d.%d.%d.%d", (ipAddress & 0xff), (ipAddress >> 8 & 0xff),
-					(ipAddress >> 16 & 0xff), (ipAddress >> 24 & 0xff));
-			try {
-				return InetAddress.getByName(ip);
-			} catch (UnknownHostException e) {
-				e.printStackTrace();
-			}
-		}
-		return null;
+		this.mContext = context;
 	}
 
 	private Map<String, Gadget> readConfiguration(Context context, InputStream configurationFile) {
@@ -203,13 +193,15 @@ public class WebServer extends Thread {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	private void createGadget(Context context, Element gadget, Map<String, Gadget> gadgets)
 			throws ClassNotFoundException, IllegalAccessException, InstantiationException {
 		try {
 			boolean keepAlive = Boolean.valueOf(gadget.getAttributeValue(
 					context.getString(R.string.configuration_keep_alive), "false"));
-			int timeout = Integer.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_timeout)));
-			Class gadgetClass = Class.forName(gadget.getChildText(context.getString(R.string.configuration_class)));
+			long timeout = Long.valueOf(gadget.getAttributeValue(context.getString(R.string.configuration_timeout))) * 1000;
+			Class<Gadget> gadgetClass = (Class<Gadget>) Class.forName(gadget.getChildText(context
+					.getString(R.string.configuration_class)));
 
 			if (gadget.getChild(context.getString(R.string.configuration_identifiers)) != null) {
 				Element identifiers = gadget.getChild(context.getString(R.string.configuration_identifiers));

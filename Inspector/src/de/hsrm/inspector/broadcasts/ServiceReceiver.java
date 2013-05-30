@@ -5,11 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
-import android.widget.Toast;
-import de.hsrm.inspector.R;
 import de.hsrm.inspector.WebServer;
-
-import java.util.List;
 
 /**
  * Created by dobae on 25.05.13.
@@ -23,7 +19,8 @@ public class ServiceReceiver extends BroadcastReceiver {
 		Log.e("", "Intent received: " + intent.toURI());
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals("init")) {
-			mServer = new WebServer(context, context.getResources().openRawResource(R.raw.inspector));
+			// TODO: Inject configuration file.
+			mServer = new WebServer(context, null);
 			mServer.startThread();
 		} else if (command.equals("destroy")) {
 			mServer.stopThread();
