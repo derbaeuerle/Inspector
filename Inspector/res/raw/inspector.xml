@@ -2,8 +2,8 @@
 <Inspector>
 
     <Gadget timeout="120" keep-alive="true">
-        <identifier>AUDIOGADGET</identifier>
-        <class>de.inspector.hsrm.gadgets.AudioGadget</class>
+        <identifier>AUDIO</identifier>
+        <class>de.hsrm.inspector.gadgets.AudioGadget</class>
         <keep-alive />
         <timeout>120</timeout>
     </Gadget>
@@ -19,7 +19,7 @@
             <identifier>PRESSURE</identifier>
             <identifier>PROXIMITY</identifier>
         </identifiers>
-        <class>de.inspector.hsrm.gadgets.SensorGadget</class>
+        <class>de.hsrm.inspector.gadgets.SensorGadget</class>
     </Gadget>
 
 </Inspector>
