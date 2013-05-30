@@ -2,7 +2,7 @@ inspector = {
 
     initCommand: 'inspector://init/',
     destroyCommand: 'inspector://destroy/',
-    serverAddress: 'http://localhost:9090/',
+    serverAddress: 'http://localhost:9090/inspector/',
     gadgets: {
         AUDIO: 'AUDIO',
         ACCELERATION: 'ACCELERATION',
@@ -17,18 +17,34 @@ inspector = {
     listeners: {},
 
     init : function() {
-        // TODO: Send initCommand
+        window.onbeforeunload = inspector.destroyInspector;
+        inspector.initInspector();
     },
 
-    destroy : function() {
-        // TODO: Send destroyCommand
+    initInspector : function() {
+        inspector.sendIntent(inspector.initCommand);
     },
 
-    listen : function(gadget, opts, callback) {
+    destroyInspector : function() {
+        //inspector.sendIntent(inspector.destroyCommand);
+    },
+
+    sendIntent : function(command) {
+        iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.onerror = function(e) {
+            document.body.removeChild(iframe);
+            console.log(e);
+        }
+        iframe.src = command;
+        document.body.appendChild(iframe);
+    },
+
+    listen : function(gadget, opts, callback, onerror) {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = setIntervall(inspector.call(gadget, opts, callback), 250);
+        id = setIntervall(inspector.call(gadget, opts, callback, onerror), 250);
         inspector.listeners[gadget].push(id);
         return 0;
     },
@@ -43,8 +59,39 @@ inspector = {
         }
     },
 
-    call : function(gadget, opts, callback) {
-        // TODO: Send request to native app.
+    call : function(gadget, opts, callback, onerror) {
+        url = inspector.serverAddress + gadget + "/";
+
+        onError = onError;
+
+        var cbName = "inspected" + Math.floor((new Date()).getTime() / Math.random());
+        url += '?callback=' + cbName;
+
+        for(var key in opts) {
+            if(opts.hasOwnProperty(key)) {
+                url += "&" + key + "=" + opts[key];
+            }
+        }
+
+        script = document.createElement("script");
+
+        script.onError = onerror || inspector.onError;
+        this[cbName] = function(response) {
+            try {
+                callback(response);
+            }
+            finally {
+                delete this[cbName];
+                script.parentNode.removeChild(script);
+            }
+        };
+        script.src = url;
+        document.body.appendChild(script);
+    },
+
+    onError : function(e) {
+        console.error(e);
     }
 
 };
+window.onload = inspector.init;

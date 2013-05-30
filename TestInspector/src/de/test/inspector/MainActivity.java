@@ -28,8 +28,10 @@ public class MainActivity extends Activity {
 	}
 
 	private void sendIntent() {
-		Intent intent = new Intent("de.inspector.intents");
-		intent.setData(Uri.parse("inspect://init/"));
-		sendBroadcast(intent);
+		Intent i = new Intent();
+		i.setAction("android.intent.action.VIEW");
+		i.addCategory("android.intent.category.BROWSABLE");
+		i.setData(Uri.parse("inspector://init/"));
+		startActivity(i);
 	}
 }

@@ -44,7 +44,7 @@ public class InspectorRequest {
     }
 
     public String getGadgetIdentifier() {
-        return mSegments.get(0).toUpperCase();
+        return mSegments.get(1).toUpperCase();
     }
 
     public List<String> getSegments() {

@@ -43,7 +43,7 @@ public class WebServer extends Thread {
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9090;
 	public static final int SERVER_BACKLOG = 50;
-	private static final String DEFAULT_PATTERN = "*";
+	private static final String DEFAULT_PATTERN = "/inspector/*";
 	private ServerSocket mSocket;
 	private AtomicBoolean isRunning;
 	private BasicHttpProcessor httpproc = null;

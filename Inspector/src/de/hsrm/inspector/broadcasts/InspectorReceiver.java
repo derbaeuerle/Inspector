@@ -23,7 +23,9 @@ public class InspectorReceiver extends BroadcastReceiver {
 			mServer = new WebServer(context, null);
 			mServer.startThread();
 		} else if (command.equals("destroy")) {
-			mServer.stopThread();
+			if (mServer != null) {
+				mServer.stopThread();
+			}
 		}
 	}
 }
