@@ -120,7 +120,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		try {
 			Gadget instance = mGadgetConfiguration.get(identifier).createInstance(mContext);
 			instance.onRegister(mContext);
-			instance.observe(this);
+			instance.setObserver(this);
 			mGadgetInstances.put(instance.getIdentifier(), instance);
 		} catch (GadgetException e) {
 			e.printStackTrace();

@@ -5,8 +5,10 @@ package de.hsrm.inspector.exceptions;
  */
 public class GadgetException extends Exception {
 
-    public GadgetException(String s) {
-        super(s);
-    }
+	private static final long serialVersionUID = 2788066028132522302L;
+
+	public GadgetException(String s) {
+		super(s);
+	}
 
 }

@@ -1,7 +1,8 @@
 package de.hsrm.inspector.services.intf;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.protocol.HttpContext;
 
 import android.content.Context;
 import de.hsrm.inspector.exceptions.GadgetException;
@@ -9,16 +10,12 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.handler.utils.TimeoutTimer;
 import de.hsrm.inspector.services.intf.GadgetObserver.EVENT;
 
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.protocol.HttpContext;
-
 /**
  * Created by dobae on 25.05.13.
  */
 public abstract class Gadget {
 
-	private List<GadgetObserver> mObserver;
+	private GadgetObserver mObserver;
 
 	private String mIdentifier;
 	private Class<Gadget> mClass;
@@ -40,7 +37,6 @@ public abstract class Gadget {
 		super();
 		mIdentifier = identifier;
 		mClass = clazz;
-		mObserver = new ArrayList<GadgetObserver>();
 	}
 
 	/**
@@ -86,8 +82,8 @@ public abstract class Gadget {
 	 *            {Context}
 	 */
 	public void onDestroy(Context context) {
-		for (GadgetObserver o : mObserver) {
-			o.notifyGadgetEvent(EVENT.DESTROY, this);
+		if (mObserver != null) {
+			mObserver.notifyGadgetEvent(EVENT.DESTROY, this);
 		}
 	}
 
@@ -172,8 +168,8 @@ public abstract class Gadget {
 		}
 	}
 
-	public void observe(GadgetObserver observer) {
-		mObserver.add(observer);
+	public void setObserver(GadgetObserver observer) {
+		mObserver = observer;
 	}
 
 }
