@@ -1,6 +1,5 @@
-package de.test.inspector;
+package de.hsrm.inspector.activities;
 
-import android.R;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -8,22 +7,25 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import de.hsrm.inspector.R;
 
 /**
  * Created by dobae on 29.05.13.
  */
 public class MainActivity extends Activity implements OnClickListener {
 
-	private Button mSendIntent, mOpenSettings;
+	private Button mSendIntent, mOpenSettings, mGyro;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		// setContentView(R.layout.activity_main);
-		//
-		// mSendIntent = (Button) findViewById(R.id.startServer);
-		// mSendIntent.setOnClickListener(this);
-		// mOpenSettings = (Button) findViewById(R.id.openSettings);
-		// mOpenSettings.setOnClickListener(this);
+		setContentView(R.layout.activity_main);
+
+		mSendIntent = (Button) findViewById(R.id.startServer);
+		mSendIntent.setOnClickListener(this);
+		mOpenSettings = (Button) findViewById(R.id.openSettings);
+		mOpenSettings.setOnClickListener(this);
+		mGyro = (Button) findViewById(R.id.gyroscope);
+		mGyro.setOnClickListener(this);
 	}
 
 	private void sendIntent(View v) {
@@ -34,6 +36,8 @@ public class MainActivity extends Activity implements OnClickListener {
 			i.setData(Uri.parse("inspector://init/"));
 		} else if (v.equals(mOpenSettings)) {
 			i.setData(Uri.parse("inspector://settings/"));
+		} else if (v.equals(mGyro)) {
+			i.setData(Uri.parse("http://inspector/gyroscope"));
 		}
 		startActivity(i);
 	}

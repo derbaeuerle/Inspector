@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Inspector>
+<Inspector timeout="5">
 
     <Gadget timeout="120" keep-alive="true">
         <identifier>AUDIO</identifier>

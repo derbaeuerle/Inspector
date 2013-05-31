@@ -1,14 +1,10 @@
 package de.hsrm.inspector.handler;
 
-import android.content.Context;
-import android.net.Uri;
-import android.util.Log;
-import com.google.gson.Gson;
-import de.hsrm.inspector.R;
-import de.hsrm.inspector.exceptions.GadgetException;
-import de.hsrm.inspector.gadgets.intf.Gadget;
-import de.hsrm.inspector.gadgets.intf.GadgetObserver;
-import de.hsrm.inspector.handler.utils.InspectorRequest;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -19,27 +15,36 @@ import org.apache.http.entity.EntityTemplate;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.util.HashMap;
-import java.util.Map;
+import android.content.Context;
+import android.net.Uri;
+import android.util.Log;
+
+import com.google.gson.Gson;
+
+import de.hsrm.inspector.R;
+import de.hsrm.inspector.WebServer;
+import de.hsrm.inspector.exceptions.GadgetException;
+import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.intf.GadgetObserver;
+import de.hsrm.inspector.handler.utils.InspectorRequest;
 
 public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
-	private Map<String, Gadget> mGadgetConfiguration;
-	private Map<String, Gadget> mGadgetInstances;
+	private ConcurrentHashMap<String, Gadget> mGadgetConfiguration;
+	private ConcurrentHashMap<String, Gadget> mGadgetInstances;
 	private Context mContext;
+	private WebServer mServer;
 
-	public PatternHandler(Context context) {
+	public PatternHandler(Context context, WebServer server) {
 		mContext = context;
-		mGadgetInstances = new HashMap<String, Gadget>();
+		mGadgetInstances = new ConcurrentHashMap<String, Gadget>();
+		mServer = server;
 	}
 
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
-
+		mServer.stopTimeout();
 		Log.d("REQUEST:", request.getRequestLine().toString());
 		Uri requestLine = Uri.parse(request.getRequestLine().getUri());
 		Object tmpResponseContent = null;
@@ -60,10 +65,10 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			} else {
 				initGadget(iRequest.getGadgetIdentifier());
 
-				tmpResponseContent = mGadgetInstances.get(iRequest.getGadgetIdentifier()).gogo(mContext, iRequest,
-						request, response, context);
+				Gadget instance = mGadgetInstances.get(iRequest.getGadgetIdentifier());
+				tmpResponseContent = instance.gogo(mContext, iRequest, request, response, context);
 				tmpResponseContent = iRequest.getCallback() + "(" + gson.toJson(tmpResponseContent) + ")";
-				mGadgetInstances.get(iRequest.getGadgetIdentifier()).startTimeout();
+				instance.startTimeout();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -94,42 +99,47 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	@Override
 	public void notifyGadgetEvent(EVENT event, Gadget gadget) {
-		if (mGadgetInstances.containsKey(gadget.getIdentifier())) {
-			if (event == EVENT.DESTROY) {
-				mGadgetInstances.remove(gadget.getIdentifier());
+		synchronized (mGadgetInstances) {
+			if (mGadgetInstances.containsKey(gadget.getIdentifier())) {
+				if (event == EVENT.DESTROY) {
+					mGadgetInstances.remove(gadget.getIdentifier());
+				}
 			}
-		}
-		if (mGadgetInstances.size() == 0) {
-			// TODO: Wait for configured time and than shut down webserver to
-			// avoid using battery life.
+			if (mGadgetInstances.size() == 0) {
+				mServer.startTimeout();
+			}
 		}
 	}
 
-	public void setGadgetConfiguration(Map<String, Gadget> config) {
-		this.mGadgetConfiguration = config;
+	public void setGadgetConfiguration(ConcurrentHashMap<String, Gadget> config) {
+		mGadgetConfiguration = config;
 	}
 
 	public void initGadget(String identifier) throws GadgetException {
-		if (mGadgetInstances.containsKey(identifier)) {
-			mGadgetInstances.get(identifier).cancelTimeout();
-			return;
-		}
-		if (!mGadgetConfiguration.containsKey(identifier))
-			throw new GadgetException("Unknown gadget identifier: " + identifier);
+		synchronized (mGadgetInstances) {
+			if (mGadgetInstances.containsKey(identifier)) {
+				mGadgetInstances.get(identifier).cancelTimeout();
+				return;
+			}
+			if (!mGadgetConfiguration.containsKey(identifier))
+				throw new GadgetException("Unknown gadget identifier: " + identifier);
 
-		try {
-			Gadget instance = mGadgetConfiguration.get(identifier).createInstance(mContext);
-			instance.onRegister(mContext);
-			instance.setObserver(this);
-			mGadgetInstances.put(instance.getIdentifier(), instance);
-		} catch (GadgetException e) {
-			e.printStackTrace();
+			try {
+				Gadget instance = mGadgetConfiguration.get(identifier).createInstance(mContext);
+				instance.onRegister(mContext);
+				instance.setObserver(this);
+				mGadgetInstances.put(instance.getIdentifier(), instance);
+			} catch (GadgetException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
 	public void destroyGadget(String identifier) throws Exception {
-		mGadgetInstances.get(identifier).onUnregister(mContext);
-		mGadgetInstances.get(identifier).onDestroy(mContext);
-		mGadgetInstances.remove(identifier);
+		synchronized (mGadgetInstances) {
+			mGadgetInstances.get(identifier).onUnregister(mContext);
+			mGadgetInstances.get(identifier).onDestroy(mContext);
+			mGadgetInstances.remove(identifier);
+		}
 	}
 }

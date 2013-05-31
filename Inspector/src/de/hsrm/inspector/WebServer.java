@@ -6,9 +6,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.HttpException;
@@ -52,7 +53,11 @@ public class WebServer extends Thread {
 	private HttpRequestHandlerRegistry registry = null;
 	private PatternHandler mHandler;
 	private Context mContext;
-	private InputStream mConfigurationFile;
+	private ConcurrentHashMap<String, Gadget> mConfiguration;
+	private long mTimeout = 0;
+	private Timer mTimeoutTimer;
+
+	// private InputStream mConfigurationFile;
 
 	/**
 	 * Constructor for web server.
@@ -62,11 +67,11 @@ public class WebServer extends Thread {
 	 * @param configuration
 	 *            InputStream for configuration file.
 	 */
-	public WebServer(Context context, InputStream configuration) {
+	public WebServer(Context context) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
 		mContext = context;
-		mConfigurationFile = configuration;
+		// mConfigurationFile = configuration;
 
 		this.setContext(context);
 
@@ -81,13 +86,13 @@ public class WebServer extends Thread {
 		httpService = new HttpService(httpproc, new DefaultConnectionReuseStrategy(), new DefaultHttpResponseFactory());
 
 		registry = new HttpRequestHandlerRegistry();
-		mHandler = new PatternHandler(context);
-		Map<String, Gadget> defaultConfig = readConfiguration(mContext,
-				context.getResources().openRawResource(R.raw.inspector_default));
-		if (configuration != null) {
-			defaultConfig.putAll(readConfiguration(mContext, mConfigurationFile));
-		}
-		mHandler.setGadgetConfiguration(defaultConfig);
+		mConfiguration = readConfiguration(mContext, context.getResources().openRawResource(R.raw.inspector_default));
+		// if (configuration != null) {
+		// defaultConfig.putAll(readConfiguration(mContext,
+		// mConfigurationFile));
+		// }
+		mHandler = new PatternHandler(context, this);
+		mHandler.setGadgetConfiguration(mConfiguration);
 
 		registry.register(DEFAULT_PATTERN, mHandler);
 		httpService.setHandlerResolver(registry);
@@ -168,11 +173,16 @@ public class WebServer extends Thread {
 		this.mContext = context;
 	}
 
-	private Map<String, Gadget> readConfiguration(Context context, InputStream configurationFile) {
+	public ConcurrentHashMap<String, Gadget> getConfiguration() {
+		return mConfiguration;
+	}
+
+	private ConcurrentHashMap<String, Gadget> readConfiguration(Context context, InputStream configurationFile) {
 		try {
-			Map<String, Gadget> config = new HashMap<String, Gadget>();
+			ConcurrentHashMap<String, Gadget> config = new ConcurrentHashMap<String, Gadget>();
 			SAXBuilder builder = new SAXBuilder();
 			Element root = builder.build(configurationFile).getRootElement();
+			mTimeout = Long.valueOf(root.getAttributeValue(context.getString(R.string.configuration_timeout))) * 1000;
 			List<Element> gadgets = root.getChildren(context.getString(R.string.configuration_gadgets));
 
 			for (Element gadget : gadgets) {
@@ -194,7 +204,7 @@ public class WebServer extends Thread {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void createGadget(Context context, Element gadget, Map<String, Gadget> gadgets)
+	private void createGadget(Context context, Element gadget, ConcurrentHashMap<String, Gadget> gadgets)
 			throws ClassNotFoundException, IllegalAccessException, InstantiationException {
 		try {
 			boolean keepAlive = Boolean.valueOf(gadget.getAttributeValue(
@@ -211,7 +221,13 @@ public class WebServer extends Thread {
 					g.setKeepAlive(keepAlive);
 					g.setTimeout(timeout);
 					g.setClass(gadgetClass);
-					gadgets.put(g.getIdentifier(), g);
+					synchronized (gadgets) {
+						if (gadgets.contains(g.getIdentifier())) {
+							gadgets.replace(g.getIdentifier(), g);
+						} else {
+							gadgets.put(g.getIdentifier(), g);
+						}
+					}
 				}
 			} else {
 				Gadget g = (Gadget) gadgetClass.newInstance();
@@ -219,10 +235,38 @@ public class WebServer extends Thread {
 				g.setKeepAlive(keepAlive);
 				g.setTimeout(timeout);
 				g.setClass(gadgetClass);
-				gadgets.put(g.getIdentifier(), g);
+				synchronized (gadgets) {
+					if (gadgets.contains(g.getIdentifier())) {
+						gadgets.replace(g.getIdentifier(), g);
+					} else {
+						gadgets.put(g.getIdentifier(), g);
+					}
+				}
 			}
 		} catch (ClassCastException e) {
 			e.printStackTrace();
+		}
+	}
+
+	public void startTimeout() {
+		if (mTimeoutTimer != null) {
+			mTimeoutTimer.cancel();
+		}
+
+		mTimeoutTimer = new Timer();
+		TimerTask task = new TimerTask() {
+
+			@Override
+			public void run() {
+				WebServer.this.stopThread();
+			}
+		};
+		mTimeoutTimer.schedule(task, mTimeout);
+	}
+
+	public void stopTimeout() {
+		if (mTimeoutTimer != null) {
+			mTimeoutTimer.cancel();
 		}
 	}
 }
