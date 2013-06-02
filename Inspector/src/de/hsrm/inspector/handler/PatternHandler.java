@@ -46,6 +46,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			IOException {
 		mServer.stopTimeout();
 		Log.d("REQUEST:", request.getRequestLine().toString());
+		Log.e("Roundtrip Start:", System.currentTimeMillis() + "");
 		Uri requestLine = Uri.parse(request.getRequestLine().getUri());
 		Object tmpResponseContent = null;
 		final Object responseContent;
@@ -67,7 +68,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 				Gadget instance = mGadgetInstances.get(iRequest.getGadgetIdentifier());
 				tmpResponseContent = instance.gogo(mContext, iRequest, request, response, context);
-				tmpResponseContent = iRequest.getCallback() + "(" + gson.toJson(tmpResponseContent) + ")";
+				tmpResponseContent = iRequest.getCallback() + "(" + gson.toJson(tmpResponseContent) + ");";
 				instance.startTimeout();
 			}
 		} catch (Exception e) {
@@ -81,10 +82,10 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			map.put(mContext.getString(R.string.exception_stacktrace), b.toString());
 			tmpResponseContent = gson.toJson(map);
 		}
-		response.setHeader("Content-Type", mContext.getString(R.string.mime_json));
+		response.setHeader("Content-Type", "application/json");
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
-		responseContent = gson.toJson(tmpResponseContent);
+		responseContent = tmpResponseContent;
 
 		HttpEntity entity = new EntityTemplate(new ContentProducer() {
 			public void writeTo(final OutputStream outputStream) throws IOException {
@@ -94,7 +95,8 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			}
 		});
 		response.setEntity(entity);
-
+		Log.d("RESPONSE:", responseContent.toString());
+		Log.e("Roundtrip End:", System.currentTimeMillis() + "");
 	}
 
 	@Override

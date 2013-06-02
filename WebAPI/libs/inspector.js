@@ -15,28 +15,58 @@ inspector = {
         PROXIMITY: 'PROXIMITY'
     },
     listeners: {},
+    browser: null,
+    connected: false,
 
     init : function() {
-        window.onbeforeunload = inspector.destroyInspector;
+        uMatch = navigator.userAgent.match(/Chrome\/[0-9]{1,2}/);
+        if(uMatch && uMatch.length >= 1) {
+            inspector.browser = parseInt(uMatch[0].replace("Chrome/", ""), 10);
+            inspector.browser = (inspector.browser >= 25) ? inspector.browser : null;
+        }
+        //window.onbeforeunload = inspector.destroyInspector;
+        window.onblur = inspector.destroyInspector;
         inspector.initInspector();
     },
 
     initInspector : function() {
-        inspector.sendIntent(inspector.initCommand);
+        if(!inspector.browser) {
+            inspector.sendIntent(inspector.initCommand);
+        } else {
+            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
+        }
+        inspector.connected = true;
     },
 
     destroyInspector : function() {
-        //inspector.sendIntent(inspector.destroyCommand);
+        for (var key in inspector.listeners) {
+            var obj = inspector.listeners[key];
+            for (var prop in obj) {
+                inspector.unlisten(key, prop);
+            }
+        }
+        if(!inspector.browser) {
+            inspector.sendIntent(inspector.destroyCommand);
+        } else {
+            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
+        }
+        inspector.connected = false;
     },
 
     sendIntent : function(command) {
         iframe = document.createElement("iframe");
+        iframe.id = "ajaxFrame";
         iframe.style.display = "none";
         iframe.onerror = function(e) {
             document.body.removeChild(iframe);
             console.log(e);
         }
-        iframe.src = command;
+        if(!inspector.browser) {
+            iframe.src = command;
+        } else {
+            window.setTimeout(function() { window.location = '#'; }, 2000);
+            window.location = command;
+        }
         document.body.appendChild(iframe);
     },
 
@@ -44,28 +74,29 @@ inspector = {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = setIntervall(inspector.call(gadget, opts, callback, onerror), 250);
-        inspector.listeners[gadget].push(id);
-        return 0;
+        id = window.setInterval(function() { inspector.call(gadget, opts, callback, onerror); }, 200);
+        inspector.listeners[gadget][id] = id;
+        return id;
     },
 
     unlisten : function(gadget, id) {
         if(gadget in inspector.listeners) {
             if(id in inspector.listeners[gadget]) {
                 gadgetListeners = inspector.listeners[gadget];
-                clearIntervall(gadgetListeners[id]);
+                window.clearInterval(gadgetListeners[id]);
                 delete(gadgetListeners[gadgetListeners.indexOf(id)]);
             }
         }
     },
 
     call : function(gadget, opts, callback, onerror) {
+        if(!inspector.connected) {
+            inspector.initInspector();
+        }
         url = inspector.serverAddress + gadget + "/";
 
-        onError = onError;
-
         var cbName = "inspected" + Math.floor((new Date()).getTime() / Math.random());
-        url += '?callback=' + cbName;
+        url += '?callback=inspector.' + cbName;
 
         for(var key in opts) {
             if(opts.hasOwnProperty(key)) {
@@ -75,7 +106,7 @@ inspector = {
 
         script = document.createElement("script");
 
-        script.onError = onerror || inspector.onError;
+        script.onerror = onerror || inspector.onError;
         this[cbName] = function(response) {
             try {
                 callback(response);
@@ -90,6 +121,7 @@ inspector = {
     },
 
     onError : function(e) {
+        inspector.connected = false;
         console.error(e);
     }
 

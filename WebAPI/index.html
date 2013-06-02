@@ -3,9 +3,26 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector Test</title>
+<meta name="viewport" content="width=480, initial-scale=1.0" />
 <script type="text/javascript" src="libs/inspector.js"></script>
+
 </head>
 <body>
-    <a href="inspector://init/">Initialize Inspector</a>
+    <button href="#" onclick="listenGyro();">Listen Gyro</button><br/>
+    <div id="console"></div><br/>
+    <button href="#" onclick="unlistenGyro();">Unlisten Gyro</button><br/>
+    <script type="text/javascript">
+    var cons = document.getElementById("console");
+    var id = 0;
+    listenGyro = function() {
+        id = inspector.listen(inspector.gadgets.GYROSCOPE, {}, function(data) {
+            console.log(data);
+            cons.innerHTML = data;
+        }, null);
+    }
+    unlistenGyro = function() {
+        inspector.unlisten(inspector.gadgets.GYROSCOPE, id);
+    }
+    </script>
 </body>
 </html>
