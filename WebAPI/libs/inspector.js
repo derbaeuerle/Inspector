@@ -16,7 +16,6 @@ inspector = {
     },
     listeners: {},
     browser: null,
-    connected: false,
 
     init : function() {
         uMatch = navigator.userAgent.match(/Chrome\/[0-9]{1,2}/);
@@ -35,7 +34,6 @@ inspector = {
         } else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
         }
-        inspector.connected = true;
     },
 
     destroyInspector : function() {
@@ -45,7 +43,6 @@ inspector = {
         } else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
         }
-        inspector.connected = false;
     },
 
     destroyListeners : function() {
@@ -55,7 +52,7 @@ inspector = {
                 inspector.unlisten(key, prop);
             }
         }
-    }
+    },
 
     sendIntent : function(command) {
         iframe = document.createElement("iframe");
@@ -68,7 +65,7 @@ inspector = {
         if(!inspector.browser) {
             iframe.src = command;
         } else {
-            window.onbeforeunload = function() { window.location = '#'; console.log("onbeforeunload")};
+            window.onbeforeunload = function() { window.location = '#'; window.stop(); };
             window.location = command;
         }
         document.body.appendChild(iframe);
@@ -78,7 +75,7 @@ inspector = {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = window.setInterval(function() { inspector.call(gadget, opts, callback); }, 500);
+        id = window.setInterval(function() { inspector.call(gadget, opts, callback); }, 500 || opts.interval);
         inspector.listeners[gadget][id] = id;
         return id;
     },
@@ -94,17 +91,6 @@ inspector = {
     },
 
     call : function(gadget, opts, callback) {
-        if(!inspector.connected) {
-            inspector.initInspector();
-            window.setTimeout(function() {
-                inspector.sendRequest(gadget, opts, callback);
-            }, 400);
-        } else {
-            inspector.sendRequest(gadget, opts, callback);
-        }
-    },
-
-    sendRequest : function(gadget, opts, callback) {
         url = inspector.serverAddress + gadget + "/";
 
         var cbName = "inspected" + Math.floor((new Date()).getTime() / Math.random());
@@ -133,8 +119,7 @@ inspector = {
     },
 
     onError : function(e) {
-        inspector.connected = false;
-        inspector.destroyListeners();
+        inspector.initInspector();
         console.error(e);
     }
 

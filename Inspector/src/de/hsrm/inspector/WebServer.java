@@ -137,7 +137,7 @@ public class WebServer extends Thread {
 	/**
 	 * Safe method to start server.
 	 */
-	public void startThread() {
+	public synchronized void startThread() {
 		Log.d("WebServer", "starting ...");
 		if (!isRunning.get()) {
 			isRunning.set(true);
@@ -148,7 +148,7 @@ public class WebServer extends Thread {
 	/**
 	 * Safe method to stop server.
 	 */
-	public void stopThread() {
+	public synchronized void stopThread() {
 		Log.d("WebServer", "stopping ...");
 		if (isRunning.get()) {
 			isRunning.set(false);
@@ -248,7 +248,7 @@ public class WebServer extends Thread {
 		}
 	}
 
-	public void startTimeout() {
+	public synchronized void startTimeout() {
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.cancel();
 		}
@@ -264,7 +264,7 @@ public class WebServer extends Thread {
 		mTimeoutTimer.schedule(task, mTimeout);
 	}
 
-	public void stopTimeout() {
+	public synchronized void stopTimeout() {
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.cancel();
 		}
