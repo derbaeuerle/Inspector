@@ -39,12 +39,7 @@ inspector = {
     },
 
     destroyInspector : function() {
-        for (var key in inspector.listeners) {
-            var obj = inspector.listeners[key];
-            for (var prop in obj) {
-                inspector.unlisten(key, prop);
-            }
-        }
+        inspector.destroyListeners();
         if(!inspector.browser) {
             inspector.sendIntent(inspector.destroyCommand);
         } else {
@@ -52,6 +47,15 @@ inspector = {
         }
         inspector.connected = false;
     },
+
+    destroyListeners : function() {
+        for (var key in inspector.listeners) {
+            var obj = inspector.listeners[key];
+            for (var prop in obj) {
+                inspector.unlisten(key, prop);
+            }
+        }
+    }
 
     sendIntent : function(command) {
         iframe = document.createElement("iframe");
@@ -64,17 +68,17 @@ inspector = {
         if(!inspector.browser) {
             iframe.src = command;
         } else {
-            window.setTimeout(function() { window.location = '#'; }, 2000);
+            window.onbeforeunload = function() { window.location = '#'; console.log("onbeforeunload")};
             window.location = command;
         }
         document.body.appendChild(iframe);
     },
 
-    listen : function(gadget, opts, callback, onerror) {
+    listen : function(gadget, opts, callback) {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = window.setInterval(function() { inspector.call(gadget, opts, callback, onerror); }, 200);
+        id = window.setInterval(function() { inspector.call(gadget, opts, callback); }, 500);
         inspector.listeners[gadget][id] = id;
         return id;
     },
@@ -89,10 +93,18 @@ inspector = {
         }
     },
 
-    call : function(gadget, opts, callback, onerror) {
+    call : function(gadget, opts, callback) {
         if(!inspector.connected) {
             inspector.initInspector();
+            window.setTimeout(function() {
+                inspector.sendRequest(gadget, opts, callback);
+            }, 400);
+        } else {
+            inspector.sendRequest(gadget, opts, callback);
         }
+    },
+
+    sendRequest : function(gadget, opts, callback) {
         url = inspector.serverAddress + gadget + "/";
 
         var cbName = "inspected" + Math.floor((new Date()).getTime() / Math.random());
@@ -106,7 +118,7 @@ inspector = {
 
         script = document.createElement("script");
 
-        script.onerror = onerror || inspector.onError;
+        script.onerror = inspector.onError;
         this[cbName] = function(response) {
             try {
                 callback(response);
@@ -122,6 +134,7 @@ inspector = {
 
     onError : function(e) {
         inspector.connected = false;
+        inspector.destroyListeners();
         console.error(e);
     }
 
