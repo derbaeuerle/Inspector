@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.net.Uri;
@@ -38,9 +39,6 @@ public class InspectorReceiver extends BroadcastReceiver {
 			if (mServer == null) {
 				mServer = new WebServer(context);
 			}
-			// TODO: Check if shared preferences has stored all gadgets, else
-			// build new preferences for missing gadgets.
-			// Version 1.0: Only build default attributes (KeepAlive & Timeout).
 			checkSharedPreferences(context);
 			Intent i = new Intent(context, SettingsActivity.class);
 			i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
