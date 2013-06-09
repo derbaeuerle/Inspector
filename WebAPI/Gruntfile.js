@@ -57,6 +57,14 @@ module.exports = function(grunt) {
         files: 'libs/**/*.js',
         tasks: ['default']
       }
+    },
+    jasmine: {
+      src: '<%= uglify.dist.dest %>',
+      options : {
+        specs : 'specs/**/*.js',
+        keepRunner: true,
+        outfile: 'tests.html'
+      }
     }
   });
 
@@ -66,9 +74,11 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-nodeunit');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-jasmine');
 
   // Default task.
   grunt.registerTask('default', ['concat', 'uglify']);
   grunt.registerTask('server', ['watch']);
+  grunt.registerTask('test', ['jasmine']);
 
 };

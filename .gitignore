@@ -17,3 +17,6 @@ TestInspector/bin
 TestInspector/gen
 out
 settings.gradle
+WebAPI/.grunt
+*.psd
+WebAPI/node_modules
