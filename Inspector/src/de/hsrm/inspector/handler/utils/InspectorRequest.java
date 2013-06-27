@@ -7,6 +7,7 @@ import org.apache.http.HttpRequest;
 
 import android.net.Uri;
 import android.net.UrlQuerySanitizer;
+import android.net.UrlQuerySanitizer.ParameterValuePair;
 
 /**
  * Created by dobae on 28.05.13.
@@ -58,6 +59,16 @@ public class InspectorRequest {
 
 	public String getCallback() {
 		return mCallback;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder b = new StringBuilder();
+		b.append(mSegments.toString() + "\n");
+		for (ParameterValuePair pair : mQuery.getParameterList()) {
+			b.append(pair.mParameter + ": " + pair.mValue + "\n");
+		}
+		return b.toString();
 	}
 
 }

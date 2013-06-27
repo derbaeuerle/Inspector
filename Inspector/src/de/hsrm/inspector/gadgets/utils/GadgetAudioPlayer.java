@@ -8,9 +8,13 @@ import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
+import android.media.MediaPlayer.OnSeekCompleteListener;
+import android.util.Log;
+
+;
 
 public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener, OnCompletionListener,
-		OnBufferingUpdateListener {
+		OnBufferingUpdateListener, OnSeekCompleteListener {
 
 	public static enum STATE {
 		BUFFERING, PREPARED, PLAYING, PAUSED, STOPPED
@@ -21,6 +25,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private boolean mStopped = false;
 	private int mBuffered;
 	private STATE mState = STATE.BUFFERING;
+	private int mSeekTo = Integer.MIN_VALUE;
 
 	public GadgetAudioPlayer() {
 		super();
@@ -57,8 +62,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	public void onPrepared(MediaPlayer mp) {
 		mPrepared = true;
 		mState = STATE.PREPARED;
-		if (mAutoPlay) {
-			mp.start();
+		Log.e("AUTO", "" + mAutoPlay);
+		if (mSeekTo != Integer.MIN_VALUE) {
+			mp.seekTo(mSeekTo);
+		} else {
+			if (mAutoPlay) {
+				mp.start();
+			}
 		}
 	}
 
@@ -67,20 +77,22 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		mPrepared = false;
 	}
 
+	@Override
+	public void onBufferingUpdate(MediaPlayer mp, int percent) {
+		mBuffered = percent;
+	}
+
+	@Override
+	public void onSeekComplete(MediaPlayer mp) {
+		if (isPrepared()) {
+			if (mAutoPlay) {
+				mp.start();
+			}
+		}
+	}
+
 	public boolean isPrepared() {
 		return mPrepared;
-	}
-
-	public void prepare(boolean autoPlay) throws IllegalStateException, IOException {
-		super.prepare();
-		mAutoPlay = autoPlay;
-		mState = STATE.BUFFERING;
-	}
-
-	public void prepareAsync(boolean autoPlay) throws IllegalStateException {
-		super.prepareAsync();
-		mAutoPlay = autoPlay;
-		mState = STATE.BUFFERING;
 	}
 
 	public void stop() {
@@ -103,9 +115,16 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		return map;
 	}
 
-	@Override
-	public void onBufferingUpdate(MediaPlayer mp, int percent) {
-		mBuffered = percent;
+	public void setSeek(int seek) {
+		mSeekTo = seek;
+	}
+
+	public void setAutoplay(boolean play) {
+		mAutoPlay = play;
+	}
+
+	public boolean getAutoplay() {
+		return mAutoPlay;
 	}
 
 }

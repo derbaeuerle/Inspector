@@ -17,11 +17,22 @@ inspector.audio = {
             file = (loc.indexOf('/', loc.length - 1)) ? loc + file : loc + '/' + file;
         }
         file = encodeURIComponent(file);
-        inspector.call(inspector.gadgets.AUDIO, {
+        opts = {
             "audiofile" : file,
-            "do" : action,
-            "playerid" : playerid
-        }, function(data) {
+            "do" : action //,
+            //"playerid" : playerid
+        };
+
+        for(a=0;a<el.parentNode.attributes.length;a++) {
+            attr = el.parentNode.attributes[a];
+            if(attr.value === true || attr.value === "") {
+                attr.value = true;
+            } else if (!attr.value) {
+                attr.value = false;
+            }
+            opts[attr.name.replace('inspector-', '')] = attr.value;
+        }
+        inspector.call(inspector.gadgets.AUDIO, opts, function(data) {
             var event = document.createEvent("Event");
             event.initEvent('state', true, true);
             event.detail = data;
@@ -76,14 +87,19 @@ inspector.audio = {
     check: function() {
         var audios = document.getElementsByTagName('audio');
         for(i=0; i<audios.length; i++) {
-            if(inspector.audio.needReplacement(audios[i])) {
+            audio = audios[i];
+            if(inspector.audio.needReplacement(audio)) {
                 id = (new Date()).getTime() / inspector.audio.id++;
                 id = id / (Math.floor(Math.random()*1001));
                 id = 'iaudio' + id;
                 var iaudio = document.createElement('inspector-audio');
                 iaudio.setAttribute("inspector-playerid", id);
-                iaudio.setAttribute("src", audios[i].getElementsByTagName('source')[0].getAttribute('src'));
+                iaudio.setAttribute("src", audio.getElementsByTagName('source')[0].getAttribute('src'));
                 iaudio.innerHTML = inspector.audio.template;
+
+                for(o=0;o<audio.attributes.length;o++) {
+                    iaudio.setAttribute(audio.attributes[o].name, audio.attributes[o].value);
+                }
 
                 iaudio.play = function() {
                     el = getElementByAttribute("inspector-action", "play", iaudio);
@@ -103,11 +119,46 @@ inspector.audio = {
                         el.click();
                     }
                 }
+                iaudio.seek = function(to) {
+                    inspector.call(inspector.gadgets.AUDIO, {
+                        "audiofile" : iaudio.getAttribute('src'),
+                        "do" : "seek",
+                        "playerid" : iaudio.getAttribute('inspector-playerid'),
+                        "seekto" : to
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        iaudio.dispatchEvent(event);
+                        inspector.audio.updateState(iaudio, data);
+                    });
+                }
+                iaudio.volume = function(volume) {
+                    inspector.call(inspector.gadgets.AUDIO, {
+                        "audiofile" : iaudio.getAttribute('src'),
+                        "do" : "volume",
+                        "playerid" : iaudio.getAttribute('inspector-playerid'),
+                        "volume" : volume
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        iaudio.dispatchEvent(event);
+                        inspector.audio.updateState(iaudio, data);
+                    });
+                }
 
-                audios[i].parentNode.replaceChild(iaudio, audios[i]);
+                audio.parentNode.replaceChild(iaudio, audio);
                 inspector.audio.elements.push(iaudio);
                 i--;
+                inspector.audio.autoplay(iaudio);
             }
+        }
+    },
+
+    autoplay: function(iaudio) {
+        if(iaudio.getAttribute('autoplay') || iaudio.getAttribute('autoplay') === "") {
+            iaudio.play();
         }
     },
 

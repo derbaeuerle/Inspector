@@ -51,7 +51,19 @@ public class AudioGadget extends Gadget {
 			mp = mPlayers.get(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID));
 		} else {
 			if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND).equals(AudioServiceConstants.COMMAND_PLAY)) {
+				boolean autoplay = false, loop = false;
+				if (iRequest.hasParameter(AudioServiceConstants.PARAM_AUTOPLAY)) {
+					autoplay = Boolean.parseBoolean(iRequest.getParameter(AudioServiceConstants.PARAM_AUTOPLAY)
+							.toString());
+				}
+				if (iRequest.hasParameter(AudioServiceConstants.PARAM_LOOP)) {
+					loop = Boolean.parseBoolean(iRequest.getParameter(AudioServiceConstants.PARAM_LOOP).toString());
+				}
+
 				mp = new GadgetAudioPlayer();
+				mp.setLooping(loop);
+				mp.setAutoplay(autoplay);
+
 				String src = Uri.decode(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE).toString());
 				mp.setDataSource(src);
 				mPlayers.put(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString(), mp);
@@ -64,28 +76,37 @@ public class AudioGadget extends Gadget {
 		return "";
 	}
 
-	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws GadgetException {
+	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws Exception {
 		if (!iRequest.hasParameter(AudioServiceConstants.PARAM_COMMAND))
 			throw new GadgetException("No command set for audio gadget.");
 
-		if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND).equals(AudioServiceConstants.COMMAND_PLAY)) {
+		Object command = iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND);
+
+		if (command.equals(AudioServiceConstants.COMMAND_PLAY)) {
 			if (mp.isPrepared()) {
 				if (!mp.isPlaying()) {
 					mp.start();
 				}
 			} else {
-				mp.prepareAsync(true);
+				mp.setAutoplay(true);
+				mp.prepareAsync();
 			}
-		} else if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND).equals(
-				AudioServiceConstants.COMMAND_PAUSE)) {
+		} else if (command.equals(AudioServiceConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {
 				mp.pause();
 			}
-		} else if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND)
-				.equals(AudioServiceConstants.COMMAND_STOP)) {
+		} else if (command.equals(AudioServiceConstants.COMMAND_STOP)) {
 			mp.stop();
 			mPlayers.remove(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString());
+		} else if (command.equals(AudioServiceConstants.COMMAND_SEEK)) {
+			if (iRequest.hasParameter(AudioServiceConstants.PARAM_SEEK_TO)) {
+				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioServiceConstants.PARAM_SEEK_TO).toString()));
+			}
+		} else if (command.equals(AudioServiceConstants.COMMAND_VOLUME)) {
+			if (iRequest.hasParameter(AudioServiceConstants.PARAM_VOLUME)) {
+				float vol = Integer.parseInt(iRequest.getParameter(AudioServiceConstants.PARAM_VOLUME).toString()) / 100f;
+				mp.setVolume(vol, vol);
+			}
 		}
 	}
-
 }
