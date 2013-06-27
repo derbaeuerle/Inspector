@@ -3,6 +3,7 @@ package de.hsrm.inspector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -41,12 +42,13 @@ import de.hsrm.inspector.handler.PatternHandler;
  * @author Dominic Baeuerle
  */
 public class WebServer extends Thread {
+
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9090;
 	public static final int SERVER_BACKLOG = 50;
 	private static final String DEFAULT_PATTERN = "/inspector/*";
 	private ServerSocket mSocket;
-	private AtomicBoolean isRunning;
+	private AtomicBoolean isRunning, isStarted;
 	private BasicHttpProcessor httpproc = null;
 	private BasicHttpContext httpContext = null;
 	private HttpService httpService = null;
@@ -70,6 +72,7 @@ public class WebServer extends Thread {
 	public WebServer(Context context) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
+		isStarted = new AtomicBoolean(false);
 		mContext = context;
 		// mConfigurationFile = configuration;
 
@@ -100,35 +103,34 @@ public class WebServer extends Thread {
 
 	@Override
 	public void run() {
-		super.run();
 		try {
-			mSocket = new ServerSocket(SERVER_PORT, SERVER_BACKLOG, InetAddress.getByName("localhost"));
-
-			Log.d("SERVER", mSocket.getInetAddress().getHostAddress());
-			try {
-				mSocket.setReuseAddress(true);
-				mSocket.setReceiveBufferSize(10);
-				while (isRunning.get()) {
-					try {
-						final Socket socket = mSocket.accept();
-						socket.setReuseAddress(true);
-						DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
-						serverConnection.bind(socket, new BasicHttpParams());
-						httpService.handleRequest(serverConnection, httpContext);
-						serverConnection.shutdown();
-					} catch (IOException e) {
-						e.printStackTrace();
-					} catch (HttpException e) {
-						e.printStackTrace();
+			while (isStarted.get()) {
+				if (isRunning.get()) {
+					mSocket = new ServerSocket();
+					mSocket.setReuseAddress(true);
+					mSocket.setReceiveBufferSize(10);
+					mSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), SERVER_PORT), SERVER_BACKLOG);
+					Log.d("SERVER", mSocket.getInetAddress().getHostAddress());
+					while (isRunning.get()) {
+						try {
+							final Socket socket = mSocket.accept();
+							socket.setReuseAddress(true);
+							DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
+							serverConnection.bind(socket, new BasicHttpParams());
+							httpService.handleRequest(serverConnection, httpContext);
+							serverConnection.shutdown();
+						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (HttpException e) {
+							e.printStackTrace();
+						}
 					}
+					mSocket.close();
+					mSocket = null;
 				}
-				mSocket.close();
-				mSocket = null;
-			} catch (SocketException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
+		} catch (SocketException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -138,10 +140,16 @@ public class WebServer extends Thread {
 	 * Safe method to start server.
 	 */
 	public synchronized void startThread() {
-		Log.d("WebServer", "starting ...");
 		if (!isRunning.get()) {
 			isRunning.set(true);
-			super.start();
+			try {
+				if (!isStarted.get()) {
+					isStarted.set(true);
+					super.start();
+				}
+			} catch (IllegalThreadStateException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -149,10 +157,6 @@ public class WebServer extends Thread {
 	 * Safe method to stop server.
 	 */
 	public synchronized void stopThread() {
-		Log.d("WebServer", "stopping ...");
-		if (isRunning.get()) {
-			isRunning.set(false);
-		}
 		if (mSocket != null) {
 			try {
 				mSocket.close();
@@ -160,7 +164,13 @@ public class WebServer extends Thread {
 				e.printStackTrace();
 			}
 		}
-		super.interrupt();
+		if (isRunning.get()) {
+			isRunning.set(false);
+		}
+	}
+
+	public synchronized boolean isRunning() {
+		return isRunning.get();
 	}
 
 	/**
@@ -175,6 +185,11 @@ public class WebServer extends Thread {
 
 	public ConcurrentHashMap<String, Gadget> getConfiguration() {
 		return mConfiguration;
+	}
+
+	public void setConfiguration(ConcurrentHashMap<String, Gadget> map) {
+		mConfiguration = map;
+		mHandler.setGadgetConfiguration(mConfiguration);
 	}
 
 	private ConcurrentHashMap<String, Gadget> readConfiguration(Context context, InputStream configurationFile) {

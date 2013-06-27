@@ -9,6 +9,7 @@ import org.apache.http.protocol.HttpContext;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import de.hsrm.inspector.constants.AudioServiceConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.Gadget;
@@ -35,24 +36,32 @@ public class AudioGadget extends Gadget {
 			if (mp.isPlaying()) {
 				mp.stop();
 			}
+			mp.release();
 		}
 	}
 
 	@Override
 	public Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response,
 			HttpContext http_context) throws Exception {
-		if (!iRequest.hasParameter(AudioServiceConstants.PARAM_AUDIOFILE))
-			throw new GadgetException("No audiofile set for audio gadget.");
+		if (!iRequest.hasParameter(AudioServiceConstants.PARAM_PLAYERID))
+			throw new GadgetException("No playerid or command set for audio gadget.");
 
-		GadgetAudioPlayer mp;
-		if (mPlayers.containsKey(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE).toString())) {
-			mp = mPlayers.get(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE));
+		GadgetAudioPlayer mp = null;
+		if (mPlayers.containsKey(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString())) {
+			mp = mPlayers.get(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID));
 		} else {
-			mp = new GadgetAudioPlayer();
-			mp.setDataSource(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE).toString());
+			if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND).equals(AudioServiceConstants.COMMAND_PLAY)) {
+				mp = new GadgetAudioPlayer();
+				String src = Uri.decode(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE).toString());
+				mp.setDataSource(src);
+				mPlayers.put(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString(), mp);
+			}
 		}
-		doCommand(iRequest, mp);
-		return "OK";
+		if (mp != null) {
+			doCommand(iRequest, mp);
+			return mp.getPlayerState();
+		}
+		return "";
 	}
 
 	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws GadgetException {
@@ -74,9 +83,8 @@ public class AudioGadget extends Gadget {
 			}
 		} else if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND)
 				.equals(AudioServiceConstants.COMMAND_STOP)) {
-			if (mp.isPlaying()) {
-				mp.stop();
-			}
+			mp.stop();
+			mPlayers.remove(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString());
 		}
 	}
 

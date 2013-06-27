@@ -127,6 +127,14 @@ public abstract class Gadget {
 	public abstract Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response,
 			HttpContext http_context) throws Exception;
 
+	public void bindServices() {
+		// TODO: Implement method based on configuration with asyncbinder.
+	}
+
+	public void unbindServices() {
+		// TODO: Implement method based on configuration with asyncbinder.
+	}
+
 	public String getIdentifier() {
 		return mIdentifier;
 	}

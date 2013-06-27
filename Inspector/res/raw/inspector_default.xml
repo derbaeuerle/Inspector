@@ -4,8 +4,11 @@
     <Gadget timeout="120" keep-alive="true">
         <identifier>AUDIO</identifier>
         <class>de.hsrm.inspector.gadgets.AudioGadget</class>
-        <keep-alive />
-        <timeout>120</timeout>
+    </Gadget>
+
+    <Gadget timeout="60">
+        <identifier>DECIBEL</identifier>
+        <class>de.hsrm.inspector.gadgets.DecibelGadget</class>
     </Gadget>
 
     <Gadget timeout="5">

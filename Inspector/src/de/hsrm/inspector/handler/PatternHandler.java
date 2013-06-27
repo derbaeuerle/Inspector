@@ -16,7 +16,6 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
 import android.content.Context;
-import android.net.Uri;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -45,34 +44,39 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
 		mServer.stopTimeout();
-		Log.d("REQUEST:", request.getRequestLine().toString());
-		Log.e("Roundtrip Start:", System.currentTimeMillis() + "");
-		Uri requestLine = Uri.parse(request.getRequestLine().getUri());
+		// Log.d("REQUEST:", request.getRequestLine().toString());
+		// Log.e("Roundtrip Start:", System.currentTimeMillis() + "");
 		Object tmpResponseContent = null;
 		final Object responseContent;
 		Gson gson = new Gson();
 
 		try {
-			InspectorRequest iRequest = new InspectorRequest(requestLine);
+			InspectorRequest iRequest = new InspectorRequest(request);
 
 			if (iRequest.getSegments().contains("destroy")) {
 				try {
 					destroyGadget(iRequest.getGadgetIdentifier());
-					tmpResponseContent = iRequest.getCallback() + "(DESTROYED)";
+					tmpResponseContent = "DESTROYED";
 				} catch (Exception e) {
-					tmpResponseContent = iRequest.getCallback() + "(ERROR)";
+					tmpResponseContent = "ERROR";
 				}
 
 			} else {
 				initGadget(iRequest.getGadgetIdentifier());
 
 				Gadget instance = mGadgetInstances.get(iRequest.getGadgetIdentifier());
+				Log.d("GADGET", instance.toString());
 				synchronized (instance) {
+					instance.bindServices();
 					tmpResponseContent = instance.gogo(mContext, iRequest, request, response, context);
+					instance.unbindServices();
 					instance.startTimeout();
 				}
-				tmpResponseContent = iRequest.getCallback() + "(" + gson.toJson(tmpResponseContent) + ");";
+				tmpResponseContent = gson.toJson(tmpResponseContent);
 			}
+			tmpResponseContent = iRequest.getCallback() + "(" + tmpResponseContent + ")";
+			// Log.d("RESPONSE:", iRequest.getGadgetIdentifier() + ": " +
+			// tmpResponseContent.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			StringBuilder b = new StringBuilder();
@@ -88,7 +92,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
 		responseContent = tmpResponseContent;
-
+		// Log.d("RESPONSE", tmpResponseContent.toString());
 		HttpEntity entity = new EntityTemplate(new ContentProducer() {
 			public void writeTo(final OutputStream outputStream) throws IOException {
 				OutputStreamWriter writer = new OutputStreamWriter(outputStream, "UTF-8");
@@ -97,8 +101,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			}
 		});
 		response.setEntity(entity);
-		Log.d("RESPONSE:", responseContent.toString());
-		Log.e("Roundtrip End:", System.currentTimeMillis() + "");
+		// Log.e("Roundtrip End:", System.currentTimeMillis() + "");
 	}
 
 	@Override

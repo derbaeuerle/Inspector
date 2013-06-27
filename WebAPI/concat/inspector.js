@@ -1,6 +1,35 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-06-09
+/*! PROJECT_NAME - v0.1.0 - 2013-06-27
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
+function addLoadEvent(func) {
+    var oldonload = window.onload;
+    if (typeof window.onload != 'function') {
+        window.onload = func;
+    } else {
+        window.onload = function() {
+            if (oldonload) {
+                oldonload();
+            }
+            func();
+        }
+    }
+}
+function getElementByAttribute(attr, value, root) {
+    root = root || document.body;
+    if(root.hasAttribute(attr) && root.getAttribute(attr) == value) {
+        return root;
+    }
+    var children = root.children, 
+        element;
+    for(var i = children.length; i--; ) {
+        element = getElementByAttribute(attr, value, children[i]);
+        if(element) {
+            return element;
+        }
+    }
+    return null;
+}
+
 inspector = {
 
     initCommand: 'inspector://init/',
@@ -22,31 +51,30 @@ inspector = {
     timeout: -1,
 
     init : function() {
-        uMatch = navigator.userAgent.match(/Chrome\/[0-9]{1,2}/);
-        if(uMatch && uMatch.length >= 1) {
-            inspector.browser = parseInt(uMatch[0].replace("Chrome/", ""), 10);
-            inspector.browser = (inspector.browser >= 25) ? inspector.browser : null;
-        }
+        inspector.logger('init inspector');
         //window.onbeforeunload = inspector.destroyInspector;
-        window.onblur = inspector.destroyInspector;
+        //window.onblur = inspector.destroyInspector;
         inspector.initInspector();
+        var event = document.createEvent("Event");
+        event.initEvent("inspector-ready", true, true);
+        window.dispatchEvent(event);
     },
 
     initInspector : function() {
-        if(!inspector.browser) {
+        //if(!inspector.browser) {
             inspector.sendIntent(inspector.initCommand);
-        } else {
+        /*} else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }
+        }*/
     },
 
     destroyInspector : function() {
         inspector.destroyListeners();
-        if(!inspector.browser) {
+        //if(!inspector.browser) {
             inspector.sendIntent(inspector.destroyCommand);
-        } else {
+        /*} else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }
+        }*/
     },
 
     destroyListeners : function() {
@@ -122,6 +150,7 @@ inspector = {
         document.body.appendChild(script);
     },
 
+    //TODO: Overwrite onError in call function to do call again.
     onError : function(e) {
         if(inspector.timeout === -1) {
             inspector.timeout = 20;
@@ -134,59 +163,134 @@ inspector = {
             throw new Exception("Failed to establish connection!");
         }
         console.error(e);
+    },
+
+    logger : function(msg) {
+        console.log(msg);
     }
 
 };
-window.onload = inspector.init;
+addLoadEvent(inspector.init);
 inspector.audio = {
 
-    id: 0,
-    template: '<button id="play" onclick="inspector.audio.onClick(this);">Play</button>' +
-              '<button id="pause" onclick="inspector.audio.onClick(this);">Pause</button>' +
-              '<button id="stop" onclick="inspector.audio.onClick(this);">Stop</button>',
+    id: 1,
+    template: '<inspector-audio-state>unknown</inspector-audio-state>' +
+              '<button inspector-action="play" onclick="inspector.audio.onClick(this);">Play</button>' +
+              '<button inspector-action="pause" onclick="inspector.audio.onClick(this);">Pause</button>' +
+              '<button inspector-action="stop" onclick="inspector.audio.onClick(this);">Stop</button>',
+    instances: {},
+    elements: [],
 
     onClick: function(el) {
-        if (el.id === "play") {
-            inspector.call(inspector.gadgets.AUDIO, {
-                "audiofile" : el.parentNode.getAttribute('src'),
-                "do" : "play",
-                "playerid" : el.getAttribute("playerid")
+        action = el.getAttribute("inspector-action");
+        file = el.parentNode.getAttribute("src");
+        playerid = el.parentNode.getAttribute("inspector-playerid");
+        if(file.indexOf('http') === -1) {
+            loc = window.location.href;
+            file = (loc.indexOf('/', loc.length - 1)) ? loc + file : loc + '/' + file;
+        }
+        file = encodeURIComponent(file);
+        inspector.call(inspector.gadgets.AUDIO, {
+            "audiofile" : file,
+            "do" : action,
+            "playerid" : playerid
+        }, function(data) {
+            var event = document.createEvent("Event");
+            event.initEvent('state', true, true);
+            event.detail = data;
+            event.request = {
+                message: action,
+                audiofile: file,
+                playerid: playerid,
+                response: data
+            };
+            el.parentNode.dispatchEvent(event);
+            inspector.audio.updateState(el.parentNode, data);
+        });
+        if(action === "play") {
+            // If starts playing, safe id of stream and send states for current player state request.
+            inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                "do": "state",
+                "playerid": playerid
             }, function(data) {
-                el.setAttribute("playerid", data.playerid);
-                console.log(data);
+                var event = document.createEvent("Event");
+                event.initEvent('state', true, true);
+                event.detail = data;
+                el.parentNode.dispatchEvent(event);
+                inspector.audio.updateState(el.parentNode, data);
             });
-        } else if (el.id === "pause") {
-            inspector.call(inspector.gadgets.AUDIO, {
-                "audiofile" : el.parentNode.getAttribute('src'),
-                "do" : "pause",
-                "playerid" : el.getAttribute("playerid")
-            }, function(data) {
-                el.setAttribute("playerid", data.playerid);
-                console.log(data);
-            });
-        } else if (el.id === "stop") {
-            inspector.call(inspector.gadgets.AUDIO, {
-                "audiofile" : el.parentNode.getAttribute('src'),
-                "do" : "stop",
-                "playerid" : el.getAttribute("playerid")
-            }, function(data) {
-                el.setAttribute("playerid", data.playerid);
-                console.log(data);
-            });
+        } else {
+            // Else remove player state request from streams.
+            window.setTimeout(function() {
+                inspector.unlisten(inspector.gadgets.AUDIO, inspector.audio.instances[playerid]);
+            }, 500);
+        }
+
+    },
+
+    updateState: function(el, response) {
+        sEl = el.getElementsByTagName('inspector-audio-state');
+        if(sEl.length > 0) {
+            sEl = sEl[0];
+            sEl.innerHTML = response.state || 'unknown';
+        }
+    },
+
+    needReplacement: function(el) {
+        srcs = el.getElementsByTagName('source');
+        for(x=0; x<srcs.length; x++) {
+            if(el.canPlayType(srcs[x].getAttribute('type'))) {
+                return false;
+            }
+        }
+        return true;
+    },
+
+    check: function() {
+        var audios = document.getElementsByTagName('audio');
+        for(i=0; i<audios.length; i++) {
+            if(inspector.audio.needReplacement(audios[i])) {
+                id = (new Date()).getTime() / inspector.audio.id++;
+                id = id / (Math.floor(Math.random()*1001));
+                id = 'iaudio' + id;
+                var iaudio = document.createElement('inspector-audio');
+                iaudio.setAttribute("inspector-playerid", id);
+                iaudio.setAttribute("src", audios[i].getElementsByTagName('source')[0].getAttribute('src'));
+                iaudio.innerHTML = inspector.audio.template;
+
+                iaudio.play = function() {
+                    el = getElementByAttribute("inspector-action", "play", iaudio);
+                    if(el) {
+                        el.click();
+                    }
+                }
+                iaudio.stop = function() {
+                    el = getElementByAttribute("inspector-action", "stop", iaudio);
+                    if(el) {
+                        el.click();
+                    }
+                }
+                iaudio.stop = function() {
+                    el = getElementByAttribute("inspector-action", "pause", iaudio);
+                    if(el) {
+                        el.click();
+                    }
+                }
+
+                audios[i].parentNode.replaceChild(iaudio, audios[i]);
+                inspector.audio.elements.push(iaudio);
+                i--;
+            }
         }
     },
 
     init: function() {
-        var audios = document.getElementsByTagName('audio');
-        for(i=0; i<audios.length; i++) {
-            id = 'iaudio' + inspector.audio.id++;
-            var iaudio = document.createElement('inspector-audio');
-            iaudio.id = id;
-            iaudio.setAttribute("src", audios[0].getElementsByTagName('source')[0].getAttribute('src'));
-            iaudio.innerHTML = inspector.audio.template;
-            audios[i].parentNode.replaceChild(iaudio, audios[i]);
-        }
+        inspector.logger("init() audio");
+        inspector.audio.check();
+        var event = document.createEvent("Event");
+        event.initEvent('inspector-audio-ready', true, true);
+        window.dispatchEvent(event);
     }
 
 };
-window.onload = inspector.audio.init;
+addLoadEvent(inspector.audio.init);

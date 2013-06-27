@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>Inspector Test</title>
+<meta name="viewport" content="width=800, initial-scale=0.5" />
+<script type="text/javascript" src="js/inspector.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+<style type="text/css">
+    html, body {
+        width: 640px;
+    }
+    #compass {
+        position:absolute;
+        top:100px;
+        left:250px;
+        display:block;
+        background:url('img/compass.png') top left no-repeat;
+        width:300px;
+        height:300px;
+    }
+    #needle {
+        position:absolute;
+        top:100px;
+        left:250px;
+        display:block;
+        background:url('img/needle.png') top left no-repeat;
+        width:300px;
+        height:300px;
+    }
+</style>
+</head>
+<body>
+    <audio>
+        <source src="test.mp3" type="audio/mp3">
+    </audio>
+    <button href="#" onclick="listenOrientation();">Start Compass</button><br/>
+    <button href="#" onclick="unlistenOrientation();">Stop Compass</button><br/>
+    Magnetic: <div id="magnetic"></div><br/>
+    <div id="degree"></div>°<br/>
+    <div id="compass"></div>
+    <div id="needle"></div>
+    <script type="text/javascript">
+    $console = $('#console');
+    $compass = $('#compass');
+    $deg = $('#degree');
+    $mag = $('#magnetic');
+    var ori = 0, mag = 0;
+    listenOrientation = function() {
+        inspector.destroyListeners();
+        ori = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
+            if(data[0]) {
+                deg = -1 * parseInt(data[0], 10);
+                $compass.css({
+                    '-webkit-transform': 'rotate(' + deg + 'deg)',
+                    '-o-transform': 'rotate(' + deg + 'deg)',
+                    '-ms-transform': 'rotate(' + deg + 'deg)',
+                    'transform': 'rotate(' + deg + 'deg)'
+                });
+                $deg.html(deg);
+            }
+        }, null);
+
+        mag = inspector.listen(inspector.gadgets.MAGNETIC, {}, function(data) {
+            if(data) {
+               $mag.html(data[0]);
+            }
+        });
+    }
+    unlistenOrientation = function() {
+        inspector.unlisten(inspector.gadgets.ORIENTATION, ori);
+        inspector.unlisten(inspector.gadgets.MAGNETIC, mag);
+    }
+    </script>
+</body>
+</html>

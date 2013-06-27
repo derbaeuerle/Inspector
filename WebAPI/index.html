@@ -3,66 +3,31 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector Test</title>
-<meta name="viewport" content="width=480, initial-scale=1.0" />
-<script type="text/javascript" src="concat/inspector.js"></script>
+<script type="text/javascript" src="js/inspector.min.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
-<style type="text/css">
-    html, body {
-        width: 480px;
-    }
-    #compass {
-        position:absolute;
-        top:100px;
-        left:10px;
-        display:block;
-        background:url('img/compass.png') top left no-repeat;
-        width:300px;
-        height:300px;
-    }
-    #needle {
-        position:absolute;
-        top:100px;
-        left:10px;
-        display:block;
-        background:url('img/needle.png') top left no-repeat;
-        width:300px;
-        height:300px;
-    }
-</style>
 </head>
 <body>
-    <audio>
+    <audio controls>
         <source src="test.mp3" type="audio/mp3">
+        <source src="test.ogv" type="audio/ogv">
+    </audio><br />
+    <audio controls>
+        <source src="test.mp3" type="audio/mp3">
+        <source src="test.ogv" type="audio/ogv">
     </audio>
-    <button href="#" onclick="listenOrientation();">Start Compass</button><br/>
-    <button href="#" onclick="unlistenOrientation();">Stop Compass</button><br/>
-    <div id="console"></div><br/>
-    <div id="compass"></div>
-    <div id="needle"></div>
-    <script type="text/javascript">
-    var cons = document.getElementById("console");
-    $compass = $('#compass');
-    var id = 0;
-    listenOrientation = function() {
-        inspector.destroyListeners();
-        id = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
-            console.log(data[0]);
-            cons.innerHTML = data[0];
-            if(data[0]) {
-                deg = -1 * parseInt(data[0], 10);
-                $compass.css({
-                    '-webkit-transform': 'rotate(' + deg + 'deg)',
-                    '-o-transform': 'rotate(' + deg + 'deg)',
-                    '-ms-transform': 'rotate(' + deg + 'deg)',
-                    'transform': 'rotate(' + deg + 'deg)'
-                });
-            }
-        }, null);
+    <div id="cons"></div>
+<script type="text/javascript">
+    window.addEventListener('inspector-audio-ready', function(e) {
+        var elements = inspector.audio.elements;
+        for(i=0;i<elements.length;i++) {
+            element = elements[i];
+            inspector.logger("EventListener for: " + element.getAttribute('inspector-playerid'));
+        }
+    });
+    inspector.logger = function(msg) {
+        cons = $('#cons');
+        cons.append(msg + "<br/>");
     }
-    unlistenOrientation = function() {
-        inspector.unlisten(inspector.gadgets.ORIENTATION, id);
-    }
-    window.onblur = unlistenOrientation;
-    </script>
+</script>
 </body>
 </html>

@@ -1,3 +1,32 @@
+function addLoadEvent(func) {
+    var oldonload = window.onload;
+    if (typeof window.onload != 'function') {
+        window.onload = func;
+    } else {
+        window.onload = function() {
+            if (oldonload) {
+                oldonload();
+            }
+            func();
+        }
+    }
+}
+function getElementByAttribute(attr, value, root) {
+    root = root || document.body;
+    if(root.hasAttribute(attr) && root.getAttribute(attr) == value) {
+        return root;
+    }
+    var children = root.children, 
+        element;
+    for(var i = children.length; i--; ) {
+        element = getElementByAttribute(attr, value, children[i]);
+        if(element) {
+            return element;
+        }
+    }
+    return null;
+}
+
 inspector = {
 
     initCommand: 'inspector://init/',
@@ -19,31 +48,30 @@ inspector = {
     timeout: -1,
 
     init : function() {
-        uMatch = navigator.userAgent.match(/Chrome\/[0-9]{1,2}/);
-        if(uMatch && uMatch.length >= 1) {
-            inspector.browser = parseInt(uMatch[0].replace("Chrome/", ""), 10);
-            inspector.browser = (inspector.browser >= 25) ? inspector.browser : null;
-        }
+        inspector.logger('init inspector');
         //window.onbeforeunload = inspector.destroyInspector;
-        window.onblur = inspector.destroyInspector;
+        //window.onblur = inspector.destroyInspector;
         inspector.initInspector();
+        var event = document.createEvent("Event");
+        event.initEvent("inspector-ready", true, true);
+        window.dispatchEvent(event);
     },
 
     initInspector : function() {
-        if(!inspector.browser) {
+        //if(!inspector.browser) {
             inspector.sendIntent(inspector.initCommand);
-        } else {
+        /*} else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }
+        }*/
     },
 
     destroyInspector : function() {
         inspector.destroyListeners();
-        if(!inspector.browser) {
+        //if(!inspector.browser) {
             inspector.sendIntent(inspector.destroyCommand);
-        } else {
+        /*} else {
             inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }
+        }*/
     },
 
     destroyListeners : function() {
@@ -119,6 +147,7 @@ inspector = {
         document.body.appendChild(script);
     },
 
+    //TODO: Overwrite onError in call function to do call again.
     onError : function(e) {
         if(inspector.timeout === -1) {
             inspector.timeout = 20;
@@ -131,7 +160,11 @@ inspector = {
             throw new Exception("Failed to establish connection!");
         }
         console.error(e);
+    },
+
+    logger : function(msg) {
+        console.log(msg);
     }
 
 };
-window.onload = inspector.init;
+addLoadEvent(inspector.init);

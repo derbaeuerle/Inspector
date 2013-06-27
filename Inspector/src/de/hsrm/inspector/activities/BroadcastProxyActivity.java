@@ -3,18 +3,24 @@ package de.hsrm.inspector.activities;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
-import android.util.Log;
 
 /**
  * Created by dobae on 29.05.13.
  */
 public class BroadcastProxyActivity extends Activity {
 
+	// private static boolean mSystemIntentsInitialized = false;
+
 	@Override
 	protected void onResume() {
 		super.onResume();
+		// if (!mSystemIntentsInitialized) {
+		// mSystemIntentsInitialized = true;
+		// IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+		// filter.addAction(Intent.ACTION_SCREEN_OFF);
+		// registerReceiver(new InspectorReceiver(), filter);
+		// }
 		Intent i = getIntent();
-		Log.d("", "INCOMING!!!! " + i.toURI());
 		Uri data = i.getData();
 		if (data != null) {
 			String uri = data.toString();

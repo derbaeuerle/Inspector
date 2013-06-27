@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.net.Uri;
@@ -20,7 +19,7 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
  */
 public class InspectorReceiver extends BroadcastReceiver {
 
-	private WebServer mServer;
+	private static WebServer mServer;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -39,14 +38,14 @@ public class InspectorReceiver extends BroadcastReceiver {
 			if (mServer == null) {
 				mServer = new WebServer(context);
 			}
-			checkSharedPreferences(context);
+			mServer.setConfiguration(checkSharedPreferences(context));
 			Intent i = new Intent(context, SettingsActivity.class);
 			i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			context.startActivity(i);
 		}
 	}
 
-	private void checkSharedPreferences(Context context) {
+	private ConcurrentHashMap<String, Gadget> checkSharedPreferences(Context context) {
 		ConcurrentHashMap<String, Gadget> config = mServer.getConfiguration();
 		SharedPreferences preferences = context.getSharedPreferences(
 				context.getString(R.string.configuration_preferences), Context.MODE_PRIVATE);
@@ -71,5 +70,6 @@ public class InspectorReceiver extends BroadcastReceiver {
 				}
 			}
 		}
+		return config;
 	}
 }
