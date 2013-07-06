@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Audio" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="audio:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="audio:keep-alive"
+            android:title="Keep-Alive" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="audio:needs-auth"
+            android:title="Needs authorization" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

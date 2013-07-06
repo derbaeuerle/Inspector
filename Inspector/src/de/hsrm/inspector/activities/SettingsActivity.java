@@ -9,6 +9,7 @@ public class SettingsActivity extends PreferenceActivity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		addPreferencesFromResource(R.xml.default_preferences);
+		addPreferencesFromResource(R.xml.audio_preferences);
+		addPreferencesFromResource(R.xml.sensor_preferences);
 	}
 }

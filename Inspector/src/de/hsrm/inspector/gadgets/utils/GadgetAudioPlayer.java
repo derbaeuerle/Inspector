@@ -9,9 +9,6 @@ import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.MediaPlayer.OnSeekCompleteListener;
-import android.util.Log;
-
-;
 
 public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener, OnCompletionListener,
 		OnBufferingUpdateListener, OnSeekCompleteListener {
@@ -23,6 +20,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private boolean mPrepared = false;;
 	private boolean mAutoPlay = false;
 	private boolean mStopped = false;
+	private int mDuration;
 	private int mBuffered;
 	private STATE mState = STATE.BUFFERING;
 	private int mSeekTo = Integer.MIN_VALUE;
@@ -62,7 +60,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	public void onPrepared(MediaPlayer mp) {
 		mPrepared = true;
 		mState = STATE.PREPARED;
-		Log.e("AUTO", "" + mAutoPlay);
+		mDuration = mp.getDuration();
 		if (mSeekTo != Integer.MIN_VALUE) {
 			mp.seekTo(mSeekTo);
 		} else {
@@ -99,15 +97,20 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		super.stop();
 		super.release();
 		mStopped = true;
+		mState = STATE.STOPPED;
 	}
 
 	public Map<String, Object> getPlayerState() {
 		HashMap<String, Object> map = new HashMap<String, Object>();
-		if (!mStopped) {
-			map.put("duration", this.getDuration());
-			map.put("position", this.getCurrentPosition());
-			map.put("state", this.mState.toString());
+		if (mPrepared) {
+			try {
+				map.put("position", this.getCurrentPosition());
+			} catch (Exception e) {
+
+			}
 		}
+		map.put("duration", this.mDuration);
+		map.put("state", this.mState.toString());
 		map.put("buffered", this.mBuffered);
 		map.put("stopped", this.mStopped);
 		map.put("autoplay", this.mAutoPlay);

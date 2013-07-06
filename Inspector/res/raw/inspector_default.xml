@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Inspector timeout="5">
 
-    <Gadget timeout="120" keep-alive="true">
+    <Gadget timeout="5" keep-alive="true">
         <identifier>AUDIO</identifier>
         <class>de.hsrm.inspector.gadgets.AudioGadget</class>
-    </Gadget>
-
-    <Gadget timeout="60">
-        <identifier>DECIBEL</identifier>
-        <class>de.hsrm.inspector.gadgets.DecibelGadget</class>
     </Gadget>
 
     <Gadget timeout="5">

@@ -67,8 +67,8 @@ public class AsyncServiceBinder extends FutureTask<Object> {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public Object process(Class<Service> service) throws ClassNotFoundException, InterruptedException,
-			ExecutionException {
+	@SuppressWarnings("rawtypes")
+	public Object process(Class service) throws ClassNotFoundException, InterruptedException, ExecutionException {
 		Intent i = new Intent(mApplicationContext, service);
 		mApplicationContext.bindService(i, mConnection, Context.BIND_AUTO_CREATE);
 		return get();

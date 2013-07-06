@@ -1,6 +1,6 @@
 function addLoadEvent(func) {
     var oldonload = window.onload;
-    if (typeof window.onload != 'function') {
+    if (typeof window.onload !== 'function') {
         window.onload = func;
     } else {
         window.onload = function() {
@@ -44,11 +44,9 @@ inspector = {
         PROXIMITY: 'PROXIMITY'
     },
     listeners: {},
-    browser: null,
     timeout: -1,
 
     init : function() {
-        inspector.logger('init inspector');
         //window.onbeforeunload = inspector.destroyInspector;
         //window.onblur = inspector.destroyInspector;
         inspector.initInspector();
@@ -58,20 +56,12 @@ inspector = {
     },
 
     initInspector : function() {
-        //if(!inspector.browser) {
-            inspector.sendIntent(inspector.initCommand);
-        /*} else {
-            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }*/
+        inspector.sendIntent(inspector.initCommand);
     },
 
     destroyInspector : function() {
         inspector.destroyListeners();
-        //if(!inspector.browser) {
-            inspector.sendIntent(inspector.destroyCommand);
-        /*} else {
-            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }*/
+        inspector.sendIntent(inspector.destroyCommand);
     },
 
     destroyListeners : function() {
@@ -100,31 +90,39 @@ inspector = {
         document.body.appendChild(iframe);
     },
 
-    listen : function(gadget, opts, callback) {
+    listen : function(gadget, opts, callback, error) {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = window.setInterval(function() { inspector.call(gadget, opts, callback); }, 500 || opts.interval);
-        inspector.listeners[gadget][id] = id;
-        return id;
+        streamId = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
+        opts.id = streamId;
+
+        inspector.call(gadget, opts, callback, error);
+
+        // id = window.setInterval(function() { inspector.call(gadget, opts, callback, error); }, 500 || opts.interval);
+        inspector.listeners[gadget][streamId] = streamId;
+        return streamId;
     },
 
     unlisten : function(gadget, id) {
         if(gadget in inspector.listeners) {
             if(id in inspector.listeners[gadget]) {
-                gadgetListeners = inspector.listeners[gadget];
-                window.clearInterval(gadgetListeners[id]);
-                delete(gadgetListeners[gadgetListeners.indexOf(id)]);
+                delete inspector.listeners[gadget][id];
             }
         }
     },
 
-    call : function(gadget, opts, callback) {
+    onEvent : function(gadget, opts, callback, error) {
+        window.setTimeout(function() {
+            inspector.call(gadget, opts, callback, error);
+        }, 100);
+    },
+
+    call : function(gadget, opts, callback, error, timeouts) {
         url = inspector.serverAddress + gadget + "/";
 
-        var cbName = "inspector" + Math.floor((new Date()).getTime() / Math.random());
+        var cbName = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
         url += '?callback=inspector.' + cbName;
-
         for(var key in opts) {
             if(opts.hasOwnProperty(key)) {
                 url += "&" + key + "=" + opts[key];
@@ -132,34 +130,36 @@ inspector = {
         }
 
         script = document.createElement("script");
+        script.onerror = function(e) {
+            if(error) {
+                error(e, gadget, opts, callback, error);
+            } if(timeouts && timeouts > 0) {
+                inspector.initInspector();
+                window.setTimeout(function() {
+                    timeouts -= 1;
+                    inspector.call(gadget, opts, callback, error, timeouts);
+                }, 200);
+            }
+        }
 
-        script.onerror = inspector.onError;
-        this[cbName] = function(response) {
+        inspector[cbName] = function(response) {
             try {
-                callback(response);
+                if(response['error']){
+                    error(response);
+                } else {
+                    callback(response);
+                }
+                if(opts.id && inspector.listeners[gadget][opts.id]) {
+                    inspector.onEvent(gadget, opts, callback, error, response);
+                }
             }
             finally {
-                delete this[cbName];
+                delete inspector[cbName];
                 script.parentNode.removeChild(script);
             }
         };
         script.src = url;
         document.body.appendChild(script);
-    },
-
-    //TODO: Overwrite onError in call function to do call again.
-    onError : function(e) {
-        if(inspector.timeout === -1) {
-            inspector.timeout = 20;
-            inspector.timeout--;
-            inspector.initInspector();
-        } else if(inspector.timeout > 0) {
-            inspector.initInspector();
-            inspector.timeout--;
-        } else if(inspector.timeout === 0) {
-            throw new Exception("Failed to establish connection!");
-        }
-        console.error(e);
     },
 
     logger : function(msg) {

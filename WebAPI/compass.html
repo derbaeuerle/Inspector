@@ -13,7 +13,7 @@
     #compass {
         position:absolute;
         top:100px;
-        left:250px;
+        left:350px;
         display:block;
         background:url('img/compass.png') top left no-repeat;
         width:300px;
@@ -22,7 +22,7 @@
     #needle {
         position:absolute;
         top:100px;
-        left:250px;
+        left:350px;
         display:block;
         background:url('img/needle.png') top left no-repeat;
         width:300px;
@@ -34,16 +34,21 @@
     <button id="start" href="#" onclick="listenOrientation();">Start Compass</button><br/>
     <button id="stop" href="#" onclick="unlistenOrientation();">Stop Compass</button><br/>
     Magnetic: <div id="magnetic"></div><br/>
-    <div id="degree"></div>°<br/>
+    Degree: <div id="degree"></div>°<br/>
     <div id="compass"></div>
     <div id="needle"></div>
+    <div id="console"></div><br/>
     <script type="text/javascript">
         $console = $('#console');
         $compass = $('#compass');
+        $console = $('#console');
         $deg = $('#degree');
         $mag = $('#magnetic');
-        var ori = 0, mag = 0;
+        var ori, mag;
         listenOrientation = function() {
+            if(ori || mag) {
+                unlistenOrientation();
+            }
             inspector.destroyListeners();
             ori = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
                 if(data[0]) {
@@ -56,17 +61,24 @@
                     });
                     $deg.html(deg);
                 }
-            }, null);
-
-            mag = inspector.listen(inspector.gadgets.MAGNETIC, {}, function(data) {
+            }, function(error) {
+                inspector.logger(error);
+            });
+            mag = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
+                inspector.logger(data);
                 if(data) {
                    $mag.html(data[0]);
                 }
             });
+
+            inspector.logger("magnetic" + mag);
         }
         unlistenOrientation = function() {
             inspector.unlisten(inspector.gadgets.ORIENTATION, ori);
             inspector.unlisten(inspector.gadgets.MAGNETIC, mag);
+        }
+        inspector.logger = function(msg) {
+            $console.html(msg);
         }
         $(document).ready(function(e) {
             $('#start').click();

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Acceleration" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="acceleration:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="acceleration:keep-alive"
+            android:title="Keep-Alive" />
+        <CheckBoxPreference
+            android:key="acceleration:needs-auth"
+            android:title="Needs authorization" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Gyroscope" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="gyroscope:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="gyroscope:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Temperature" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="temperature:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="temperature:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Light" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="light:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="light:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Magnetic" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="magnetic:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="magnetic:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Orientation" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="orientation:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="orientation:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Pressure" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="pressure:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="pressure:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Proximity" >
+        <EditTextPreference
+            android:inputType="number"
+            android:key="proximity:timeout"
+            android:title="Timeout (sec.)" />
+
+        <CheckBoxPreference
+            android:key="proximity:keep-alive"
+            android:title="Keep-Alive" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

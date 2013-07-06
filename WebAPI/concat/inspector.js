@@ -1,9 +1,9 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-06-27
+/*! PROJECT_NAME - v0.1.0 - 2013-07-06
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
 function addLoadEvent(func) {
     var oldonload = window.onload;
-    if (typeof window.onload != 'function') {
+    if (typeof window.onload !== 'function') {
         window.onload = func;
     } else {
         window.onload = function() {
@@ -47,11 +47,9 @@ inspector = {
         PROXIMITY: 'PROXIMITY'
     },
     listeners: {},
-    browser: null,
     timeout: -1,
 
     init : function() {
-        inspector.logger('init inspector');
         //window.onbeforeunload = inspector.destroyInspector;
         //window.onblur = inspector.destroyInspector;
         inspector.initInspector();
@@ -61,20 +59,12 @@ inspector = {
     },
 
     initInspector : function() {
-        //if(!inspector.browser) {
-            inspector.sendIntent(inspector.initCommand);
-        /*} else {
-            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }*/
+        inspector.sendIntent(inspector.initCommand);
     },
 
     destroyInspector : function() {
         inspector.destroyListeners();
-        //if(!inspector.browser) {
-            inspector.sendIntent(inspector.destroyCommand);
-        /*} else {
-            inspector.sendIntent('intent://init/#Intent;scheme=inspector;package=de.hsrm.inspector;end');
-        }*/
+        inspector.sendIntent(inspector.destroyCommand);
     },
 
     destroyListeners : function() {
@@ -103,31 +93,39 @@ inspector = {
         document.body.appendChild(iframe);
     },
 
-    listen : function(gadget, opts, callback) {
+    listen : function(gadget, opts, callback, error) {
         if(!(gadget in inspector.listeners)) {
             inspector.listeners[gadget] = [];
         }
-        id = window.setInterval(function() { inspector.call(gadget, opts, callback); }, 500 || opts.interval);
-        inspector.listeners[gadget][id] = id;
-        return id;
+        streamId = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
+        opts.id = streamId;
+
+        inspector.call(gadget, opts, callback, error);
+
+        // id = window.setInterval(function() { inspector.call(gadget, opts, callback, error); }, 500 || opts.interval);
+        inspector.listeners[gadget][streamId] = streamId;
+        return streamId;
     },
 
     unlisten : function(gadget, id) {
         if(gadget in inspector.listeners) {
             if(id in inspector.listeners[gadget]) {
-                gadgetListeners = inspector.listeners[gadget];
-                window.clearInterval(gadgetListeners[id]);
-                delete(gadgetListeners[gadgetListeners.indexOf(id)]);
+                delete inspector.listeners[gadget][id];
             }
         }
     },
 
-    call : function(gadget, opts, callback) {
+    onEvent : function(gadget, opts, callback, error) {
+        window.setTimeout(function() {
+            inspector.call(gadget, opts, callback, error);
+        }, 100);
+    },
+
+    call : function(gadget, opts, callback, error, timeouts) {
         url = inspector.serverAddress + gadget + "/";
 
-        var cbName = "inspector" + Math.floor((new Date()).getTime() / Math.random());
+        var cbName = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
         url += '?callback=inspector.' + cbName;
-
         for(var key in opts) {
             if(opts.hasOwnProperty(key)) {
                 url += "&" + key + "=" + opts[key];
@@ -135,34 +133,36 @@ inspector = {
         }
 
         script = document.createElement("script");
+        script.onerror = function(e) {
+            if(error) {
+                error(e, gadget, opts, callback, error);
+            } if(timeouts && timeouts > 0) {
+                inspector.initInspector();
+                window.setTimeout(function() {
+                    timeouts -= 1;
+                    inspector.call(gadget, opts, callback, error, timeouts);
+                }, 200);
+            }
+        }
 
-        script.onerror = inspector.onError;
-        this[cbName] = function(response) {
+        inspector[cbName] = function(response) {
             try {
-                callback(response);
+                if(response['error']){
+                    error(response);
+                } else {
+                    callback(response);
+                }
+                if(opts.id && inspector.listeners[gadget][opts.id]) {
+                    inspector.onEvent(gadget, opts, callback, error, response);
+                }
             }
             finally {
-                delete this[cbName];
+                delete inspector[cbName];
                 script.parentNode.removeChild(script);
             }
         };
         script.src = url;
         document.body.appendChild(script);
-    },
-
-    //TODO: Overwrite onError in call function to do call again.
-    onError : function(e) {
-        if(inspector.timeout === -1) {
-            inspector.timeout = 20;
-            inspector.timeout--;
-            inspector.initInspector();
-        } else if(inspector.timeout > 0) {
-            inspector.initInspector();
-            inspector.timeout--;
-        } else if(inspector.timeout === 0) {
-            throw new Exception("Failed to establish connection!");
-        }
-        console.error(e);
     },
 
     logger : function(msg) {
@@ -180,6 +180,7 @@ inspector.audio = {
               '<button inspector-action="stop" onclick="inspector.audio.onClick(this);">Stop</button>',
     instances: {},
     elements: [],
+    force: true,
 
     onClick: function(el) {
         action = el.getAttribute("inspector-action");
@@ -217,19 +218,21 @@ inspector.audio = {
             };
             el.parentNode.dispatchEvent(event);
             inspector.audio.updateState(el.parentNode, data);
-        });
+        }, null, 20);
         if(action === "play") {
             // If starts playing, safe id of stream and send states for current player state request.
-            inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                "do": "state",
-                "playerid": playerid
-            }, function(data) {
-                var event = document.createEvent("Event");
-                event.initEvent('state', true, true);
-                event.detail = data;
-                el.parentNode.dispatchEvent(event);
-                inspector.audio.updateState(el.parentNode, data);
-            });
+            window.setTimeout(function() {
+                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                    "do": "state",
+                    "playerid": playerid
+                }, function(data) {
+                    var event = document.createEvent("Event");
+                    event.initEvent('state', true, true);
+                    event.detail = data;
+                    el.parentNode.dispatchEvent(event);
+                    inspector.audio.updateState(el.parentNode, data);
+                });
+            }, 1000);
         } else {
             // Else remove player state request from streams.
             window.setTimeout(function() {
@@ -261,7 +264,7 @@ inspector.audio = {
         var audios = document.getElementsByTagName('audio');
         for(i=0; i<audios.length; i++) {
             audio = audios[i];
-            if(inspector.audio.needReplacement(audio)) {
+            if(inspector.audio.force || inspector.audio.needReplacement(audio)) {
                 id = (new Date()).getTime() / inspector.audio.id++;
                 id = id / (Math.floor(Math.random()*1001));
                 id = 'iaudio' + id;
@@ -336,7 +339,6 @@ inspector.audio = {
     },
 
     init: function() {
-        inspector.logger("init() audio");
         inspector.audio.check();
         var event = document.createEvent("Event");
         event.initEvent('inspector-audio-ready', true, true);

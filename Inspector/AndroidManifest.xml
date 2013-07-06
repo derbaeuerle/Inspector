@@ -41,9 +41,9 @@
             android:label="@string/title_activity_settings" >
         </activity>
 
-        <receiver
-            android:name=".broadcasts.InspectorReceiver"
-            android:enabled="true" >
+        <service
+            android:name=".services.HttpService"
+            android:process=":seperate" >
             <intent-filter>
                 <action android:name="de.inspector.intents" />
 
@@ -57,7 +57,7 @@
 
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </receiver>
+        </service>
     </application>
 
 </manifest>

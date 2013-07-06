@@ -39,10 +39,8 @@ public class TimeoutTimer {
 
 		@Override
 		public void run() {
-			if (!TimeoutTimer.this.mGadget.isKeepAlive()) {
-				TimeoutTimer.this.mGadget.onUnregister(TimeoutTimer.this.mContext);
-				TimeoutTimer.this.mGadget.onDestroy(TimeoutTimer.this.mContext);
-			}
+			TimeoutTimer.this.mGadget.onUnregister(TimeoutTimer.this.mContext);
+			TimeoutTimer.this.mGadget.onDestroy(TimeoutTimer.this.mContext);
 			TimeoutTimer.this.mStarted.set(false);
 		}
 

@@ -7,7 +7,7 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </head>
 <body>
-    <audio controls loop autoplay>
+    <audio controls autoplay>
         <source src="test.mp3" type="audio/mp3">
         <source src="test.ogv" type="audio/ogv">
     </audio><br />
@@ -17,13 +17,6 @@
     </audio>
     <div id="cons"></div>
 <script type="text/javascript">
-    window.addEventListener('inspector-audio-ready', function(e) {
-        var elements = inspector.audio.elements;
-        for(i=0;i<elements.length;i++) {
-            element = elements[i];
-            inspector.logger("EventListener for: " + element.getAttribute('inspector-playerid'));
-        }
-    });
     inspector.logger = function(msg) {
         cons = $('#cons');
         cons.append(msg + "<br/>");

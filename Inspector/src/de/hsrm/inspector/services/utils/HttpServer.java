@@ -1,4 +1,4 @@
-package de.hsrm.inspector;
+package de.hsrm.inspector.services.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +32,7 @@ import org.jdom2.input.SAXBuilder;
 
 import android.content.Context;
 import android.util.Log;
+import de.hsrm.inspector.R;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.handler.PatternHandler;
 
@@ -41,7 +42,7 @@ import de.hsrm.inspector.handler.PatternHandler;
  * 
  * @author Dominic Baeuerle
  */
-public class WebServer extends Thread {
+public class HttpServer extends Thread {
 
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9090;
@@ -69,7 +70,7 @@ public class WebServer extends Thread {
 	 * @param configuration
 	 *            InputStream for configuration file.
 	 */
-	public WebServer(Context context) {
+	public HttpServer(Context context) {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
 		isStarted = new AtomicBoolean(false);
@@ -235,7 +236,6 @@ public class WebServer extends Thread {
 					g.setIdentifier(identifier.getText().toUpperCase());
 					g.setKeepAlive(keepAlive);
 					g.setTimeout(timeout);
-					g.setClass(gadgetClass);
 					synchronized (gadgets) {
 						if (gadgets.contains(g.getIdentifier())) {
 							gadgets.replace(g.getIdentifier(), g);
@@ -249,7 +249,6 @@ public class WebServer extends Thread {
 				g.setIdentifier(gadget.getChildText(context.getString(R.string.configuration_identifier)).toUpperCase());
 				g.setKeepAlive(keepAlive);
 				g.setTimeout(timeout);
-				g.setClass(gadgetClass);
 				synchronized (gadgets) {
 					if (gadgets.contains(g.getIdentifier())) {
 						gadgets.replace(g.getIdentifier(), g);
@@ -263,6 +262,18 @@ public class WebServer extends Thread {
 		}
 	}
 
+	public void lock() {
+		if (mHandler != null) {
+			mHandler.lock();
+		}
+	}
+
+	public void unlock() {
+		if (mHandler != null) {
+			mHandler.unlock();
+		}
+	}
+
 	public synchronized void startTimeout() {
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.cancel();
@@ -273,7 +284,7 @@ public class WebServer extends Thread {
 
 			@Override
 			public void run() {
-				WebServer.this.stopThread();
+				HttpServer.this.stopThread();
 			}
 		};
 		mTimeoutTimer.schedule(task, mTimeout);

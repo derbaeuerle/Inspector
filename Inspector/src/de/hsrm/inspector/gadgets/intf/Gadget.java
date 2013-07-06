@@ -1,11 +1,12 @@
 package de.hsrm.inspector.gadgets.intf;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.protocol.HttpContext;
 
 import android.content.Context;
-import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver.EVENT;
 import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
@@ -18,13 +19,14 @@ public abstract class Gadget {
 	private GadgetObserver mObserver;
 
 	private String mIdentifier;
-	private Class<Gadget> mClass;
 	private boolean mKeepAlive;
+	private boolean mNeedsAuth;
 	private long mTimeout;
 	private TimeoutTimer mTimeoutTimer;
+	private AtomicBoolean mRunning;
 
 	public Gadget() {
-		this("", de.hsrm.inspector.gadgets.intf.Gadget.class);
+		this("");
 	}
 
 	/**
@@ -33,33 +35,10 @@ public abstract class Gadget {
 	 * @param identifier
 	 * @param clazz
 	 */
-	public Gadget(String identifier, Class<Gadget> clazz) {
+	public Gadget(String identifier) {
 		super();
+		mRunning = new AtomicBoolean(false);
 		mIdentifier = identifier;
-		mClass = clazz;
-	}
-
-	/**
-	 * Creating instances of this Gadget for runtime.
-	 * 
-	 * @param context
-	 *            {Context}
-	 * @return {Gadget}
-	 */
-	public Gadget createInstance(Context context) throws GadgetException {
-		Gadget g = null;
-		try {
-			g = (Gadget) mClass.newInstance();
-			g.setIdentifier(mIdentifier);
-			g.setKeepAlive(mKeepAlive);
-			g.setTimeout(mTimeout);
-			g.onCreate(context);
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		}
-		return g;
 	}
 
 	/**
@@ -95,6 +74,7 @@ public abstract class Gadget {
 	 *            {Context}
 	 */
 	public void onRegister(Context context) {
+		mRunning.set(true);
 	}
 
 	/**
@@ -105,6 +85,7 @@ public abstract class Gadget {
 	 *            {Context}
 	 */
 	public void onUnregister(Context context) {
+		mRunning.set(false);
 	}
 
 	/**
@@ -144,8 +125,12 @@ public abstract class Gadget {
 		return this;
 	}
 
-	public void setClass(Class<Gadget> clazz) {
-		this.mClass = clazz;
+	public boolean isRunning() {
+		return mRunning.get();
+	}
+
+	public void setRunning(boolean running) {
+		mRunning.set(running);
 	}
 
 	public boolean isKeepAlive() {
@@ -154,6 +139,14 @@ public abstract class Gadget {
 
 	public void setKeepAlive(boolean keepAlive) {
 		this.mKeepAlive = keepAlive;
+	}
+
+	public boolean needsAuth() {
+		return mNeedsAuth;
+	}
+
+	public void setNeedsAuth(boolean needsAuth) {
+		this.mNeedsAuth = needsAuth;
 	}
 
 	public long getTimeout() {
@@ -178,6 +171,10 @@ public abstract class Gadget {
 
 	public void setObserver(GadgetObserver observer) {
 		mObserver = observer;
+	}
+
+	public void removeObserver() {
+		mObserver = null;
 	}
 
 }

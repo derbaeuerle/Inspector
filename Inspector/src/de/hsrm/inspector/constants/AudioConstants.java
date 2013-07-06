@@ -3,7 +3,7 @@ package de.hsrm.inspector.constants;
 /**
  * Created by dobae on 25.05.13.
  */
-public class AudioServiceConstants {
+public class AudioConstants {
 
 	public static final String PARAM_AUTOPLAY = "autoplay";
 	public static final String PARAM_AUDIOFILE = "audiofile";

@@ -10,7 +10,7 @@ import org.apache.http.protocol.HttpContext;
 import android.content.Context;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import de.hsrm.inspector.constants.AudioServiceConstants;
+import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.utils.GadgetAudioPlayer;
@@ -43,30 +43,29 @@ public class AudioGadget extends Gadget {
 	@Override
 	public Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response,
 			HttpContext http_context) throws Exception {
-		if (!iRequest.hasParameter(AudioServiceConstants.PARAM_PLAYERID))
+		if (!iRequest.hasParameter(AudioConstants.PARAM_PLAYERID))
 			throw new GadgetException("No playerid or command set for audio gadget.");
 
 		GadgetAudioPlayer mp = null;
-		if (mPlayers.containsKey(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString())) {
-			mp = mPlayers.get(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID));
+		if (mPlayers.containsKey(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString())) {
+			mp = mPlayers.get(iRequest.getParameter(AudioConstants.PARAM_PLAYERID));
 		} else {
-			if (iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND).equals(AudioServiceConstants.COMMAND_PLAY)) {
+			if (iRequest.getParameter(AudioConstants.PARAM_COMMAND).equals(AudioConstants.COMMAND_PLAY)) {
 				boolean autoplay = false, loop = false;
-				if (iRequest.hasParameter(AudioServiceConstants.PARAM_AUTOPLAY)) {
-					autoplay = Boolean.parseBoolean(iRequest.getParameter(AudioServiceConstants.PARAM_AUTOPLAY)
-							.toString());
+				if (iRequest.hasParameter(AudioConstants.PARAM_AUTOPLAY)) {
+					autoplay = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_AUTOPLAY).toString());
 				}
-				if (iRequest.hasParameter(AudioServiceConstants.PARAM_LOOP)) {
-					loop = Boolean.parseBoolean(iRequest.getParameter(AudioServiceConstants.PARAM_LOOP).toString());
+				if (iRequest.hasParameter(AudioConstants.PARAM_LOOP)) {
+					loop = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_LOOP).toString());
 				}
 
 				mp = new GadgetAudioPlayer();
 				mp.setLooping(loop);
 				mp.setAutoplay(autoplay);
 
-				String src = Uri.decode(iRequest.getParameter(AudioServiceConstants.PARAM_AUDIOFILE).toString());
+				String src = Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString());
 				mp.setDataSource(src);
-				mPlayers.put(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString(), mp);
+				mPlayers.put(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString(), mp);
 			}
 		}
 		if (mp != null) {
@@ -77,12 +76,12 @@ public class AudioGadget extends Gadget {
 	}
 
 	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws Exception {
-		if (!iRequest.hasParameter(AudioServiceConstants.PARAM_COMMAND))
+		if (!iRequest.hasParameter(AudioConstants.PARAM_COMMAND))
 			throw new GadgetException("No command set for audio gadget.");
 
-		Object command = iRequest.getParameter(AudioServiceConstants.PARAM_COMMAND);
+		Object command = iRequest.getParameter(AudioConstants.PARAM_COMMAND);
 
-		if (command.equals(AudioServiceConstants.COMMAND_PLAY)) {
+		if (command.equals(AudioConstants.COMMAND_PLAY)) {
 			if (mp.isPrepared()) {
 				if (!mp.isPlaying()) {
 					mp.start();
@@ -91,20 +90,20 @@ public class AudioGadget extends Gadget {
 				mp.setAutoplay(true);
 				mp.prepareAsync();
 			}
-		} else if (command.equals(AudioServiceConstants.COMMAND_PAUSE)) {
+		} else if (command.equals(AudioConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {
 				mp.pause();
 			}
-		} else if (command.equals(AudioServiceConstants.COMMAND_STOP)) {
+		} else if (command.equals(AudioConstants.COMMAND_STOP)) {
 			mp.stop();
-			mPlayers.remove(iRequest.getParameter(AudioServiceConstants.PARAM_PLAYERID).toString());
-		} else if (command.equals(AudioServiceConstants.COMMAND_SEEK)) {
-			if (iRequest.hasParameter(AudioServiceConstants.PARAM_SEEK_TO)) {
-				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioServiceConstants.PARAM_SEEK_TO).toString()));
+			mPlayers.remove(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString());
+		} else if (command.equals(AudioConstants.COMMAND_SEEK)) {
+			if (iRequest.hasParameter(AudioConstants.PARAM_SEEK_TO)) {
+				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_SEEK_TO).toString()));
 			}
-		} else if (command.equals(AudioServiceConstants.COMMAND_VOLUME)) {
-			if (iRequest.hasParameter(AudioServiceConstants.PARAM_VOLUME)) {
-				float vol = Integer.parseInt(iRequest.getParameter(AudioServiceConstants.PARAM_VOLUME).toString()) / 100f;
+		} else if (command.equals(AudioConstants.COMMAND_VOLUME)) {
+			if (iRequest.hasParameter(AudioConstants.PARAM_VOLUME)) {
+				float vol = Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_VOLUME).toString()) / 100f;
 				mp.setVolume(vol, vol);
 			}
 		}

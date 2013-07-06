@@ -7,6 +7,7 @@ inspector.audio = {
               '<button inspector-action="stop" onclick="inspector.audio.onClick(this);">Stop</button>',
     instances: {},
     elements: [],
+    force: true,
 
     onClick: function(el) {
         action = el.getAttribute("inspector-action");
@@ -44,19 +45,21 @@ inspector.audio = {
             };
             el.parentNode.dispatchEvent(event);
             inspector.audio.updateState(el.parentNode, data);
-        });
+        }, null, 20);
         if(action === "play") {
             // If starts playing, safe id of stream and send states for current player state request.
-            inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                "do": "state",
-                "playerid": playerid
-            }, function(data) {
-                var event = document.createEvent("Event");
-                event.initEvent('state', true, true);
-                event.detail = data;
-                el.parentNode.dispatchEvent(event);
-                inspector.audio.updateState(el.parentNode, data);
-            });
+            window.setTimeout(function() {
+                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                    "do": "state",
+                    "playerid": playerid
+                }, function(data) {
+                    var event = document.createEvent("Event");
+                    event.initEvent('state', true, true);
+                    event.detail = data;
+                    el.parentNode.dispatchEvent(event);
+                    inspector.audio.updateState(el.parentNode, data);
+                });
+            }, 1000);
         } else {
             // Else remove player state request from streams.
             window.setTimeout(function() {
@@ -88,7 +91,7 @@ inspector.audio = {
         var audios = document.getElementsByTagName('audio');
         for(i=0; i<audios.length; i++) {
             audio = audios[i];
-            if(inspector.audio.needReplacement(audio)) {
+            if(inspector.audio.force || inspector.audio.needReplacement(audio)) {
                 id = (new Date()).getTime() / inspector.audio.id++;
                 id = id / (Math.floor(Math.random()*1001));
                 id = 'iaudio' + id;
@@ -163,7 +166,6 @@ inspector.audio = {
     },
 
     init: function() {
-        inspector.logger("init() audio");
         inspector.audio.check();
         var event = document.createEvent("Event");
         event.initEvent('inspector-audio-ready', true, true);
