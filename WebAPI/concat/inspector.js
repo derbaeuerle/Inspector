@@ -153,6 +153,12 @@ inspector = {
                     callback(response);
                 }
                 if(opts.id && inspector.listeners[gadget][opts.id]) {
+                    // Unlisten gadget if server is locked and gadget isn't keep-alive.
+                    if(response['error'] && response.error['code']) {
+                        if(response.error.code == 1) {
+                            inspector.unlisten(gadget, opts.id);
+                        }
+                    }
                     inspector.onEvent(gadget, opts, callback, error, response);
                 }
             }

@@ -54,7 +54,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		try {
 			InspectorRequest iRequest = new InspectorRequest(request);
 			if (!mLocked.get()
-					|| (mLocked.get() && mGadgets.get(iRequest.getGadgetIdentifier()) != null && mGadgets.get(
+					|| (mLocked.get() && mGadgets.containsKey(iRequest.getGadgetIdentifier()) && mGadgets.get(
 							iRequest.getGadgetIdentifier()).isKeepAlive())) {
 				if (iRequest.getSegments().contains("destroy")) {
 					try {
@@ -80,11 +80,11 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 					tmpResponseContent = gson.toJson(tmpResponseContent);
 				}
 
+			} else if (mLocked.get()
+					&& (mGadgets.containsKey(iRequest.getGadgetIdentifier()) && !mGadgets.get(
+							iRequest.getGadgetIdentifier()).isRunning())) {
+				tmpResponseContent = "{ 'error': { 'message': 'Server is locked', 'code': 1 } }";
 			}
-			// String pre = "inspector.logger('calling: " +
-			// iRequest.getCallback() + "(" + tmpResponseContent + ")');";
-			// tmpResponseContent = pre + iRequest.getCallback() + "(" +
-			// tmpResponseContent + ");";
 			tmpResponseContent = iRequest.getCallback() + "(" + tmpResponseContent + ");";
 		} catch (Exception e) {
 			e.printStackTrace();
