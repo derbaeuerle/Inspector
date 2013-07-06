@@ -95,7 +95,7 @@ public class HttpServer extends Thread {
 		// defaultConfig.putAll(readConfiguration(mContext,
 		// mConfigurationFile));
 		// }
-		mHandler = new PatternHandler(context, this);
+		mHandler = new PatternHandler(context);
 		mHandler.setGadgetConfiguration(mConfiguration);
 
 		registry.register(DEFAULT_PATTERN, mHandler);

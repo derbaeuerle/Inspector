@@ -20,17 +20,25 @@ public class HttpService extends Service {
 	private static HttpServer mServer;
 	private ServiceBinder mBinder;
 
+	private final String CMD_INIT = "init";
+	private final String CMD_DESTROY = "destroy";
+	private final String CMD_SETTINGS = "settings";
+	private final String CMD_START_TIMEOUT = "start-timeout";
+	private final String CMD_STOP_TIMEOUT = "stop-timeout";
+	private final String CMD_LOCK = "lock";
+	private final String CMD_UNLOCK = "unlock";
+
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		android.os.Debug.waitForDebugger();
 		Log.e("", "Intent received: " + intent.toURI());
 		String command = Uri.parse(intent.toURI()).getHost();
-		if (command.equals("init")) {
+		if (command.equals(CMD_INIT)) {
 			init();
 			start();
-		} else if (command.equals("destroy")) {
+		} else if (command.equals(CMD_DESTROY)) {
 			stop();
-		} else if (command.equals("settings")) {
+		} else if (command.equals(CMD_SETTINGS)) {
 			init();
 			mServer.setConfiguration(checkSharedPreferences());
 			Intent i = new Intent(getApplicationContext(), SettingsActivity.class);
@@ -39,6 +47,18 @@ public class HttpService extends Service {
 		} else if (intent.getAction().equals("android.intent.action.SCREEN_OFF")) {
 			lock();
 		} else if (intent.getAction().equals("android.intent.action.SCREEN_ON")) {
+			unlock();
+		} else if (command.equals(CMD_START_TIMEOUT)) {
+			if (mServer != null) {
+				mServer.startTimeout();
+			}
+		} else if (command.equals(CMD_STOP_TIMEOUT)) {
+			if (mServer != null) {
+				mServer.stopTimeout();
+			}
+		} else if (command.equals(CMD_LOCK)) {
+			lock();
+		} else if (command.equals(CMD_UNLOCK)) {
 			unlock();
 		}
 		return super.onStartCommand(intent, flags, startId);
@@ -84,8 +104,6 @@ public class HttpService extends Service {
 			mServer.lock();
 		}
 	}
-
-	// TODO: Implement timeout, etc. over service!
 
 	public void unlock() {
 		if (mServer != null) {

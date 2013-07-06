@@ -18,6 +18,8 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -27,26 +29,38 @@ import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
-import de.hsrm.inspector.services.utils.HttpServer;
 
 public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	private ConcurrentHashMap<String, Gadget> mGadgets;
 	private AtomicBoolean mLocked = new AtomicBoolean(false);
 	private Context mContext;
-	private HttpServer mServer;
 	private AtomicInteger mRunningInstances;
 
-	public PatternHandler(Context context, HttpServer server) {
+	public PatternHandler(Context context) {
 		mContext = context;
-		mServer = server;
 		mRunningInstances = new AtomicInteger(0);
+	}
+
+	private void stopServerTimeout() {
+		String uri = "inspect://stop-timeout";
+		Intent request = new Intent("de.inspector.intents");
+		request.setData(Uri.parse(uri));
+		mContext.startService(request);
+	}
+
+	private void startServerTimeout() {
+		String uri = "inspect://start-timeout";
+		Intent request = new Intent("de.inspector.intents");
+		request.setData(Uri.parse(uri));
+		mContext.startService(request);
 	}
 
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
-		mServer.stopTimeout();
+		stopServerTimeout();
+
 		Object tmpResponseContent = "";
 		final String responseContent;
 		Gson gson = new Gson();
@@ -121,7 +135,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			}
 		}
 		if (mRunningInstances.get() == 0) {
-			mServer.startTimeout();
+			startServerTimeout();
 		}
 	}
 
