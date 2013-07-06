@@ -24,6 +24,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private int mBuffered;
 	private STATE mState = STATE.BUFFERING;
 	private int mSeekTo = Integer.MIN_VALUE;
+	private float mLeftVolume = 1f, mRightVolume = 1f;
 
 	public GadgetAudioPlayer() {
 		super();
@@ -87,6 +88,23 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 				mp.start();
 			}
 		}
+	}
+
+	@Override
+	public void setVolume(float leftVolume, float rightVolume) {
+		super.setVolume(leftVolume, rightVolume);
+		mLeftVolume = leftVolume;
+		mRightVolume = rightVolume;
+	}
+
+	public void setLeftVolume(float left) {
+		mLeftVolume = left;
+		super.setVolume(left, mRightVolume);
+	}
+
+	public void setRightVolume(float right) {
+		mRightVolume = right;
+		super.setVolume(mLeftVolume, right);
 	}
 
 	public boolean isPrepared() {

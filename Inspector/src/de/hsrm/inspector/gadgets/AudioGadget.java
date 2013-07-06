@@ -106,6 +106,14 @@ public class AudioGadget extends Gadget {
 				float vol = Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_VOLUME).toString()) / 100f;
 				mp.setVolume(vol, vol);
 			}
+			if (iRequest.hasParameter(AudioConstants.PARAM_VOLUME_LEFT)) {
+				float vol = Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_VOLUME_LEFT).toString()) / 100f;
+				mp.setLeftVolume(vol);
+			}
+			if (iRequest.hasParameter(AudioConstants.PARAM_VOLUME_RIGHT)) {
+				float vol = Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_VOLUME_RIGHT).toString()) / 100f;
+				mp.setRightVolume(vol);
+			}
 		}
 	}
 }

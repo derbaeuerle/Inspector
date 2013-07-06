@@ -150,6 +150,34 @@ inspector.audio = {
                         inspector.audio.updateState(iaudio, data);
                     });
                 }
+                iaudio.leftVolume = function(volume) {
+                    inspector.call(inspector.gadgets.AUDIO, {
+                        "audiofile" : iaudio.getAttribute('src'),
+                        "do" : "volume",
+                        "playerid" : iaudio.getAttribute('inspector-playerid'),
+                        "volume-left" : volume
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        iaudio.dispatchEvent(event);
+                        inspector.audio.updateState(iaudio, data);
+                    });
+                }
+                iaudio.rightVolume = function(volume) {
+                    inspector.call(inspector.gadgets.AUDIO, {
+                        "audiofile" : iaudio.getAttribute('src'),
+                        "do" : "volume",
+                        "playerid" : iaudio.getAttribute('inspector-playerid'),
+                        "volume-right" : volume
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        iaudio.dispatchEvent(event);
+                        inspector.audio.updateState(iaudio, data);
+                    });
+                }
 
                 audio.parentNode.replaceChild(iaudio, audio);
                 inspector.audio.elements.push(iaudio);

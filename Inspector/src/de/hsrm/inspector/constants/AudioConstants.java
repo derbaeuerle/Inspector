@@ -9,6 +9,8 @@ public class AudioConstants {
 	public static final String PARAM_AUDIOFILE = "audiofile";
 	public static final String PARAM_COMMAND = "do";
 	public static final String PARAM_VOLUME = "volume";
+	public static final String PARAM_VOLUME_LEFT = "volume-left";
+	public static final String PARAM_VOLUME_RIGHT = "volume-right";
 	public static final String PARAM_PLAYERID = "playerid";
 	public static final String PARAM_LOOP = "loop";
 	public static final String PARAM_SEEK_TO = "seekto";
