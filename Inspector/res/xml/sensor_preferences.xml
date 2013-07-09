@@ -3,19 +3,26 @@
 
     <PreferenceCategory android:title="Acceleration" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="acceleration:timeout"
             android:title="Timeout (sec.)" />
 
         <CheckBoxPreference
+            android:defaultValue="false"
             android:key="acceleration:keep-alive"
             android:title="Keep-Alive" />
-        <CheckBoxPreference
-            android:key="acceleration:needs-auth"
-            android:title="Needs authorization" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="acceleration:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Gyroscope" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="gyroscope:timeout"
             android:title="Timeout (sec.)" />
@@ -23,9 +30,17 @@
         <CheckBoxPreference
             android:key="gyroscope:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="gyroscope:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Temperature" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="temperature:timeout"
             android:title="Timeout (sec.)" />
@@ -33,9 +48,17 @@
         <CheckBoxPreference
             android:key="temperature:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="temperature:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Light" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="light:timeout"
             android:title="Timeout (sec.)" />
@@ -43,9 +66,17 @@
         <CheckBoxPreference
             android:key="light:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="light:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Magnetic" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="magnetic:timeout"
             android:title="Timeout (sec.)" />
@@ -53,9 +84,17 @@
         <CheckBoxPreference
             android:key="magnetic:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="magnetic:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Orientation" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="orientation:timeout"
             android:title="Timeout (sec.)" />
@@ -63,9 +102,17 @@
         <CheckBoxPreference
             android:key="orientation:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="orientation:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Pressure" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="pressure:timeout"
             android:title="Timeout (sec.)" />
@@ -73,9 +120,17 @@
         <CheckBoxPreference
             android:key="pressure:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="pressure:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
     <PreferenceCategory android:title="Proximity" >
         <EditTextPreference
+            android:defaultValue="5"
             android:inputType="number"
             android:key="proximity:timeout"
             android:title="Timeout (sec.)" />
@@ -83,6 +138,13 @@
         <CheckBoxPreference
             android:key="proximity:keep-alive"
             android:title="Keep-Alive" />
+
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="proximity:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
 
 </PreferenceScreen>

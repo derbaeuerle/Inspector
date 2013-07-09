@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Inspector timeout="5">
 
-    <Gadget timeout="5" keep-alive="true">
+    <Gadget>
         <identifier>AUDIO</identifier>
         <class>de.hsrm.inspector.gadgets.AudioGadget</class>
+        <preference>audio_preferences</preference>
     </Gadget>
 
-    <Gadget timeout="5">
+    <Gadget>
         <identifiers>
             <identifier>ACCELERATION</identifier>
             <identifier>GYROSCOPE</identifier>
@@ -18,6 +19,7 @@
             <identifier>PROXIMITY</identifier>
         </identifiers>
         <class>de.hsrm.inspector.gadgets.SensorGadget</class>
+        <preference>sensor_preferences</preference>
     </Gadget>
 
 </Inspector>

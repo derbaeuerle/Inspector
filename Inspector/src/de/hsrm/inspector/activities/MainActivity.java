@@ -28,22 +28,21 @@ public class MainActivity extends Activity implements OnClickListener {
 		mGyro.setOnClickListener(this);
 	}
 
-	private void sendIntent(View v) {
+	private void send(View v) {
 		Intent i = new Intent();
 		i.setAction("android.intent.action.VIEW");
 		i.addCategory("android.intent.category.BROWSABLE");
 		if (v.equals(mSendIntent)) {
 			i.setData(Uri.parse("inspector://init/"));
+			startActivity(i);
 		} else if (v.equals(mOpenSettings)) {
 			i.setData(Uri.parse("inspector://settings/"));
-		} else if (v.equals(mGyro)) {
-			i.setData(Uri.parse("http://inspector/gyroscope"));
+			startActivity(i);
 		}
-		startActivity(i);
 	}
 
 	@Override
 	public void onClick(View v) {
-		sendIntent(v);
+		send(v);
 	}
 }

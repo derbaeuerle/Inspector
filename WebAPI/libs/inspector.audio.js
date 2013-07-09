@@ -20,8 +20,8 @@ inspector.audio = {
         file = encodeURIComponent(file);
         opts = {
             "audiofile" : file,
-            "do" : action //,
-            //"playerid" : playerid
+            "do" : action,
+            "playerid" : playerid
         };
 
         for(a=0;a<el.parentNode.attributes.length;a++) {
@@ -45,27 +45,30 @@ inspector.audio = {
             };
             el.parentNode.dispatchEvent(event);
             inspector.audio.updateState(el.parentNode, data);
-        }, null, 20);
-        if(action === "play") {
-            // If starts playing, safe id of stream and send states for current player state request.
-            window.setTimeout(function() {
-                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                    "do": "state",
-                    "playerid": playerid
-                }, function(data) {
-                    var event = document.createEvent("Event");
-                    event.initEvent('state', true, true);
-                    event.detail = data;
-                    el.parentNode.dispatchEvent(event);
-                    inspector.audio.updateState(el.parentNode, data);
-                });
-            }, 1000);
-        } else {
-            // Else remove player state request from streams.
-            window.setTimeout(function() {
+
+            if(action === "play") {
+                // If starts playing, safe id of stream and send states for current player state request.
+                window.setTimeout(function() {
+                    inspector.logger("start audio stream!");
+                    inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                        "do": "state",
+                        "playerid": playerid
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        el.parentNode.dispatchEvent(event);
+                        inspector.audio.updateState(el.parentNode, data);
+                    });
+                    inspector.logger("stream: " + inspector.audio.instances[playerid]);
+                }, 1000);
+            } else {
+                inspector.logger("action: " + action);
+                // Else remove player state request from streams.
+                inspector.logger("remove stream: " + inspector.audio.instances[playerid]);
                 inspector.unlisten(inspector.gadgets.AUDIO, inspector.audio.instances[playerid]);
-            }, 500);
-        }
+            }
+        }, null, 20);
 
     },
 

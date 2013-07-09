@@ -113,9 +113,7 @@ inspector = {
     },
 
     onEvent : function(gadget, opts, callback, error) {
-        window.setTimeout(function() {
-            inspector.call(gadget, opts, callback, error);
-        }, 100);
+        inspector.call(gadget, opts, callback, error);
     },
 
     call : function(gadget, opts, callback, error, timeouts) {
@@ -138,34 +136,58 @@ inspector = {
                 window.setTimeout(function() {
                     timeouts -= 1;
                     inspector.call(gadget, opts, callback, error, timeouts);
-                }, 200);
+                }, 1000);
             }
         }
 
-        inspector[cbName] = function(response) {
-            try {
-                if(response['error']){
-                    error(response);
-                } else {
-                    callback(response);
-                }
-                if(opts.id && inspector.listeners[gadget][opts.id]) {
-                    // Unlisten gadget if server is locked and gadget isn't keep-alive.
-                    if(response['error'] && response.error['code']) {
-                        if(response.error.code == 1) {
-                            inspector.unlisten(gadget, opts.id);
+        if(!inspector[cbName] && !opts['permission']) {
+            inspector[cbName] = function(response) {
+                try {
+                    if(response['error']){
+                        // Gadget needs permission
+                        if(response.error.code == 2) {
+                            inspector.requestPermission(gadget, opts, callback, error, timeouts);
+                        } else {
+                            error(response);
+                        }
+                    } else {
+                        callback(response);
+                        if(opts.id && inspector.listeners[gadget][opts.id]) {
+                            // Unlisten gadget if server is locked and gadget isn't keep-alive.
+                            if(response['error'] && response.error['code']) {
+                                if(response.error.code == 1) {
+                                    inspector.unlisten(gadget, opts.id);
+                                }
+                            }
+                            inspector.onEvent(gadget, opts, callback, error, response);
                         }
                     }
-                    inspector.onEvent(gadget, opts, callback, error, response);
                 }
-            }
-            finally {
-                delete inspector[cbName];
-                script.parentNode.removeChild(script);
-            }
+                finally {
+                    delete inspector[cbName];
+                    script.parentNode.removeChild(script);
+                }
+        }
         };
         script.src = url;
         document.body.appendChild(script);
+    },
+
+    requestPermission : function(gadget, opts, callback, error, timeouts) {
+        var accept = confirm("Permission request: " + gadget);
+        if(accept) {
+            // If permission granted, send status update.
+            opts['permission'] = accept;
+            inspector.call(gadget, opts, callback, error, timeouts);
+        } else {
+            // Else publish error to request sender.
+            error({
+                'error': {
+                    'message': 'Permission denied by user!',
+                    'code': 4
+                }
+            });
+        }
     },
 
     logger : function(msg) {

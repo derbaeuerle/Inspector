@@ -1,4 +1,4 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-07-06
+/*! PROJECT_NAME - v0.1.0 - 2013-07-09
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
 function addLoadEvent(func) {
@@ -116,9 +116,7 @@ inspector = {
     },
 
     onEvent : function(gadget, opts, callback, error) {
-        window.setTimeout(function() {
-            inspector.call(gadget, opts, callback, error);
-        }, 100);
+        inspector.call(gadget, opts, callback, error);
     },
 
     call : function(gadget, opts, callback, error, timeouts) {
@@ -141,34 +139,58 @@ inspector = {
                 window.setTimeout(function() {
                     timeouts -= 1;
                     inspector.call(gadget, opts, callback, error, timeouts);
-                }, 200);
+                }, 1000);
             }
         }
 
-        inspector[cbName] = function(response) {
-            try {
-                if(response['error']){
-                    error(response);
-                } else {
-                    callback(response);
-                }
-                if(opts.id && inspector.listeners[gadget][opts.id]) {
-                    // Unlisten gadget if server is locked and gadget isn't keep-alive.
-                    if(response['error'] && response.error['code']) {
-                        if(response.error.code == 1) {
-                            inspector.unlisten(gadget, opts.id);
+        if(!inspector[cbName] && !opts['permission']) {
+            inspector[cbName] = function(response) {
+                try {
+                    if(response['error']){
+                        // Gadget needs permission
+                        if(response.error.code == 2) {
+                            inspector.requestPermission(gadget, opts, callback, error, timeouts);
+                        } else {
+                            error(response);
+                        }
+                    } else {
+                        callback(response);
+                        if(opts.id && inspector.listeners[gadget][opts.id]) {
+                            // Unlisten gadget if server is locked and gadget isn't keep-alive.
+                            if(response['error'] && response.error['code']) {
+                                if(response.error.code == 1) {
+                                    inspector.unlisten(gadget, opts.id);
+                                }
+                            }
+                            inspector.onEvent(gadget, opts, callback, error, response);
                         }
                     }
-                    inspector.onEvent(gadget, opts, callback, error, response);
                 }
-            }
-            finally {
-                delete inspector[cbName];
-                script.parentNode.removeChild(script);
-            }
+                finally {
+                    delete inspector[cbName];
+                    script.parentNode.removeChild(script);
+                }
+        }
         };
         script.src = url;
         document.body.appendChild(script);
+    },
+
+    requestPermission : function(gadget, opts, callback, error, timeouts) {
+        var accept = confirm("Permission request: " + gadget);
+        if(accept) {
+            // If permission granted, send status update.
+            opts['permission'] = accept;
+            inspector.call(gadget, opts, callback, error, timeouts);
+        } else {
+            // Else publish error to request sender.
+            error({
+                'error': {
+                    'message': 'Permission denied by user!',
+                    'code': 4
+                }
+            });
+        }
     },
 
     logger : function(msg) {
@@ -199,8 +221,8 @@ inspector.audio = {
         file = encodeURIComponent(file);
         opts = {
             "audiofile" : file,
-            "do" : action //,
-            //"playerid" : playerid
+            "do" : action,
+            "playerid" : playerid
         };
 
         for(a=0;a<el.parentNode.attributes.length;a++) {
@@ -224,27 +246,30 @@ inspector.audio = {
             };
             el.parentNode.dispatchEvent(event);
             inspector.audio.updateState(el.parentNode, data);
-        }, null, 20);
-        if(action === "play") {
-            // If starts playing, safe id of stream and send states for current player state request.
-            window.setTimeout(function() {
-                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                    "do": "state",
-                    "playerid": playerid
-                }, function(data) {
-                    var event = document.createEvent("Event");
-                    event.initEvent('state', true, true);
-                    event.detail = data;
-                    el.parentNode.dispatchEvent(event);
-                    inspector.audio.updateState(el.parentNode, data);
-                });
-            }, 1000);
-        } else {
-            // Else remove player state request from streams.
-            window.setTimeout(function() {
+
+            if(action === "play") {
+                // If starts playing, safe id of stream and send states for current player state request.
+                window.setTimeout(function() {
+                    inspector.logger("start audio stream!");
+                    inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                        "do": "state",
+                        "playerid": playerid
+                    }, function(data) {
+                        var event = document.createEvent("Event");
+                        event.initEvent('state', true, true);
+                        event.detail = data;
+                        el.parentNode.dispatchEvent(event);
+                        inspector.audio.updateState(el.parentNode, data);
+                    });
+                    inspector.logger("stream: " + inspector.audio.instances[playerid]);
+                }, 1000);
+            } else {
+                inspector.logger("action: " + action);
+                // Else remove player state request from streams.
+                inspector.logger("remove stream: " + inspector.audio.instances[playerid]);
                 inspector.unlisten(inspector.gadgets.AUDIO, inspector.audio.instances[playerid]);
-            }, 500);
-        }
+            }
+        }, null, 20);
 
     },
 

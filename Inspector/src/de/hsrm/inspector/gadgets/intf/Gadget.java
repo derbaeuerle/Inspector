@@ -19,9 +19,11 @@ public abstract class Gadget {
 	private GadgetObserver mObserver;
 
 	private String mIdentifier;
+	private String mPreferences;
 	private boolean mKeepAlive;
-	private boolean mNeedsAuth;
+	private boolean mAuthGranted;
 	private long mTimeout;
+	private int mAuthType;
 	private TimeoutTimer mTimeoutTimer;
 	private AtomicBoolean mRunning;
 
@@ -141,12 +143,32 @@ public abstract class Gadget {
 		this.mKeepAlive = keepAlive;
 	}
 
-	public boolean needsAuth() {
-		return mNeedsAuth;
+	public int getAuthType() {
+		return mAuthType;
 	}
 
-	public void setNeedsAuth(boolean needsAuth) {
-		this.mNeedsAuth = needsAuth;
+	public void setAuthType(int authType) {
+		this.mAuthType = authType;
+	}
+
+	public boolean isAuthGranted() {
+		return mAuthGranted;
+	}
+
+	public void setPreferences(String prefs) {
+		this.mPreferences = prefs;
+	}
+
+	public String getPreferences() {
+		return this.mPreferences;
+	}
+
+	public void auth() {
+		mAuthGranted = true;
+	}
+
+	public void unauth() {
+		mAuthGranted = false;
 	}
 
 	public long getTimeout() {

@@ -12,13 +12,13 @@
     <string name="configuration">inspector.xml</string>
     <string name="configuration_preferences">gadgets</string>
     <string name="configuration_gadgets">Gadget</string>
-    <string name="configuration_initialized">initialized</string>
     <string name="configuration_identifiers">identifiers</string>
     <string name="configuration_identifier">identifier</string>
     <string name="configuration_timeout">timeout</string>
     <string name="configuration_class">class</string>
     <string name="configuration_keep_alive">keep-alive</string>
-    <string name="configuration_needs_auth">needs-auth</string>
+    <string name="configuration_permission">permission</string>
+    <string name="configuration_preference_screen">preference</string>
 
     <!-- WebServer Exception keys -->
     <string name="exception_message">message</string>
@@ -32,5 +32,27 @@
     <string name="pref_title_sensors">SensorGadget</string>
     <string name="pref_attr_timeout">Timeout</string>
     <string name="pref_attr_keep_alive">Keep alive</string>
+    <string name="pref_title_auth_types">Permission</string>
+
+    <string-array name="pref_attr_auth_types">
+        <item>Disabled</item>
+        <item>Granted</item>
+        <item>Needs request</item>
+    </string-array>
+    <string-array name="auth_types">
+        <item>-1</item>
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+    <string name="auth_type_disabled">-1</string>
+    <string name="auth_type_granted">0</string>
+    <string name="auth_type_permission">1</string>
+
+    <!-- Dialog strings -->
+    <string name="dialog_title">Permission request</string>
+    <string name="dialog_desc">This website wants to get access to the following gadgets: {0}</string>
+    <string name="dialog_ok">Grant</string>
+    <string name="dialog_deny">Deny</string>
 
 </resources>

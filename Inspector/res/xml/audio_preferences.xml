@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
-    <PreferenceCategory android:title="Audio" >
+    <PreferenceCategory
+        android:key="AUDIO"
+        android:title="Audio" >
         <EditTextPreference
+            android:defaultValue="20"
             android:inputType="number"
             android:key="audio:timeout"
             android:title="Timeout (sec.)" />
 
         <CheckBoxPreference
+            android:defaultValue="true"
             android:key="audio:keep-alive"
             android:title="Keep-Alive" />
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="audio:needs-auth"
-            android:title="Needs authorization" />
+
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/pref_attr_auth_types"
+            android:entryValues="@array/auth_types"
+            android:key="audio:permission"
+            android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
 
 </PreferenceScreen>

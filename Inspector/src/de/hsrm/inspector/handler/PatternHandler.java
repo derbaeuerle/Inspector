@@ -3,6 +3,7 @@ package de.hsrm.inspector.handler;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,6 +34,7 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
 public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	private ConcurrentHashMap<String, Gadget> mGadgets;
+	private ConcurrentHashMap<String, ArrayList<String>> mPermissions;
 	private AtomicBoolean mLocked = new AtomicBoolean(false);
 	private Context mContext;
 	private AtomicInteger mRunningInstances;
@@ -40,6 +42,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	public PatternHandler(Context context) {
 		mContext = context;
 		mRunningInstances = new AtomicInteger(0);
+		mPermissions = new ConcurrentHashMap<String, ArrayList<String>>();
 	}
 
 	private void stopServerTimeout() {
@@ -79,19 +82,37 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 					}
 
 				} else {
-					initGadget(iRequest.getGadgetIdentifier());
+					if (mGadgets.containsKey(iRequest.getGadgetIdentifier())) {
+						final Gadget g = mGadgets.get(iRequest.getGadgetIdentifier());
 
-					Gadget instance = mGadgets.get(iRequest.getGadgetIdentifier());
-					Log.d("GADGET",
-							instance.toString() + " - " + instance.getIdentifier() + " needs-auth: "
-									+ instance.needsAuth());
-					synchronized (instance) {
-						instance.bindServices();
-						tmpResponseContent = instance.gogo(mContext, iRequest, request, response, context);
-						instance.unbindServices();
-						instance.startTimeout();
+						if (iRequest.hasParameter("permission")
+								&& iRequest.getParameter("permission").toString().equals("true")) {
+							// mPermissions.get(g.getIdentifier()).add(iRequest.getParameter("hash").toString());
+							g.auth();
+						}
+
+						if (g.getAuthType() == Integer.parseInt(mContext.getString(R.string.auth_type_permission))
+								&& !g.isAuthGranted()) {
+							// if(!mPermissions.get(g.getIdentifier()).contains(iRequest.getParameter("hash").toString()))
+							// {
+							//
+							// }
+							tmpResponseContent = "{ 'error': { 'message': '" + g.getIdentifier()
+									+ " needs permission', 'code': 2 } }";
+						} else if (g.getAuthType() == Integer.parseInt(mContext.getString(R.string.auth_type_disabled))) {
+							tmpResponseContent = "{ 'error': { 'message': 'Gadget is disabled', 'code': 3 } }";
+						} else {
+							initGadget(iRequest.getGadgetIdentifier());
+
+							synchronized (g) {
+								g.bindServices();
+								tmpResponseContent = g.gogo(mContext, iRequest, request, response, context);
+								g.unbindServices();
+								g.startTimeout();
+							}
+							tmpResponseContent = gson.toJson(tmpResponseContent);
+						}
 					}
-					tmpResponseContent = gson.toJson(tmpResponseContent);
 				}
 
 			} else if (mLocked.get()
@@ -141,6 +162,9 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	public void setGadgetConfiguration(ConcurrentHashMap<String, Gadget> config) {
 		mGadgets = config;
+		for (Gadget g : config.values()) {
+			mPermissions.put(g.getIdentifier(), new ArrayList<String>());
+		}
 	}
 
 	public void initGadget(String identifier) throws GadgetException {

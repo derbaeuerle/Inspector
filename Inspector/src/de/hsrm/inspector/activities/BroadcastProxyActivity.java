@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import de.hsrm.inspector.broadcasts.ScreenReceiver;
 
 /**
@@ -34,6 +35,7 @@ public class BroadcastProxyActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		Intent i = getIntent();
+		Log.d("PROXY", "received: " + i.getDataString());
 		Uri data = i.getData();
 		if (data != null) {
 			String uri = data.toString();
