@@ -72,7 +72,7 @@ public class AudioGadget extends Gadget {
 			doCommand(iRequest, mp);
 			return mp.getPlayerState();
 		}
-		return "";
+		return GadgetAudioPlayer.getDefaultState();
 	}
 
 	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws Exception {
@@ -87,8 +87,12 @@ public class AudioGadget extends Gadget {
 					mp.start();
 				}
 			} else {
-				mp.setAutoplay(true);
-				mp.prepareAsync();
+				try {
+					mp.setAutoplay(true);
+					mp.prepareAsync();
+				} catch (IllegalStateException e) {
+					e.printStackTrace();
+				}
 			}
 		} else if (command.equals(AudioConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {

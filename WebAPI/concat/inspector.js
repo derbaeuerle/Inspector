@@ -1,4 +1,4 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-07-09
+/*! PROJECT_NAME - v0.1.0 - 2013-07-10
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
 function addLoadEvent(func) {
@@ -84,6 +84,9 @@ inspector = {
             document.body.removeChild(iframe);
             console.log(e);
         }
+        iframe.onload = function() {
+            document.body.removeChild(iframe);
+        }
         if(!inspector.browser) {
             iframe.src = command;
         } else {
@@ -102,7 +105,6 @@ inspector = {
 
         inspector.call(gadget, opts, callback, error);
 
-        // id = window.setInterval(function() { inspector.call(gadget, opts, callback, error); }, 500 || opts.interval);
         inspector.listeners[gadget][streamId] = streamId;
         return streamId;
     },
@@ -115,9 +117,57 @@ inspector = {
         }
     },
 
-    onEvent : function(gadget, opts, callback, error) {
-        inspector.call(gadget, opts, callback, error);
-    },
+    /*call : function(gadget, opts, callback, error, timeouts) {
+        url = inspector.serverAddress + gadget + "/";
+
+        var cbName = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
+        url += '?callback=inspector.' + cbName;
+        for(var key in opts) {
+            if(opts.hasOwnProperty(key)) {
+                url += "&" + key + "=" + opts[key];
+            }
+        }
+
+        script = document.createElement("script");
+        script.onerror = function(e) {
+            if(error) {
+                error(e, gadget, opts, callback, error);
+            } if(timeouts && timeouts > 0) {
+                inspector.initInspector();
+                window.setTimeout(function() {
+                    timeouts -= 1;
+                    inspector.call(gadget, opts, callback, error, timeouts);
+                }, 1500);
+            }
+        }
+        inspector.logger("calling gadget:" + gadget + "<br />" + url);
+        inspector[cbName] = function(response) {
+            try {
+                if(response['error']){
+                    // Gadget needs permission
+                    if(response.error.errorCode == 2) {
+                        inspector.requestPermission(gadget, opts, callback, error, timeouts);
+                    } else {
+                        error(response);
+                    }
+                } else {
+                    window.setTimeout(function() {
+                        inspector.logger("callback");
+                        callback(response);
+                    }, 10);
+                    if(opts.id && inspector.listeners[gadget][opts.id]) {
+                        inspector.onEvent(gadget, opts, callback, error, response);
+                    }
+                }
+            }
+            finally {
+                delete inspector[cbName];
+                script.parentNode.removeChild(script);
+            }
+        };
+        script.src = url;
+        document.body.appendChild(script);
+    },*/
 
     call : function(gadget, opts, callback, error, timeouts) {
         url = inspector.serverAddress + gadget + "/";
@@ -139,57 +189,80 @@ inspector = {
                 window.setTimeout(function() {
                     timeouts -= 1;
                     inspector.call(gadget, opts, callback, error, timeouts);
-                }, 1000);
+                }, 1500);
             }
         }
 
-        if(!inspector[cbName] && !opts['permission']) {
-            inspector[cbName] = function(response) {
-                try {
-                    if(response['error']){
-                        // Gadget needs permission
-                        if(response.error.code == 2) {
-                            inspector.requestPermission(gadget, opts, callback, error, timeouts);
-                        } else {
-                            error(response);
-                        }
-                    } else {
-                        callback(response);
-                        if(opts.id && inspector.listeners[gadget][opts.id]) {
-                            // Unlisten gadget if server is locked and gadget isn't keep-alive.
-                            if(response['error'] && response.error['code']) {
-                                if(response.error.code == 1) {
-                                    inspector.unlisten(gadget, opts.id);
-                                }
-                            }
-                            inspector.onEvent(gadget, opts, callback, error, response);
-                        }
-                    }
-                }
-                finally {
-                    delete inspector[cbName];
-                    script.parentNode.removeChild(script);
-                }
-        }
+        inspector[cbName] = function(response) {
+            try {
+                inspector.defaultCallback(gadget, opts, callback, error, timeouts, response);
+            } finally {
+                delete inspector[cbName];
+                script.parentNode.removeChild(script);
+            }
         };
         script.src = url;
         document.body.appendChild(script);
     },
+
+    defaultCallback : function(gadget, opts, callback, error, timeouts, response) {
+        // Check if an error occured in native interface.
+        if(response['error']) {
+            // Checks for specific error codes.
+            if(response.error['errorCode']) {
+                eCode = response.error.errorCode;
+
+                // Check error code for permission request.
+                if(eCode == 2) {
+                    window.setTimeout(function() {
+                        inspector.requestPermission(gadget, opts, callback, error, timeouts);
+                    }, 100);
+                }
+            } else {
+                // Check if error function has been submitted.
+                if(error) {
+                    error(response);
+                }
+            }
+        } else {
+            // Call callback of call request.
+            window.setTimeout(function() {
+                callback(response);
+            }, 100);
+
+            // Check if call was an stream.
+            if(opts['id'] && inspector.listeners[gadget][opts.id]) {
+                window.setTimeout(function() {
+                    // inspector.onEvent(gadget, opts, callback, error);
+                    inspector.call(gadget, opts, callback, error);
+                }, 200);
+            }
+        }
+    },
+
+    /*onEvent : function(gadget, opts, callback, error) {
+        inspector.logger("onEvent");
+        inspector.call(gadget, opts, callback, error);
+    },*/
 
     requestPermission : function(gadget, opts, callback, error, timeouts) {
         var accept = confirm("Permission request: " + gadget);
         if(accept) {
             // If permission granted, send status update.
             opts['permission'] = accept;
-            inspector.call(gadget, opts, callback, error, timeouts);
+            window.setTimeout(function() {
+                inspector.call(gadget, opts, callback, error, timeouts);
+            }, 100);
         } else {
             // Else publish error to request sender.
-            error({
-                'error': {
-                    'message': 'Permission denied by user!',
-                    'code': 4
-                }
-            });
+            if(error) {
+                error({
+                    'error': {
+                        'message': 'Permission denied by user!',
+                        'code': -1
+                    }
+                });
+            }
         }
     },
 
@@ -235,6 +308,7 @@ inspector.audio = {
             opts[attr.name.replace('inspector-', '')] = attr.value;
         }
         inspector.call(inspector.gadgets.AUDIO, opts, function(data) {
+            inspector.logger("audio callback!");
             var event = document.createEvent("Event");
             event.initEvent('state', true, true);
             event.detail = data;
@@ -246,28 +320,25 @@ inspector.audio = {
             };
             el.parentNode.dispatchEvent(event);
             inspector.audio.updateState(el.parentNode, data);
-
+            inspector.logger("action: " + action);
             if(action === "play") {
                 // If starts playing, safe id of stream and send states for current player state request.
-                window.setTimeout(function() {
-                    inspector.logger("start audio stream!");
-                    inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                        "do": "state",
-                        "playerid": playerid
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        el.parentNode.dispatchEvent(event);
-                        inspector.audio.updateState(el.parentNode, data);
-                    });
-                    inspector.logger("stream: " + inspector.audio.instances[playerid]);
-                }, 1000);
-            } else {
-                inspector.logger("action: " + action);
-                // Else remove player state request from streams.
-                inspector.logger("remove stream: " + inspector.audio.instances[playerid]);
-                inspector.unlisten(inspector.gadgets.AUDIO, inspector.audio.instances[playerid]);
+                inspector.logger("start audio stream!");
+                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
+                    "do": "state",
+                    "playerid": playerid
+                }, function(data) {
+                    var event = document.createEvent("Event");
+                    event.initEvent('state', true, true);
+                    event.detail = data;
+                    el.parentNode.dispatchEvent(event);
+                    inspector.audio.updateState(el.parentNode, data);
+
+                    // Stopping stream if media player has stoppedd or paused!
+                    if(!data || data['stopped'] == true || data['state'] == 'PAUSED') {
+                        inspector.unlisten(inspector.gadgets.AUDIO, inspector.audio.instances[playerid]);
+                    }
+                });
             }
         }, null, 20);
 

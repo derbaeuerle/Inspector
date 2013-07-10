@@ -22,12 +22,16 @@ public class BroadcastProxyActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		if (!mInitialized.get()) {
-			// Binding ScreenReceiver to screen events.
-			IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
-			filter.addAction(Intent.ACTION_SCREEN_OFF);
-			BroadcastReceiver mReceiver = new ScreenReceiver();
-			registerReceiver(mReceiver, filter);
-			mInitialized.set(true);
+			try {
+				// Binding ScreenReceiver to screen events.
+				IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+				filter.addAction(Intent.ACTION_SCREEN_OFF);
+				BroadcastReceiver mReceiver = new ScreenReceiver();
+				registerReceiver(mReceiver, filter);
+				mInitialized.set(true);
+			} catch (Exception e) {
+
+			}
 		}
 	}
 

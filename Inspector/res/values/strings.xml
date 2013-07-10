@@ -23,6 +23,7 @@
     <!-- WebServer Exception keys -->
     <string name="exception_message">message</string>
     <string name="exception_stacktrace">stacktrace</string>
+    <string name="exception_error_code">errorCode</string>
 
     <!-- WebServer MIME types -->
     <string name="mime_json">application/json</string>

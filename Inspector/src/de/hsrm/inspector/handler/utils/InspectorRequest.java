@@ -14,9 +14,12 @@ import android.net.UrlQuerySanitizer.ParameterValuePair;
  */
 public class InspectorRequest {
 
+	private static final String REFERER_KEY = "Referer";
+
 	private UrlQuerySanitizer mQuery;
 	private List<String> mSegments;
 	private String mCallback;
+	private String mReferer;
 
 	/**
 	 * @param requestLine
@@ -29,6 +32,9 @@ public class InspectorRequest {
 		if (mQuery.hasParameter("callback")) {
 			mCallback = mQuery.getValue("callback");
 		}
+
+		mReferer = request.getFirstHeader(REFERER_KEY).toString();
+
 		String segs = requestLine.toString().substring(0, requestLine.toString().indexOf("?") - 1);
 		mSegments = Uri.parse(segs).getPathSegments();
 		mSegments.removeAll(Arrays.asList("", null));
@@ -61,10 +67,15 @@ public class InspectorRequest {
 		return mCallback;
 	}
 
+	public String getReferer() {
+		return mReferer;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder b = new StringBuilder();
 		b.append(mSegments.toString() + "\n");
+		b.append(mReferer + "\n");
 		for (ParameterValuePair pair : mQuery.getParameterList()) {
 			b.append(pair.mParameter + ": " + pair.mValue + "\n");
 		}

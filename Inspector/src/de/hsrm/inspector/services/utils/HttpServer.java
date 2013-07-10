@@ -49,7 +49,7 @@ public class HttpServer extends Thread {
 	private HttpRequestHandlerRegistry registry = null;
 	private PatternHandler mHandler;
 	private ConcurrentHashMap<String, Gadget> mConfiguration;
-	private long mTimeout = 0;
+	private long mTimeout = 60;
 	private Timer mTimeoutTimer;
 
 	// private InputStream mConfigurationFile;
@@ -146,6 +146,7 @@ public class HttpServer extends Thread {
 	 * Safe method to stop server.
 	 */
 	public synchronized void stopThread() {
+		Log.e("SERVER", "Shutdown http server!");
 		if (mSocket != null) {
 			try {
 				mSocket.close();
@@ -183,6 +184,10 @@ public class HttpServer extends Thread {
 		}
 	}
 
+	public void setTimeoutTime(long timeout) {
+		this.mTimeout = timeout;
+	}
+
 	public synchronized void startTimeout() {
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.cancel();
@@ -193,14 +198,17 @@ public class HttpServer extends Thread {
 
 			@Override
 			public void run() {
+				Log.e("SERVER", "Server timed out!");
 				HttpServer.this.stopThread();
 			}
 		};
+		Log.e("SERVER", "Starting server timeout ...");
 		mTimeoutTimer.schedule(task, mTimeout);
 	}
 
 	public synchronized void stopTimeout() {
 		if (mTimeoutTimer != null) {
+			Log.e("SERVER", "Stopping server timeout ...");
 			mTimeoutTimer.cancel();
 		}
 	}

@@ -21,7 +21,6 @@ public abstract class Gadget {
 	private String mIdentifier;
 	private String mPreferences;
 	private boolean mKeepAlive;
-	private boolean mAuthGranted;
 	private long mTimeout;
 	private int mAuthType;
 	private TimeoutTimer mTimeoutTimer;
@@ -151,24 +150,12 @@ public abstract class Gadget {
 		this.mAuthType = authType;
 	}
 
-	public boolean isAuthGranted() {
-		return mAuthGranted;
-	}
-
 	public void setPreferences(String prefs) {
 		this.mPreferences = prefs;
 	}
 
 	public String getPreferences() {
 		return this.mPreferences;
-	}
-
-	public void auth() {
-		mAuthGranted = true;
-	}
-
-	public void unauth() {
-		mAuthGranted = false;
 	}
 
 	public long getTimeout() {

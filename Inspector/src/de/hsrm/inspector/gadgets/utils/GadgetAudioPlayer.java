@@ -74,6 +74,9 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	@Override
 	public void onCompletion(MediaPlayer mp) {
 		mPrepared = false;
+		if (!isLooping()) {
+			stop();
+		}
 	}
 
 	@Override
@@ -116,6 +119,17 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		super.release();
 		mStopped = true;
 		mState = STATE.STOPPED;
+	}
+
+	public static Map<String, Object> getDefaultState() {
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		map.put("duration", 0);
+		map.put("state", STATE.STOPPED);
+		map.put("buffered", false);
+		map.put("stopped", true);
+		map.put("autoplay", false);
+		map.put("prepared", false);
+		return map;
 	}
 
 	public Map<String, Object> getPlayerState() {

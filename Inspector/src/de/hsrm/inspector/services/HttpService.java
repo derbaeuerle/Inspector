@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jdom2.Element;
@@ -15,6 +16,7 @@ import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -23,21 +25,32 @@ import de.hsrm.inspector.activities.SettingsActivity;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.services.utils.HttpServer;
 
+/**
+ * {@link IntentService} to manage the {@link HttpServer} and its configuration.
+ * 
+ * @author dobae
+ */
 public class HttpService extends IntentService {
 
 	private static HttpServer mServer;
 
-	private final String CMD_INIT = "init";
-	private final String CMD_DESTROY = "destroy";
-	private final String CMD_SETTINGS = "settings";
-	private final String CMD_REFRESH = "refresh";
-	private final String CMD_START_TIMEOUT = "start-timeout";
-	private final String CMD_STOP_TIMEOUT = "stop-timeout";
-	private final String CMD_LOCK = "lock";
-	private final String CMD_UNLOCK = "unlock";
+	public static final String CMD_INIT = "init";
+	public static final String CMD_DESTROY = "destroy";
+	public static final String CMD_SETTINGS = "settings";
+	public static final String CMD_REFRESH = "refresh";
+	public static final String CMD_START_TIMEOUT = "start-timeout";
+	public static final String CMD_STOP_TIMEOUT = "stop-timeout";
+	public static final String CMD_LOCK = "lock";
+	public static final String CMD_UNLOCK = "unlock";
+	public static final String CMD_PREFERENCE_CHANGED = "preference-changed";
+
+	public static final String DATA_CHANGED_PREFERENCE = "preference:changed";
 
 	public static final String EXTRA_PREFERENCES = "preferences";
 
+	/**
+	 * Default constructor.
+	 */
 	public HttpService() {
 		super("HttpService");
 		android.os.Debug.waitForDebugger();
@@ -96,40 +109,69 @@ public class HttpService extends IntentService {
 			lock();
 		} else if (command.equals(CMD_UNLOCK)) {
 			unlock();
+		} else if (command.equals(CMD_PREFERENCE_CHANGED)) {
+			if (intent.hasExtra(DATA_CHANGED_PREFERENCE)) {
+				changeGadgetPreference(intent.getExtras().getString(DATA_CHANGED_PREFERENCE));
+			}
 		}
 	}
 
+	/**
+	 * Initializes {@link #mServer} if not initialized yet. Also reads
+	 * {@link SharedPreferences} of this application and parse them into a
+	 * {@link ConcurrentHashMap}.
+	 */
 	private void init() {
 		if (mServer == null) {
 			mServer = new HttpServer(getApplicationContext());
+			mServer.setConfiguration(configure());
 		}
-		mServer.setConfiguration(configure());
 	}
 
+	/**
+	 * Starts the {@link #mServer}.
+	 */
 	private void start() {
 		if (mServer != null) {
 			mServer.startThread();
 		}
 	}
 
+	/**
+	 * Stops the {@link #mServer}.
+	 */
 	private void stop() {
 		if (mServer != null) {
 			mServer.stopThread();
 		}
 	}
 
+	/**
+	 * Locks the {@link #mServer}.
+	 */
 	private void lock() {
 		if (mServer != null) {
 			mServer.lock();
 		}
 	}
 
+	/**
+	 * Unlocks the {@link #mServer}.
+	 */
 	private void unlock() {
 		if (mServer != null) {
 			mServer.unlock();
 		}
 	}
 
+	/**
+	 * Reads {@link SharedPreferences} of this applications and parses them into
+	 * a {@link ConcurrentHashMap}. This {@link Map} contains {@link String} as
+	 * key and {@link Gadget} as value. The {@link Gadget} instances are
+	 * instantiated by {@link Resources} xml configuration.
+	 * 
+	 * @return
+	 */
 	private ConcurrentHashMap<String, Gadget> configure() {
 		ConcurrentHashMap<String, Gadget> config = mServer.getConfiguration();
 		if (config == null) {
@@ -147,7 +189,8 @@ public class HttpService extends IntentService {
 	}
 
 	/**
-	 * Creates runtime prefs based on inspector.xml and {@link Sharedprefs}.
+	 * Creates runtime preferences based on inspector.xml and
+	 * {@link SharedPreferences}.
 	 * 
 	 * @param config
 	 * @return
@@ -161,10 +204,13 @@ public class HttpService extends IntentService {
 		for (Gadget g : config.values()) {
 			String id = g.getIdentifier().toLowerCase();
 			g.setKeepAlive(prefs.getBoolean(id + ":" + c.getString(R.string.configuration_keep_alive), g.isKeepAlive()));
-			g.setTimeout(Long.parseLong(prefs.getString(id + ":" + c.getString(R.string.configuration_timeout),
-					"" + g.getTimeout())));
 			g.setAuthType(Integer.parseInt(prefs.getString(id + ":" + c.getString(R.string.configuration_permission),
 					c.getString(R.string.auth_type_granted))));
+			long timeout = Long.parseLong(prefs.getString(id + ":" + c.getString(R.string.configuration_timeout), ""
+					+ Long.MIN_VALUE));
+			if (timeout != Long.MIN_VALUE) {
+				g.setTimeout(timeout * 1000);
+			}
 		}
 	}
 
@@ -234,6 +280,14 @@ public class HttpService extends IntentService {
 			for (Element gadget : gadgets) {
 				createGadget(gadget, config);
 			}
+			String serverTimeout = root.getAttributeValue(getString(R.string.configuration_timeout));
+			if (serverTimeout != null) {
+				try {
+					mServer.setTimeoutTime(Long.parseLong(serverTimeout) * 1000);
+				} catch (ClassCastException e) {
+					e.printStackTrace();
+				}
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (JDOMException e) {
@@ -244,6 +298,39 @@ public class HttpService extends IntentService {
 			e.printStackTrace();
 		} catch (InstantiationException e) {
 			e.printStackTrace();
+		}
+	}
+
+	private void changeGadgetPreference(String key) {
+		Context c = getApplicationContext();
+		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+		String[] splits = key.split(":");
+		if (splits.length == 2 && mServer != null && mServer.getConfiguration() != null) {
+			ConcurrentHashMap<String, Gadget> settings = mServer.getConfiguration();
+			Gadget gadget = settings.get(splits[0].toUpperCase());
+
+			if (c.getString(R.string.configuration_keep_alive).equals(splits[1])) {
+				try {
+					gadget.setKeepAlive(prefs.getBoolean(key, gadget.isKeepAlive()));
+				} catch (ClassCastException e) {
+					String value = prefs.getString(key, gadget.isKeepAlive() + "");
+					gadget.setKeepAlive(Boolean.parseBoolean(value));
+				}
+			} else if (c.getString(R.string.configuration_timeout).equals(splits[1])) {
+				try {
+					gadget.setTimeout(prefs.getLong(key, gadget.getTimeout()));
+				} catch (ClassCastException e) {
+					String value = prefs.getString(key, gadget.getTimeout() + "");
+					gadget.setTimeout(Long.parseLong(value));
+				}
+			} else if (c.getString(R.string.configuration_permission).equals(splits[1])) {
+				try {
+					gadget.setAuthType(prefs.getInt(key, gadget.getAuthType()));
+				} catch (ClassCastException e) {
+					String value = prefs.getString(key, gadget.getAuthType() + "");
+					gadget.setAuthType(Integer.parseInt(value));
+				}
+			}
 		}
 	}
 }
