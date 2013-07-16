@@ -5,13 +5,18 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.util.Log;
-import de.hsrm.inspector.services.HttpService;
+import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.services.ServerService;
 
+/**
+ * {@link PreferenceActivity} to display all {@link Preference} objects of
+ * configured {@link Gadget}. All preferences are stored inside the default
+ * {@link SharedPreferences}.
+ */
 public class SettingsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener {
-
-	// private static final String INITIALIZED = "initialited";
 
 	@SuppressWarnings("static-access")
 	@Override
@@ -19,8 +24,8 @@ public class SettingsActivity extends PreferenceActivity implements OnSharedPref
 		super.onCreate(savedInstanceState);
 
 		Intent intent = getIntent();
-		if (intent.hasExtra(HttpService.EXTRA_PREFERENCES)) {
-			String[] prefs = intent.getExtras().getStringArray(HttpService.EXTRA_PREFERENCES);
+		if (intent.hasExtra(ServerService.EXTRA_PREFERENCES)) {
+			String[] prefs = intent.getExtras().getStringArray(ServerService.EXTRA_PREFERENCES);
 			for (String pref : prefs) {
 				addPreferencesFromResource(getResources().getIdentifier(pref, "xml", getPackageName()));
 			}
@@ -51,10 +56,10 @@ public class SettingsActivity extends PreferenceActivity implements OnSharedPref
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-		String uri = "inspect://" + HttpService.CMD_PREFERENCE_CHANGED;
+		String uri = "inspect://" + ServerService.CMD_PREFERENCE_CHANGED;
 		Intent request = new Intent("de.inspector.intents");
 		request.setData(Uri.parse(uri));
-		request.putExtra(HttpService.DATA_CHANGED_PREFERENCE, key);
+		request.putExtra(ServerService.DATA_CHANGED_PREFERENCE, key);
 		startService(request);
 	}
 }

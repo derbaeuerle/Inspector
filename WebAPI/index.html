@@ -7,7 +7,7 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </head>
 <body>
-    <audio controls autoplay>
+    <audio controls>
         <source src="test.mp3" type="audio/mp3">
         <source src="test.ogv" type="audio/ogv">
     </audio><br />
@@ -21,6 +21,20 @@
         cons = $('#cons');
         cons.append(msg + "<br/>");
     }
+    window.onblur = function(e) {
+        html = document.documentElement;
+        console.log(html);
+        html.className = html.className.replace('focused', '');
+        html.className = html.className + " " + "blured";
+        console.log(html.className);
+    };
+    window.onfocus = function(e) {
+        html = document.documentElement;
+        console.log(html);
+        html.className = html.className.replace('blured', '');
+        html.className = html.className + " " + "focused";
+        console.log(html.className);
+    };
 </script>
 </body>
 </html>

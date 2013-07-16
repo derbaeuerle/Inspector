@@ -3,20 +3,33 @@ package de.hsrm.inspector.gadgets.utils;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.MediaPlayer.OnSeekCompleteListener;
+import android.util.Log;
+import de.hsrm.inspector.constants.AudioConstants;
 
+/**
+ * Wrapper class for {@link MediaPlayer} object. This object provides a safer
+ * control and implements some additional features. Also this
+ * {@link MediaPlayer} registers all listeners on itself.
+ */
 public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener, OnCompletionListener,
 		OnBufferingUpdateListener, OnSeekCompleteListener {
 
+	/**
+	 * {@link Enum} class of all available states of {@link GadgetAudioPlayer}.
+	 */
 	public static enum STATE {
 		BUFFERING, PREPARED, PLAYING, PAUSED, STOPPED
 	};
 
+	private String mPlayerId;
 	private boolean mPrepared = false;;
 	private boolean mAutoPlay = false;
 	private boolean mStopped = false;
@@ -25,9 +38,14 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private STATE mState = STATE.BUFFERING;
 	private int mSeekTo = Integer.MIN_VALUE;
 	private float mLeftVolume = 1f, mRightVolume = 1f;
+	private Timer mTimeoutTimer;
 
-	public GadgetAudioPlayer() {
+	/**
+	 * Default constructor.
+	 */
+	public GadgetAudioPlayer(String id) {
 		super();
+		mPlayerId = id;
 		setOnCompletionListener(this);
 		setOnPreparedListener(this);
 		setOnBufferingUpdateListener(this);
@@ -100,27 +118,59 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		mRightVolume = rightVolume;
 	}
 
+	/**
+	 * Sets volume of left audio channel.
+	 * 
+	 * @param left
+	 *            {@link Float}
+	 */
 	public void setLeftVolume(float left) {
 		mLeftVolume = left;
 		super.setVolume(left, mRightVolume);
 	}
 
+	/**
+	 * Sets volume of right audio channel.
+	 * 
+	 * @param right
+	 *            {@link Float}
+	 */
 	public void setRightVolume(float right) {
 		mRightVolume = right;
 		super.setVolume(mLeftVolume, right);
 	}
 
+	/**
+	 * Returns true if {@link GadgetAudioPlayer} is prepared for playback.
+	 * 
+	 * @return {@link Boolean}
+	 */
 	public boolean isPrepared() {
 		return mPrepared;
 	}
 
+	/**
+	 * Stops playback and releases the source.
+	 */
 	public void stop() {
-		super.stop();
-		super.release();
+		try {
+			super.stop();
+		} catch (IllegalStateException e) {
+		}
+		try {
+			super.release();
+		} catch (IllegalStateException e) {
+
+		}
 		mStopped = true;
 		mState = STATE.STOPPED;
 	}
 
+	/**
+	 * Returns default {@link Map} of {@link GadgetAudioPlayer} state.
+	 * 
+	 * @return {@link Map}
+	 */
 	public static Map<String, Object> getDefaultState() {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		map.put("duration", 0);
@@ -129,9 +179,15 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		map.put("stopped", true);
 		map.put("autoplay", false);
 		map.put("prepared", false);
+		map.put("playerid", "");
 		return map;
 	}
 
+	/**
+	 * Returns current state of {@link GadgetAudioPlayer} as {@link Map}.
+	 * 
+	 * @return {@link Map}
+	 */
 	public Map<String, Object> getPlayerState() {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		if (mPrepared) {
@@ -141,23 +197,71 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 			}
 		}
+		map.put("playerid", this.mPlayerId);
 		map.put("duration", this.mDuration);
 		map.put("state", this.mState.toString());
 		map.put("buffered", this.mBuffered);
 		map.put("stopped", this.mStopped);
 		map.put("autoplay", this.mAutoPlay);
 		map.put("prepared", this.mPrepared);
+
+		startTimeout();
 		return map;
 	}
 
+	/**
+	 * Starts {@link #mTimeoutTimer} to stop playback if stream stopped
+	 * requesting state.
+	 */
+	public void startTimeout() {
+		mTimeoutTimer = new Timer();
+		mTimeoutTimer.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				Log.e("", "Timeout reached");
+				GadgetAudioPlayer.this.stop();
+			}
+
+		}, AudioConstants.MAX_LAST_STATE);
+		Log.e("", "Started timeout");
+	}
+
+	/**
+	 * Stops {@link #mTimeoutTimer} on new state request.
+	 */
+	public void stopTimeout() {
+		if (mTimeoutTimer != null) {
+			Log.e("", "Stopped timeout");
+			mTimeoutTimer.cancel();
+		}
+	}
+
+	/**
+	 * Seeks {@link MediaPlayer} to given {@link Integer} in milliseconds.
+	 * 
+	 * @param seek
+	 *            {@link Integer} to seek to.
+	 */
 	public void setSeek(int seek) {
 		mSeekTo = seek;
 	}
 
+	/**
+	 * Sets {@link #mAutoPlay} to start playback on successful preparation.
+	 * 
+	 * @param play
+	 *            {@link Boolean} to set.
+	 */
 	public void setAutoplay(boolean play) {
 		mAutoPlay = play;
 	}
 
+	/**
+	 * Returns current value of {@link #mAutoPlay}.
+	 * 
+	 * @return {@link Boolean}
+	 */
 	public boolean getAutoplay() {
 		return mAutoPlay;
 	}

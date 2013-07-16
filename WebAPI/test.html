@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>Inspector Test</title>
+<script type="text/javascript" src="libs/_inspector.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+</head>
+<body>
+    <button id="start">Start</button></br>
+    <button id="stop">Stop</button>
+    <div id="cons"></div>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var a = b = null;
+        $('#start').click(function(e) {
+            inspector.logger('start');
+            a = inspector.connect({ callback: function(data) { console.log(data); }, gadget: 'AUDIO', delay: 3000 });
+            b = inspector.connect({ callback: function(data) { console.log(data); }, gadget: 'AUDIO', delay: 1000 });
+            a.call();
+            b.call();
+        });
+        $('#stop').click(function(e) {
+            try {
+                a.__destroy();
+            } catch(e) {}
+            try {
+                b.__destroy();
+            } catch(e) {}
+        });
+    });
+    inspector.logger = function(msg) {
+        $('#cons').append(JSON.stringify(msg) + "<br/>");
+    };
+</script>
+</body>
+</html>

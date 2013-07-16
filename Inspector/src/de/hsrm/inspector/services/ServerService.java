@@ -30,7 +30,7 @@ import de.hsrm.inspector.services.utils.HttpServer;
  * 
  * @author dobae
  */
-public class HttpService extends IntentService {
+public class ServerService extends IntentService {
 
 	private static HttpServer mServer;
 
@@ -51,7 +51,7 @@ public class HttpService extends IntentService {
 	/**
 	 * Default constructor.
 	 */
-	public HttpService() {
+	public ServerService() {
 		super("HttpService");
 		android.os.Debug.waitForDebugger();
 	}
@@ -204,8 +204,8 @@ public class HttpService extends IntentService {
 		for (Gadget g : config.values()) {
 			String id = g.getIdentifier().toLowerCase();
 			g.setKeepAlive(prefs.getBoolean(id + ":" + c.getString(R.string.configuration_keep_alive), g.isKeepAlive()));
-			g.setAuthType(Integer.parseInt(prefs.getString(id + ":" + c.getString(R.string.configuration_permission),
-					c.getString(R.string.auth_type_granted))));
+			g.setPermissionType(Integer.parseInt(prefs.getString(
+					id + ":" + c.getString(R.string.configuration_permission), c.getString(R.string.auth_type_granted))));
 			long timeout = Long.parseLong(prefs.getString(id + ":" + c.getString(R.string.configuration_timeout), ""
 					+ Long.MIN_VALUE));
 			if (timeout != Long.MIN_VALUE) {
@@ -301,6 +301,13 @@ public class HttpService extends IntentService {
 		}
 	}
 
+	/**
+	 * Update a {@link Gadget} configuration at runtime.
+	 * 
+	 * @param key
+	 *            {@link String} key of {@link SharedPreferences} value to
+	 *            update.
+	 */
 	private void changeGadgetPreference(String key) {
 		Context c = getApplicationContext();
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
@@ -325,10 +332,10 @@ public class HttpService extends IntentService {
 				}
 			} else if (c.getString(R.string.configuration_permission).equals(splits[1])) {
 				try {
-					gadget.setAuthType(prefs.getInt(key, gadget.getAuthType()));
+					gadget.setPermissionType(prefs.getInt(key, gadget.getPermissionType()));
 				} catch (ClassCastException e) {
-					String value = prefs.getString(key, gadget.getAuthType() + "");
-					gadget.setAuthType(Integer.parseInt(value));
+					String value = prefs.getString(key, gadget.getPermissionType() + "");
+					gadget.setPermissionType(Integer.parseInt(value));
 				}
 			}
 		}

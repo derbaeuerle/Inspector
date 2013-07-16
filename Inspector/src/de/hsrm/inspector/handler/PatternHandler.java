@@ -24,14 +24,17 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import de.hsrm.inspector.R;
+import de.hsrm.inspector.constants.GadgetConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.exceptions.constants.GadgetExceptionConstants;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
-import de.hsrm.inspector.services.HttpService;
+import de.hsrm.inspector.services.ServerService;
 import de.hsrm.inspector.services.utils.HttpServer;
 
 /**
@@ -75,21 +78,19 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			IOException {
 		stopServerTimeout();
 
+		// Log.e("REQUEST", request.getRequestLine().toString());
+
 		Object tmpResponseContent = "";
-		Log.d("REQUEST", request.getRequestLine().toString());
 		try {
 			InspectorRequest iRequest = new InspectorRequest(request);
 			try {
-				Log.d("HASH", iRequest.getReferer());
-
 				checkGadget(iRequest);
 				tmpResponseContent = checkLocking(iRequest, request, response, context);
 			} catch (Exception e) {
 				e.printStackTrace();
-				tmpResponseContent = exceptionToJson(e);
+				tmpResponseContent = e;
 			} finally {
-				tmpResponseContent = iRequest.getCallback() + "(" + tmpResponseContent + ");";
-				response(tmpResponseContent, response);
+				response(iRequest, tmpResponseContent, response);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -119,12 +120,8 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 */
 	private Object checkLocking(InspectorRequest iRequest, HttpRequest request, HttpResponse response,
 			HttpContext context) throws Exception {
-		Object tmpResponseContent = "";
 		Gadget gadget = mGadgets.get(iRequest.getGadgetIdentifier());
 		if (!mLocked.get() || (mLocked.get() && gadget.isKeepAlive() && gadget.isRunning())) {
-			tmpResponseContent = checkPermission(iRequest, gadget, request, response, context);
-			tmpResponseContent = iRequest.getCallback() + "(" + tmpResponseContent.toString() + ");";
-
 			return checkPermission(iRequest, gadget, request, response, context);
 		}
 		throw new GadgetException("Server is locked", GadgetExceptionConstants.SERVER_IS_LOCKED);
@@ -162,15 +159,14 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		if (iRequest.hasParameter("permission") && iRequest.getParameter("permission").toString().equals("true")) {
 			mPermissions.get(gadget.getIdentifier()).add(iRequest.getReferer());
 			Log.e("PERM", "Adding " + iRequest.getReferer() + " to " + gadget.getIdentifier());
-			Log.e("PERM", mPermissions.get(gadget.getIdentifier()).contains(iRequest.getReferer()) + "");
 		}
 
-		if (gadget.getAuthType() == PERMISSION_REQUEST
+		if (gadget.getPermissionType() == PERMISSION_REQUEST
 				&& !mPermissions.get(gadget.getIdentifier()).contains(iRequest.getReferer())) {
 			throw new GadgetException(gadget.getIdentifier() + " needs permission",
 					GadgetExceptionConstants.GADGET_NEEDS_PERMISSION);
 
-		} else if (gadget.getAuthType() == PERMISSION_DISABLED) {
+		} else if (gadget.getPermissionType() == PERMISSION_DISABLED) {
 			throw new GadgetException(gadget.getIdentifier() + " is disabled",
 					GadgetExceptionConstants.GADGET_IS_DISABLED);
 
@@ -178,11 +174,9 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			initGadget(gadget);
 
 			synchronized (gadget) {
-				gadget.bindServices();
-				Object tmpResponseContent = gadget.gogo(mContext, iRequest, request, response, context);
-				gadget.unbindServices();
+				Object tmpResponseContent = gadget.gogo(mContext, iRequest);
 				gadget.startTimeout();
-				return mGson.toJson(tmpResponseContent);
+				return tmpResponseContent;
 			}
 		}
 	}
@@ -213,18 +207,34 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 * @param response
 	 *            {@link HttpResponse}
 	 */
-	private void response(final Object content, HttpResponse response) {
+	private void response(InspectorRequest iRequest, Object content, HttpResponse response) {
+		final String jsonContent;
+		JsonObject obj = new JsonObject();
+		if (content instanceof Exception) {
+			obj.add("error", exceptionToJson((Exception) content));
+		} else {
+			obj = mGson.toJsonTree(content).getAsJsonObject();
+			if (iRequest.hasParameter(GadgetConstants.PARAM_STREAM_ID)) {
+				HashMap<String, String> streamInfo = new HashMap<String, String>();
+				streamInfo.put("streamid", iRequest.getParameter(GadgetConstants.PARAM_STREAM_ID).toString());
+				streamInfo.put("gadget", iRequest.getGadgetIdentifier());
+				obj.add("stream", mGson.toJsonTree(streamInfo));
+			}
+		}
+		content = obj.toString();
+		jsonContent = iRequest.getCallback() + "(" + content.toString() + ");";
+
 		response.setHeader("Content-Type", "application/json");
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
 		HttpEntity entity = new EntityTemplate(new ContentProducer() {
 			public void writeTo(final OutputStream outputStream) throws IOException {
 				OutputStreamWriter writer = new OutputStreamWriter(outputStream, "UTF-8");
-				writer.write(content.toString());
+				writer.write(jsonContent.toString());
 				writer.flush();
 			}
 		});
-		Log.d("RESPONSE", content.toString());
+		Log.d("RESPONSE", jsonContent.toString());
 		response.setEntity(entity);
 	}
 
@@ -233,9 +243,9 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 * 
 	 * @param e
 	 *            {@link Exception}
-	 * @return {@link Object}
+	 * @return {@link JsonElement}
 	 */
-	private Object exceptionToJson(Exception e) {
+	private JsonElement exceptionToJson(Exception e) {
 		StringBuilder b = new StringBuilder();
 		for (StackTraceElement s : e.getStackTrace()) {
 			b.append(s.toString() + "\n");
@@ -246,7 +256,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		if (e instanceof GadgetException) {
 			map.put(mContext.getString(R.string.exception_error_code), ((GadgetException) e).getErrorCode() + "");
 		}
-		return "{ 'error': " + mGson.toJson(map) + "}";
+		return mGson.toJsonTree(map);
 	}
 
 	@Override
@@ -330,10 +340,10 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	/**
 	 * Starts timeout task of {@link HttpServer} by sending {@link Intent} to
-	 * {@link HttpService}.
+	 * {@link ServerService}.
 	 */
 	private void startServerTimeout() {
-		String uri = "inspect://" + HttpService.CMD_START_TIMEOUT;
+		String uri = "inspect://" + ServerService.CMD_START_TIMEOUT;
 		Intent request = new Intent("de.inspector.intents");
 		request.setData(Uri.parse(uri));
 		mContext.startService(request);
@@ -341,10 +351,10 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	/**
 	 * Stops timeout task of {@link HttpServer} by sending {@link Intent} to
-	 * {@link HttpService}.
+	 * {@link ServerService}.
 	 */
 	private void stopServerTimeout() {
-		String uri = "inspect://" + HttpService.CMD_STOP_TIMEOUT;
+		String uri = "inspect://" + ServerService.CMD_STOP_TIMEOUT;
 		Intent request = new Intent("de.inspector.intents");
 		request.setData(Uri.parse(uri));
 		mContext.startService(request);

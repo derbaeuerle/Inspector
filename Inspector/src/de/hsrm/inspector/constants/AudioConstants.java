@@ -1,9 +1,13 @@
 package de.hsrm.inspector.constants;
 
+import de.hsrm.inspector.gadgets.AudioGadget;
+
 /**
- * Created by dobae on 25.05.13.
+ * Constants class for {@link AudioGadget}.
  */
 public class AudioConstants {
+
+	public static final long MAX_LAST_STATE = 2000;
 
 	public static final String PARAM_AUTOPLAY = "autoplay";
 	public static final String PARAM_AUDIOFILE = "audiofile";

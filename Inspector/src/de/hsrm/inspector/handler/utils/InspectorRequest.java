@@ -5,12 +5,15 @@ import java.util.List;
 
 import org.apache.http.HttpRequest;
 
+import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.services.utils.HttpServer;
+
 import android.net.Uri;
 import android.net.UrlQuerySanitizer;
 import android.net.UrlQuerySanitizer.ParameterValuePair;
 
 /**
- * Created by dobae on 28.05.13.
+ * Utility object for {@link HttpRequest} of {@link HttpServer}.
  */
 public class InspectorRequest {
 
@@ -22,8 +25,10 @@ public class InspectorRequest {
 	private String mReferer;
 
 	/**
+	 * Constructor of {@link InspectorRequest}.
+	 * 
 	 * @param requestLine
-	 *            Something like "http://localhost:80/<identifier>/<parameters>
+	 *            Something like "http://localhost:80/<identifier>/<parameters>"
 	 * @throws Exception
 	 */
 	public InspectorRequest(HttpRequest request) throws Exception {
@@ -43,30 +48,72 @@ public class InspectorRequest {
 			throw new Exception("");
 	}
 
+	/**
+	 * Checks if {@link HttpRequest} has a parameter with given name.
+	 * 
+	 * @param key
+	 *            {@link String} name of parameter.
+	 * @return {@link Boolean}
+	 */
 	public boolean hasParameter(String key) {
 		return mQuery.getParameterSet().contains(key);
 	}
 
+	/**
+	 * Returns all URL parameters of {@link HttpRequest} as {@link List} of
+	 * {@link ParameterValuePair}.
+	 * 
+	 * @return {@link List} of {@link ParameterValuePair}
+	 */
 	public List<UrlQuerySanitizer.ParameterValuePair> getParameters() {
 		return mQuery.getParameterList();
 	}
 
+	/**
+	 * Returns value of URL parameter from given {@link String} key as
+	 * {@link Object}.
+	 * 
+	 * @param key
+	 *            {@link String} key of URL parameter name.
+	 * @return {@link Object}
+	 */
 	public Object getParameter(String key) {
 		return mQuery.getValue(key);
 	}
 
+	/**
+	 * Returns {@link Gadget} identifier as {@link String} parsed from
+	 * {@link HttpRequest}.
+	 * 
+	 * @return {@link String}
+	 */
 	public String getGadgetIdentifier() {
 		return mSegments.get(1).toUpperCase();
 	}
 
+	/**
+	 * Returns all segments of URL.
+	 * 
+	 * @return {@link List} of {@link String}
+	 */
 	public List<String> getSegments() {
 		return mSegments.subList(1, mSegments.size());
 	}
 
+	/**
+	 * Returns name of JSONP callback function parsed from {@link HttpRequest}.
+	 * 
+	 * @return {@link String}
+	 */
 	public String getCallback() {
 		return mCallback;
 	}
 
+	/**
+	 * Returns referer of {@link HttpRequest}.
+	 * 
+	 * @return {@link String}
+	 */
 	public String getReferer() {
 		return mReferer;
 	}

@@ -7,7 +7,9 @@ import android.net.Uri;
 import android.util.Log;
 
 /**
- * Created by dobae on 25.05.13.
+ * {@link BroadcastReceiver} to receive screen events of device. The
+ * {@link #onReceive(Context, Intent)} method translates android intents into
+ * intents of inspector namespace and dispatches them.
  */
 public class ScreenReceiver extends BroadcastReceiver {
 

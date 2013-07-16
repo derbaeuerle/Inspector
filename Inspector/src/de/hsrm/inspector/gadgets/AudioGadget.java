@@ -3,13 +3,9 @@ package de.hsrm.inspector.gadgets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
-import org.apache.http.protocol.HttpContext;
-
 import android.content.Context;
-import android.media.MediaPlayer;
 import android.net.Uri;
+import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.Gadget;
@@ -17,7 +13,8 @@ import de.hsrm.inspector.gadgets.utils.GadgetAudioPlayer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 
 /**
- * Created by dobae on 27.05.13.
+ * {@link Gadget} implementation of audio support. This {@link AudioGadget}
+ * supports multiple {@link GadgetAudioPlayer} simultaneously.
  */
 public class AudioGadget extends Gadget {
 
@@ -32,23 +29,28 @@ public class AudioGadget extends Gadget {
 	@Override
 	public void onUnregister(Context context) {
 		super.onUnregister(context);
-		for (MediaPlayer mp : mPlayers.values()) {
-			if (mp.isPlaying()) {
+		for (GadgetAudioPlayer mp : mPlayers.values()) {
+			try {
 				mp.stop();
+				mp.release();
+			} catch (IllegalStateException e) {
 			}
-			mp.release();
 		}
 	}
 
 	@Override
-	public Object gogo(Context context, InspectorRequest iRequest, HttpRequest request, HttpResponse response,
-			HttpContext http_context) throws Exception {
+	public Object gogo(Context context, InspectorRequest iRequest) throws Exception {
 		if (!iRequest.hasParameter(AudioConstants.PARAM_PLAYERID))
 			throw new GadgetException("No playerid or command set for audio gadget.");
 
+		Log.d("", "player: " + iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString() + ", command: "
+				+ iRequest.getParameter(AudioConstants.PARAM_COMMAND));
+
 		GadgetAudioPlayer mp = null;
-		if (mPlayers.containsKey(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString())) {
-			mp = mPlayers.get(iRequest.getParameter(AudioConstants.PARAM_PLAYERID));
+		String playerId = iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString();
+		if (mPlayers.containsKey(playerId)) {
+			mp = mPlayers.get(playerId);
+			mp.stopTimeout();
 		} else {
 			if (iRequest.getParameter(AudioConstants.PARAM_COMMAND).equals(AudioConstants.COMMAND_PLAY)) {
 				boolean autoplay = false, loop = false;
@@ -59,11 +61,12 @@ public class AudioGadget extends Gadget {
 					loop = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_LOOP).toString());
 				}
 
-				mp = new GadgetAudioPlayer();
+				mp = new GadgetAudioPlayer(playerId);
 				mp.setLooping(loop);
 				mp.setAutoplay(autoplay);
 
 				String src = Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString());
+				Log.d("MP", src);
 				mp.setDataSource(src);
 				mPlayers.put(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString(), mp);
 			}
@@ -72,9 +75,20 @@ public class AudioGadget extends Gadget {
 			doCommand(iRequest, mp);
 			return mp.getPlayerState();
 		}
-		return GadgetAudioPlayer.getDefaultState();
+		Map<String, Object> def = GadgetAudioPlayer.getDefaultState();
+		def.put(AudioConstants.PARAM_PLAYERID, playerId);
+		return def;
 	}
 
+	/**
+	 * Executes parsed command given inside the request URL.
+	 * 
+	 * @param iRequest
+	 *            {@link InspectorRequest}
+	 * @param mp
+	 *            {@link GadgetAudioPlayer}
+	 * @throws Exception
+	 */
 	private void doCommand(InspectorRequest iRequest, GadgetAudioPlayer mp) throws Exception {
 		if (!iRequest.hasParameter(AudioConstants.PARAM_COMMAND))
 			throw new GadgetException("No command set for audio gadget.");

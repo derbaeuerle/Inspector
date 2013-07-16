@@ -47,7 +47,7 @@
         </activity>
 
         <service
-            android:name="de.hsrm.inspector.services.HttpService"
+            android:name="de.hsrm.inspector.services.ServerService"
             android:process=":seperate" >
             <intent-filter>
                 <action android:name="de.inspector.intents" />

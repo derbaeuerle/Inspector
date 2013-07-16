@@ -43,39 +43,28 @@
         $compass = $('#compass');
         $console = $('#console');
         $deg = $('#degree');
-        $mag = $('#magnetic');
-        var ori, mag;
+        var ori;
         listenOrientation = function() {
-            if(ori || mag) {
-                unlistenOrientation();
+            if(!ori) {
+                inspector.destroyListeners();
+                ori = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
+                    if(data[0]) {
+                        deg = -1 * parseInt(data[0], 10);
+                        $compass.css({
+                            '-webkit-transform': 'rotate(' + deg + 'deg)',
+                            '-o-transform': 'rotate(' + deg + 'deg)',
+                            '-ms-transform': 'rotate(' + deg + 'deg)',
+                            'transform': 'rotate(' + deg + 'deg)'
+                        });
+                        $deg.html(deg);
+                    }
+                }, function(error) {
+                    inspector.logger(error);
+                });
             }
-            inspector.destroyListeners();
-            ori = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
-                if(data[0]) {
-                    deg = -1 * parseInt(data[0], 10);
-                    $compass.css({
-                        '-webkit-transform': 'rotate(' + deg + 'deg)',
-                        '-o-transform': 'rotate(' + deg + 'deg)',
-                        '-ms-transform': 'rotate(' + deg + 'deg)',
-                        'transform': 'rotate(' + deg + 'deg)'
-                    });
-                    $deg.html(deg);
-                }
-            }, function(error) {
-                inspector.logger(error);
-            });
-            mag = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
-                inspector.logger(data);
-                if(data) {
-                   $mag.html(data[0]);
-                }
-            });
-
-            inspector.logger("magnetic" + mag);
         }
         unlistenOrientation = function() {
             inspector.unlisten(inspector.gadgets.ORIENTATION, ori);
-            inspector.unlisten(inspector.gadgets.MAGNETIC, mag);
         }
         inspector.logger = function(msg) {
             $console.html(msg);

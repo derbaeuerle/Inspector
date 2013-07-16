@@ -1,5 +1,6 @@
 package de.hsrm.inspector.services.utils.sensors;
 
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -12,7 +13,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
 /**
- * Created by dobae on 25.05.13.
+ * Wrapper class for {@link Sensor} support which implements
+ * {@link SensorEventListener} and registers on itself.
  */
 public class SensorObject implements SensorEventListener {
 
@@ -24,6 +26,14 @@ public class SensorObject implements SensorEventListener {
 
 	private ValueWaiter mWaiter;
 
+	/**
+	 * Constructor of {@link SensorObject}.
+	 * 
+	 * @param context
+	 *            Current application {@link Context}.
+	 * @param type
+	 *            Type as {@link Integer} of sensor.
+	 */
 	public SensorObject(Context context, int type) {
 		mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 		setSensorType(type);
@@ -42,6 +52,15 @@ public class SensorObject implements SensorEventListener {
 	public void onAccuracyChanged(Sensor sensor, int i) {
 	}
 
+	/**
+	 * Returns the last received {@link SensorEvent} values. If a calls this
+	 * {@link SensorObject} this method only provides new values and waits if
+	 * the current values has already been send to the caller.
+	 * 
+	 * @param id
+	 *            Stream id as {@link String}.
+	 * @return {@link Float} {@link Arrays}
+	 */
 	public float[] getData(String id) {
 		try {
 			if (id == null) {
@@ -84,12 +103,20 @@ public class SensorObject implements SensorEventListener {
 		return new float[0];
 	}
 
+	/**
+	 * Registers {@link SensorEventListener} to configured
+	 * {@link SensorObject#mSensor}.
+	 */
 	public void registerListener() {
 		if (mSensor != null) {
 			mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
 		}
 	}
 
+	/**
+	 * Unregisters {@link SensorEventListener} from configured
+	 * {@link SensorObject#mSensor}.
+	 */
 	public void unregisterListener() {
 		if (mSensor != null) {
 			mLastEvent = null;
@@ -97,6 +124,13 @@ public class SensorObject implements SensorEventListener {
 		}
 	}
 
+	/**
+	 * Sets type of {@link Sensor}.
+	 * 
+	 * @param type
+	 *            {@link Integer}
+	 * @throws UnsupportedOperationException
+	 */
 	public void setSensorType(int type) throws UnsupportedOperationException {
 		if (SENSOR_TYPE == -1) {
 			SENSOR_TYPE = type;
@@ -106,24 +140,50 @@ public class SensorObject implements SensorEventListener {
 		}
 	}
 
+	/**
+	 * {@link FutureTask} implementation to wait for a new value from
+	 * {@link SensorEventListener}.
+	 */
 	private class ValueWaiter extends FutureTask<float[]> {
 
 		private float[] mOldValue;
 
+		/**
+		 * Constructor with {@link Callable} object.
+		 * 
+		 * @param callable
+		 *            {@link Callable} to execute.
+		 */
 		public ValueWaiter(Callable<float[]> callable) {
 			super(callable);
 		}
 
+		/**
+		 * Sets value of {@link SensorObject} at the time, the
+		 * {@link ValueWaiter} gets started.
+		 * 
+		 * @param old
+		 *            {@link Float} array.
+		 */
 		public void setOldValue(float[] old) {
 			mOldValue = old;
 		}
 
+		/**
+		 * Returns {@link #mOldValue}.
+		 * 
+		 * @return {@link Float} {@link Arrays}
+		 */
 		public float[] getOldValue() {
 			return mOldValue;
 		}
 
 	}
 
+	/**
+	 * Implementation of {@link Callable} to execute if {@link SensorObject}
+	 * waits for a new {@link SensorObject#mLastEvent}.
+	 */
 	private class ValueWaiterCallable implements Callable<float[]> {
 
 		@Override
@@ -136,7 +196,6 @@ public class SensorObject implements SensorEventListener {
 						return mLastEvent;
 					}
 				}
-				// Log.d("EventWaiter", "sleep");
 				Thread.sleep(50);
 			}
 		}

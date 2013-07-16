@@ -32,8 +32,6 @@ import de.hsrm.inspector.handler.PatternHandler;
 /**
  * WebServer Thread to parse inspector's config file and start apache server
  * with pattern handler.
- * 
- * @author Dominic Baeuerle
  */
 public class HttpServer extends Thread {
 
@@ -66,7 +64,6 @@ public class HttpServer extends Thread {
 		super(SERVER_NAME);
 		isRunning = new AtomicBoolean(false);
 		isStarted = new AtomicBoolean(false);
-		// mConfigurationFile = configuration;
 
 		httpproc = new BasicHttpProcessor();
 		httpContext = new BasicHttpContext();
@@ -79,14 +76,7 @@ public class HttpServer extends Thread {
 		httpService = new HttpService(httpproc, new DefaultConnectionReuseStrategy(), new DefaultHttpResponseFactory());
 
 		registry = new HttpRequestHandlerRegistry();
-		// mConfiguration = readConfiguration(mContext,
-		// context.getResources().openRawResource(R.raw.inspector_default));
-		// if (configuration != null) {
-		// defaultConfig.putAll(readConfiguration(mContext,
-		// mConfigurationFile));
-		// }
 		mHandler = new PatternHandler(context);
-		// mHandler.setGadgetConfiguration(mConfiguration);
 
 		registry.register(DEFAULT_PATTERN, mHandler);
 		httpService.setHandlerResolver(registry);
@@ -106,13 +96,23 @@ public class HttpServer extends Thread {
 						try {
 							final Socket socket = mSocket.accept();
 							socket.setReuseAddress(true);
-							DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
+							final DefaultHttpServerConnection serverConnection = new DefaultHttpServerConnection();
 							serverConnection.bind(socket, new BasicHttpParams());
-							httpService.handleRequest(serverConnection, httpContext);
+							(new Runnable() {
+
+								@Override
+								public void run() {
+									try {
+										httpService.handleRequest(serverConnection, httpContext);
+									} catch (IOException e) {
+										e.printStackTrace();
+									} catch (HttpException e) {
+										e.printStackTrace();
+									}
+								}
+							}).run();
 							serverConnection.shutdown();
 						} catch (IOException e) {
-							e.printStackTrace();
-						} catch (HttpException e) {
 							e.printStackTrace();
 						}
 					}
@@ -146,7 +146,6 @@ public class HttpServer extends Thread {
 	 * Safe method to stop server.
 	 */
 	public synchronized void stopThread() {
-		Log.e("SERVER", "Shutdown http server!");
 		if (mSocket != null) {
 			try {
 				mSocket.close();
@@ -159,35 +158,66 @@ public class HttpServer extends Thread {
 		}
 	}
 
+	/**
+	 * Returns true is {@link HttpServer} is started.
+	 * 
+	 * @return {@link Boolean}
+	 */
 	public synchronized boolean isRunning() {
 		return isRunning.get();
 	}
 
+	/**
+	 * Returns {@link #mConfiguration}.
+	 * 
+	 * @return {@link ConcurrentHashMap}
+	 */
 	public ConcurrentHashMap<String, Gadget> getConfiguration() {
 		return mConfiguration;
 	}
 
+	/**
+	 * Sets {@link #mConfiguration}.
+	 * 
+	 * @param map
+	 *            {@link ConcurrentHashMap} to set.
+	 */
 	public void setConfiguration(ConcurrentHashMap<String, Gadget> map) {
 		mConfiguration = map;
 		mHandler.setGadgetConfiguration(mConfiguration);
 	}
 
+	/**
+	 * Locks {@link #mHandler}.
+	 */
 	public void lock() {
 		if (mHandler != null) {
 			mHandler.lock();
 		}
 	}
 
+	/**
+	 * Unlocks {@link #mHandler}.
+	 */
 	public void unlock() {
 		if (mHandler != null) {
 			mHandler.unlock();
 		}
 	}
 
+	/**
+	 * Set {@link #mTimeout} for {@link #mTimeoutTimer}.
+	 * 
+	 * @param timeout
+	 *            {@link Long} in milliseconds.
+	 */
 	public void setTimeoutTime(long timeout) {
 		this.mTimeout = timeout;
 	}
 
+	/**
+	 * Starts {@link #mTimeoutTimer}.
+	 */
 	public synchronized void startTimeout() {
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.cancel();
@@ -202,13 +232,14 @@ public class HttpServer extends Thread {
 				HttpServer.this.stopThread();
 			}
 		};
-		Log.e("SERVER", "Starting server timeout ...");
 		mTimeoutTimer.schedule(task, mTimeout);
 	}
 
+	/**
+	 * Stops {@link #mTimeoutTimer}.
+	 */
 	public synchronized void stopTimeout() {
 		if (mTimeoutTimer != null) {
-			Log.e("SERVER", "Stopping server timeout ...");
 			mTimeoutTimer.cancel();
 		}
 	}

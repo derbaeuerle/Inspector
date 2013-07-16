@@ -7,6 +7,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import android.content.Context;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
+/**
+ * {@link Timer} with {@link TimerTask} to support {@link Gadget} timeout.
+ */
 public class TimeoutTimer {
 
 	private Gadget mGadget;
@@ -14,12 +17,23 @@ public class TimeoutTimer {
 	private Timer mTimer;
 	private Context mContext;
 
+	/**
+	 * Constructor of {@link TimeoutTimer}.
+	 * 
+	 * @param context
+	 *            Current application {@link Context}.
+	 * @param gadget
+	 *            {@link Gadget} object to time out.
+	 */
 	public TimeoutTimer(Context context, Gadget gadget) {
 		mGadget = gadget;
 		mStarted = new AtomicBoolean(false);
 		mContext = context;
 	}
 
+	/**
+	 * Starts the {@link #mTimer} {@link Timer}.
+	 */
 	public void start() {
 		if (!mStarted.get()) {
 			mTimer = new Timer();
@@ -28,6 +42,9 @@ public class TimeoutTimer {
 		}
 	}
 
+	/**
+	 * Cancels current {@link #mTimer}.
+	 */
 	public void cancel() {
 		if (mTimer != null) {
 			mTimer.cancel();
@@ -35,6 +52,9 @@ public class TimeoutTimer {
 		mStarted.set(false);
 	}
 
+	/**
+	 * {@link TimerTask} to unregister and destroy {@link TimeoutTimer#mGadget}.
+	 */
 	private class TimeoutTimerTask extends TimerTask {
 
 		@Override

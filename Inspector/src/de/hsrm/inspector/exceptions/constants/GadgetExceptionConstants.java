@@ -1,5 +1,10 @@
 package de.hsrm.inspector.exceptions.constants;
 
+import de.hsrm.inspector.exceptions.GadgetException;
+
+/**
+ * Constants class for {@link GadgetException}.
+ */
 public class GadgetExceptionConstants {
 
 	public static final int SERVER_IS_LOCKED = 1;
