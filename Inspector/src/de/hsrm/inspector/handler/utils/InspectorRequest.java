@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.http.HttpRequest;
 
 import de.hsrm.inspector.gadgets.intf.Gadget;
-import de.hsrm.inspector.services.utils.HttpServer;
+import de.hsrm.inspector.web.HttpServer;
 
 import android.net.Uri;
 import android.net.UrlQuerySanitizer;

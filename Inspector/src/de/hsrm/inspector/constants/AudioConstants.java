@@ -7,7 +7,7 @@ import de.hsrm.inspector.gadgets.AudioGadget;
  */
 public class AudioConstants {
 
-	public static final long MAX_LAST_STATE = 2000;
+	public static final long MAX_LAST_STATE = 5000;
 
 	public static final String PARAM_AUTOPLAY = "autoplay";
 	public static final String PARAM_AUDIOFILE = "audiofile";

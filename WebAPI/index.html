@@ -19,21 +19,17 @@
 <script type="text/javascript">
     inspector.logger = function(msg) {
         cons = $('#cons');
-        cons.append(msg + "<br/>");
+        cons.append(JSON.stringify(msg) + "<br/>");
     }
     window.onblur = function(e) {
         html = document.documentElement;
-        console.log(html);
         html.className = html.className.replace('focused', '');
         html.className = html.className + " " + "blured";
-        console.log(html.className);
     };
     window.onfocus = function(e) {
         html = document.documentElement;
-        console.log(html);
         html.className = html.className.replace('blured', '');
         html.className = html.className + " " + "focused";
-        console.log(html.className);
     };
 </script>
 </body>

@@ -35,7 +35,7 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.services.ServerService;
-import de.hsrm.inspector.services.utils.HttpServer;
+import de.hsrm.inspector.web.HttpServer;
 
 /**
  * {@link HttpRequestHandler} for {@link HttpServer} to handle every request on

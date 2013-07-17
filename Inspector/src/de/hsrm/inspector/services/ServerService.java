@@ -23,7 +23,7 @@ import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
 import de.hsrm.inspector.gadgets.intf.Gadget;
-import de.hsrm.inspector.services.utils.HttpServer;
+import de.hsrm.inspector.web.HttpServer;
 
 /**
  * {@link IntentService} to manage the {@link HttpServer} and its configuration.

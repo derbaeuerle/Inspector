@@ -205,7 +205,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		map.put("autoplay", this.mAutoPlay);
 		map.put("prepared", this.mPrepared);
 
-		startTimeout();
+		// startTimeout();
 		return map;
 	}
 
