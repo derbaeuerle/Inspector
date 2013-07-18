@@ -33,7 +33,6 @@
 <body>
     <button id="start" href="#" onclick="listenOrientation();">Start Compass</button><br/>
     <button id="stop" href="#" onclick="unlistenOrientation();">Stop Compass</button><br/>
-    Magnetic: <div id="magnetic"></div><br/>
     Degree: <div id="degree"></div>°<br/>
     <div id="compass"></div>
     <div id="needle"></div>
@@ -41,37 +40,32 @@
     <script type="text/javascript">
         $console = $('#console');
         $compass = $('#compass');
-        $console = $('#console');
         $deg = $('#degree');
-        var ori;
+        var compass = null;
         listenOrientation = function() {
-            if(!ori) {
-                inspector.destroyListeners();
-                ori = inspector.listen(inspector.gadgets.ORIENTATION, {}, function(data) {
-                    if(data[0]) {
-                        deg = -1 * parseInt(data[0], 10);
-                        $compass.css({
-                            '-webkit-transform': 'rotate(' + deg + 'deg)',
-                            '-o-transform': 'rotate(' + deg + 'deg)',
-                            '-ms-transform': 'rotate(' + deg + 'deg)',
-                            'transform': 'rotate(' + deg + 'deg)'
-                        });
-                        $deg.html(deg);
-                    }
-                }, function(error) {
-                    inspector.logger(error);
+            if(!compass) {
+                // Start using orientation sensor.
+                compass = inspector.use("ORIENTATION");
+
+                // Register to state event.
+                compass.on("state", function(response) {
+                    deg = -1 * parseInt(response.data[0], 10);
+                    $compass.css({
+                        '-webkit-transform': 'rotate(' + deg + 'deg)',
+                        '-o-transform': 'rotate(' + deg + 'deg)',
+                        '-ms-transform': 'rotate(' + deg + 'deg)',
+                        'transform': 'rotate(' + deg + 'deg)'
+                    });
+                    $deg.html(deg);
                 });
             }
         }
         unlistenOrientation = function() {
-            inspector.unlisten(inspector.gadgets.ORIENTATION, ori);
+            if(compass) {
+                compass.__destroy();
+                compass = null;
+            }
         }
-        inspector.logger = function(msg) {
-            $console.html(msg);
-        }
-        $(document).ready(function(e) {
-            $('#start').click();
-        });
     </script>
 </body>
 </html>

@@ -21,19 +21,20 @@ import org.apache.http.protocol.HttpRequestHandler;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.util.Log;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import de.hsrm.inspector.ExtendedApplication;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.constants.GadgetConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.exceptions.constants.GadgetExceptionConstants;
+import de.hsrm.inspector.gadgets.communication.ResponsePool;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
+import de.hsrm.inspector.handler.utils.JsonConverter;
 import de.hsrm.inspector.services.ServerService;
 import de.hsrm.inspector.web.HttpServer;
 
@@ -51,6 +52,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	private ConcurrentHashMap<String, Gadget> mGadgets;
 	private ConcurrentHashMap<String, ArrayList<String>> mPermissions;
+	private ResponsePool mResponseQueue;
 	private AtomicBoolean mLocked = new AtomicBoolean(false);
 	private Context mContext;
 	private AtomicInteger mRunningInstances;
@@ -58,13 +60,14 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 	/**
 	 * Constructor of {@link PatternHandler} with current application
-	 * {@link Context}.
+	 * {@link ExtendedApplication}.
 	 * 
-	 * @param context
-	 *            {@link Context}
+	 * @param app
+	 *            {@link ExtendedApplication}
 	 */
-	public PatternHandler(Context context) {
-		mContext = context;
+	public PatternHandler(ExtendedApplication app) {
+		mResponseQueue = app.getOrCreateResponseQueue();
+		mContext = app.getApplicationContext();
 		mRunningInstances = new AtomicInteger(0);
 		mPermissions = new ConcurrentHashMap<String, ArrayList<String>>();
 		mGson = new Gson();
@@ -78,14 +81,18 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			IOException {
 		stopServerTimeout();
 
-		// Log.e("REQUEST", request.getRequestLine().toString());
+//		Log.e("REQUEST", request.getRequestLine().toString());
 
 		Object tmpResponseContent = "";
 		try {
 			InspectorRequest iRequest = new InspectorRequest(request);
 			try {
-				checkGadget(iRequest);
-				tmpResponseContent = checkLocking(iRequest, request, response, context);
+				Gadget gadget = checkGadget(iRequest);
+				gadget.cancelTimeout();
+
+				checkPermission(iRequest, gadget);
+
+				gadget.startTimeout();
 			} catch (Exception e) {
 				e.printStackTrace();
 				tmpResponseContent = e;
@@ -95,36 +102,6 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Checking server for locking settings and decides what to do. If server is
-	 * not locked or server is locked an gadget is keep-alive or running,
-	 * request will be dispatched.
-	 * 
-	 * @param iRequest
-	 *            {@link InspectorRequest}
-	 * @param request
-	 *            {@link HttpRequest}
-	 * @param response
-	 *            {@link HttpResponse}
-	 * @param context
-	 *            {@link HttpContext}
-	 * @return {@link Object} value of
-	 *         {@link #checkPermission(InspectorRequest, Gadget, HttpRequest, HttpResponse, HttpContext)}
-	 *         call
-	 * @throws Exception
-	 *             Throws Exception on failure inside process or if request
-	 *             couldn't be dispatched. Error code of {@link GadgetException}
-	 *             will be {@link GadgetExceptionConstants#SERVER_IS_LOCKED}.
-	 */
-	private Object checkLocking(InspectorRequest iRequest, HttpRequest request, HttpResponse response,
-			HttpContext context) throws Exception {
-		Gadget gadget = mGadgets.get(iRequest.getGadgetIdentifier());
-		if (!mLocked.get() || (mLocked.get() && gadget.isKeepAlive() && gadget.isRunning())) {
-			return checkPermission(iRequest, gadget, request, response, context);
-		}
-		throw new GadgetException("Server is locked", GadgetExceptionConstants.SERVER_IS_LOCKED);
 	}
 
 	/**
@@ -143,22 +120,15 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 *            {@link InspectorRequest}
 	 * @param gadget
 	 *            {@link Gadget}
-	 * @param request
-	 *            {@link HttpRequest}
-	 * @param response
-	 *            {@link HttpResponse}
-	 * @param context
-	 *            {@link HttpContext}
 	 * @return {@link Object} value of
 	 *         {@link Gadget#gogo(Context, InspectorRequest, HttpRequest, HttpResponse, HttpContext)}
 	 *         call
 	 * @throws Exception
 	 */
-	private Object checkPermission(InspectorRequest iRequest, Gadget gadget, HttpRequest request,
-			HttpResponse response, HttpContext context) throws Exception {
+	private void checkPermission(InspectorRequest iRequest, Gadget gadget) throws Exception {
 		if (iRequest.hasParameter("permission") && iRequest.getParameter("permission").toString().equals("true")) {
 			mPermissions.get(gadget.getIdentifier()).add(iRequest.getReferer());
-			Log.e("PERM", "Adding " + iRequest.getReferer() + " to " + gadget.getIdentifier());
+//			Log.e("PERM", "Adding " + iRequest.getReferer() + " to " + gadget.getIdentifier());
 		}
 
 		if (gadget.getPermissionType() == PERMISSION_REQUEST
@@ -172,12 +142,24 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 
 		} else {
 			initGadget(gadget);
+			checkCommand(iRequest, gadget);
+		}
+	}
 
-			synchronized (gadget) {
-				Object tmpResponseContent = gadget.gogo(mContext, iRequest);
-				gadget.startTimeout();
-				return tmpResponseContent;
-			}
+	/**
+	 * Checks whether {@link InspectorRequest} contains an static command or
+	 * not. If a command was given, the bound method will be executed.
+	 * 
+	 * @param iRequest
+	 *            {@link InspectorRequest}
+	 * @param gadget
+	 *            {@link Gadget}
+	 * @return {@link Object}
+	 * @throws Exception
+	 */
+	private void checkCommand(InspectorRequest iRequest, Gadget gadget) throws Exception {
+		synchronized (gadget) {
+			gadget.gogo(mContext, iRequest);
 		}
 	}
 
@@ -190,12 +172,14 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 *             Throws {@link GadgetException} with error code
 	 *             {@link GadgetExceptionConstants#GADGET_NOT_AVAILABLE} if
 	 *             gadget isn't available in {@link #mGadgets}.
+	 * @return {@link Gadget}
 	 */
-	private void checkGadget(InspectorRequest iRequest) throws GadgetException {
+	private Gadget checkGadget(InspectorRequest iRequest) throws GadgetException {
 		if (!mGadgets.containsKey(iRequest.getGadgetIdentifier())) {
 			throw new GadgetException("Gadget " + iRequest.getGadgetIdentifier() + " isn't available",
 					GadgetExceptionConstants.GADGET_NOT_AVAILABLE);
 		}
+		return mGadgets.get(iRequest.getGadgetIdentifier());
 	}
 
 	/**
@@ -209,11 +193,13 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	 */
 	private void response(InspectorRequest iRequest, Object content, HttpResponse response) {
 		final String jsonContent;
-		JsonObject obj = new JsonObject();
+		JsonObject obj;
 		if (content instanceof Exception) {
-			obj.add("error", exceptionToJson((Exception) content));
+			obj = JsonConverter.exceptionToJson((Exception) content, mContext);
 		} else {
-			obj = mGson.toJsonTree(content).getAsJsonObject();
+			obj = new JsonObject();
+			obj.addProperty("event", "state");
+			obj.add("data", mGson.toJsonTree(content));
 			if (iRequest.hasParameter(GadgetConstants.PARAM_STREAM_ID)) {
 				HashMap<String, String> streamInfo = new HashMap<String, String>();
 				streamInfo.put("streamid", iRequest.getParameter(GadgetConstants.PARAM_STREAM_ID).toString());
@@ -234,29 +220,8 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 				writer.flush();
 			}
 		});
-		Log.d("RESPONSE", jsonContent.toString());
+		// Log.d("RESPONSE", jsonContent.toString());
 		response.setEntity(entity);
-	}
-
-	/**
-	 * Translates java exceptions into JSON strings.
-	 * 
-	 * @param e
-	 *            {@link Exception}
-	 * @return {@link JsonElement}
-	 */
-	private JsonElement exceptionToJson(Exception e) {
-		StringBuilder b = new StringBuilder();
-		for (StackTraceElement s : e.getStackTrace()) {
-			b.append(s.toString() + "\n");
-		}
-		HashMap<String, String> map = new HashMap<String, String>();
-		map.put(mContext.getString(R.string.exception_message), e.getMessage());
-		map.put(mContext.getString(R.string.exception_stacktrace), b.toString());
-		if (e instanceof GadgetException) {
-			map.put(mContext.getString(R.string.exception_error_code), ((GadgetException) e).getErrorCode() + "");
-		}
-		return mGson.toJsonTree(map);
 	}
 
 	@Override
@@ -288,28 +253,20 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 	/**
 	 * Initializes gadget on request. If gadget is already initialized its
 	 * timeout will be reseted otherwise {@link Gadget#onCreate(Context)} and
-	 * {@link Gadget#onRegister(Context)} will be called and this
+	 * {@link Gadget#onProcessStart(Context)} will be called and this
 	 * {@link PatternHandler} will be registered as {@link GadgetObserver}.
-	 * 
-	 * If Server is locked and a new instance shall be created, a
-	 * {@link GadgetException} will be thrown with error code
-	 * {@link GadgetExceptionConstants#SERVER_IS_LOCKED}.
 	 * 
 	 * @param gadget
 	 *            {@link Gadget}
 	 * @throws GadgetException
 	 */
 	public void initGadget(Gadget gadget) throws GadgetException {
-		if (gadget.isRunning()) {
-			gadget.cancelTimeout();
-		} else {
-			if (mLocked.get()) {
-				throw new GadgetException("Unable to create a new gadget instance if server if locked!",
-						GadgetExceptionConstants.SERVER_IS_LOCKED);
-			}
+		if (!gadget.isRunning()) {
 			gadget.onCreate(mContext);
-			gadget.onRegister(mContext);
+			gadget.onProcessStart(mContext);
 			gadget.setObserver(this);
+			gadget.setResponseQueue(mResponseQueue);
+			gadget.process();
 			mRunningInstances.incrementAndGet();
 		}
 	}
@@ -324,7 +281,7 @@ public class PatternHandler implements HttpRequestHandler, GadgetObserver {
 			Gadget instance = mGadgets.get(key);
 			if (!instance.isKeepAlive()) {
 				synchronized (instance) {
-					instance.onUnregister(mContext);
+					instance.onProcessEnd(mContext);
 					instance.onDestroy(mContext);
 				}
 			}

@@ -3,35 +3,50 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector Test</title>
-<script type="text/javascript" src="libs/_inspector.js"></script>
+<script type="text/javascript" src="concat/inspector.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </head>
 <body>
     <button id="start">Start</button></br>
-    <button id="stop">Stop</button>
+    <button id="stop">Stop</button><br/><br/>
+    <button id="count">Count up</button><br/>
     <div id="cons"></div>
 <script type="text/javascript">
-    $(document).ready(function() {
-        var a = b = null;
-        $('#start').click(function(e) {
-            inspector.logger('start');
-            a = inspector.connect({ callback: function(data) { console.log(data); }, gadget: 'AUDIO', delay: 3000 });
-            b = inspector.connect({ callback: function(data) { console.log(data); }, gadget: 'AUDIO', delay: 1000 });
-            a.call();
-            b.call();
-        });
-        $('#stop').click(function(e) {
-            try {
+var a = b = null;
+$(function() {
+    var oldData;
+    $('#start').click(function(e) {
+        a = inspector.use("GYROSCOPE", 400);
+        a.on("state", function(response) {
+            console.log(response.data, true);
+            if(response.event == "error") {
                 a.__destroy();
-            } catch(e) {}
-            try {
-                b.__destroy();
-            } catch(e) {}
+            }
         });
     });
-    inspector.logger = function(msg) {
-        $('#cons').append(JSON.stringify(msg) + "<br/>");
+    $('#stop').click(function(e) {
+        if(a) {
+            console.log("a destroy");
+            a.__destroy();
+        }
+    });
+    $('#count').click(function(e) {
+        if(a) {
+            a.submit({}, function(data) {
+                console.log(data);
+            });
+        }
+    });
+    console = {
+        log: function(msg, replace) {
+            if(replace) {
+                $('#cons').html(JSON.stringify(msg).substr(0,100));
+            } else {
+                $('#cons').append(JSON.stringify(msg).substr(0,100) + "<br/>");
+            }
+        }
     };
+});
 </script>
 </body>
 </html>

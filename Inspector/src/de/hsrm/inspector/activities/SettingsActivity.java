@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.util.Log;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.services.ServerService;
 
@@ -32,22 +31,12 @@ public class SettingsActivity extends PreferenceActivity implements OnSharedPref
 		}
 
 		SharedPreferences shared = getPreferenceManager().getDefaultSharedPreferences(getApplicationContext());
-		for (String key : shared.getAll().keySet()) {
-			Log.d("KEYS", key);
-		}
 		shared.registerOnSharedPreferenceChangeListener(this);
 	}
 
-	@SuppressWarnings("static-access")
 	@Override
 	protected void onPause() {
 		super.onPause();
-		SharedPreferences prefs = getPreferenceManager().getDefaultSharedPreferences(getApplicationContext());
-		for (String key : prefs.getAll().keySet()) {
-			if (key.equals("audio:permission")) {
-				Log.d("PAUSE", key + ": " + prefs.getString(key, ""));
-			}
-		}
 
 		Intent request = new Intent("de.inspector.intents");
 		request.setData(Uri.parse("inspect://refresh/"));

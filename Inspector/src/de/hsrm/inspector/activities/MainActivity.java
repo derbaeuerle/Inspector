@@ -14,7 +14,7 @@ import de.hsrm.inspector.R;
  */
 public class MainActivity extends Activity implements OnClickListener {
 
-	private Button mSendIntent, mOpenSettings, mGyro;
+	private Button mSendIntent, mOpenSettings, mStateRequest;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -24,8 +24,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		mSendIntent.setOnClickListener(this);
 		mOpenSettings = (Button) findViewById(R.id.openSettings);
 		mOpenSettings.setOnClickListener(this);
-		mGyro = (Button) findViewById(R.id.gyroscope);
-		mGyro.setOnClickListener(this);
+		mStateRequest = (Button) findViewById(R.id.stateRequest);
+		mStateRequest.setOnClickListener(this);
 	}
 
 	private void send(View v) {

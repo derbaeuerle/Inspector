@@ -123,7 +123,7 @@ public class ServerService extends IntentService {
 	 */
 	private void init() {
 		if (mServer == null) {
-			mServer = new HttpServer(getApplicationContext());
+			mServer = new HttpServer(getApplication());
 			mServer.setConfiguration(configure());
 		}
 	}

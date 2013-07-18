@@ -31,10 +31,12 @@ import org.apache.http.protocol.ResponseContent;
 import org.apache.http.protocol.ResponseDate;
 import org.apache.http.protocol.ResponseServer;
 
-import android.content.Context;
+import android.app.Application;
 import android.util.Log;
+import de.hsrm.inspector.ExtendedApplication;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.handler.PatternHandler;
+import de.hsrm.inspector.handler.StateHandler;
 
 /**
  * WebServer Thread to parse inspector's config file and start apache server
@@ -44,16 +46,19 @@ public class HttpServer extends Thread {
 
 	public static final String SERVER_NAME = "html5audio";
 	public static final int SERVER_PORT = 9090;
+	public static final int STATE_PORT = 9191;
 	public static final int SERVER_BACKLOG = 50;
 	private static final String DEFAULT_PATTERN = "/inspector/*";
-	private ServerSocket mSocket;
+	private static final String STATE_PATTERN = "/state/*";
+	private ServerSocket mCommandSocket, mStateSocket;
 
-	private final BasicHttpProcessor httpproc;
-	private final HttpParams httpParams;
-	private final HttpRequestHandlerRegistry registry;
-	private final ConnectionReuseStrategy reuseStrat;
-	private final PatternHandler mHandler;
-	private volatile Thread mWorker;
+	private final BasicHttpProcessor mHttpProcessor;
+	private final HttpParams mHttpParams;
+	private final HttpRequestHandlerRegistry mHttpRegistry;
+	private final ConnectionReuseStrategy mReuseStrat;
+	private PatternHandler mPatternHandler;
+	private StateHandler mStateHandler;
+	private volatile Thread mCommandWorker, mStateWorker;
 
 	private ConcurrentHashMap<String, Gadget> mConfiguration;
 	private long mTimeout = 60;
@@ -67,40 +72,64 @@ public class HttpServer extends Thread {
 	 * @param configuration
 	 *            InputStream for configuration file.
 	 */
-	public HttpServer(Context context) {
+	public HttpServer(Application app) {
 		super(SERVER_NAME);
-		reuseStrat = new DefaultConnectionReuseStrategy();
+		mReuseStrat = new DefaultConnectionReuseStrategy();
 
-		httpParams = new BasicHttpParams();
-		httpParams.setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
+		mHttpParams = new BasicHttpParams();
+		mHttpParams.setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
 				.setIntParameter(CoreConnectionPNames.SOCKET_BUFFER_SIZE, 8 * 1024)
 				.setBooleanParameter(CoreConnectionPNames.STALE_CONNECTION_CHECK, false)
 				.setBooleanParameter(CoreConnectionPNames.TCP_NODELAY, true);
 
-		httpproc = new BasicHttpProcessor();
-		httpproc.addInterceptor(new ResponseDate());
-		httpproc.addInterceptor(new ResponseServer());
-		httpproc.addInterceptor(new ResponseContent());
-		httpproc.addInterceptor(new ResponseConnControl());
+		mHttpProcessor = new BasicHttpProcessor();
+		mHttpProcessor.addInterceptor(new ResponseDate());
+		mHttpProcessor.addInterceptor(new ResponseServer());
+		mHttpProcessor.addInterceptor(new ResponseContent());
+		mHttpProcessor.addInterceptor(new ResponseConnControl());
 
-		registry = new HttpRequestHandlerRegistry();
-		mHandler = new PatternHandler(context);
-		registry.register(DEFAULT_PATTERN, mHandler);
+		mHttpRegistry = new HttpRequestHandlerRegistry();
+		mPatternHandler = new PatternHandler((ExtendedApplication) app);
+		mHttpRegistry.register(DEFAULT_PATTERN, mPatternHandler);
+		try {
+			mStateHandler = new StateHandler((ExtendedApplication) app);
+			mHttpRegistry.register(STATE_PATTERN, mStateHandler);
+		} catch (ClassCastException e) {
+		}
 	}
 
 	/**
 	 * Safe method to start server.
 	 */
 	public synchronized void startThread() {
-		if (mSocket == null && !mSocket.isClosed()) {
+		if (mCommandSocket == null) {
 			try {
-				mSocket = new ServerSocket();
-				mSocket.setReuseAddress(true);
-				mSocket.setReceiveBufferSize(10);
-				mSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), SERVER_PORT), SERVER_BACKLOG);
-				mWorker = new Thread(new RequestWorker());
-				mWorker.setDaemon(false);
-				mWorker.start();
+				mCommandSocket = new ServerSocket();
+				mCommandSocket.setReuseAddress(true);
+				mCommandSocket.setReceiveBufferSize(10);
+				mCommandSocket.bind(new InetSocketAddress(InetAddress.getByName("localhost"), SERVER_PORT),
+						SERVER_BACKLOG);
+				RequestWorker worker = new RequestWorker(mCommandSocket);
+				mCommandWorker = new Thread(worker);
+				worker.setWorkerThread(mCommandWorker);
+				mCommandWorker.setDaemon(false);
+				mCommandWorker.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		if (mCommandSocket != null && mStateSocket == null) {
+			try {
+				mStateSocket = new ServerSocket();
+				mStateSocket.setReuseAddress(true);
+				mStateSocket.setReceiveBufferSize(10);
+				mStateSocket
+						.bind(new InetSocketAddress(InetAddress.getByName("localhost"), STATE_PORT), SERVER_BACKLOG);
+				RequestWorker worker = new RequestWorker(mStateSocket);
+				mStateWorker = new Thread(worker);
+				worker.setWorkerThread(mStateWorker);
+				mStateWorker.setDaemon(false);
+				mStateWorker.start();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -111,17 +140,17 @@ public class HttpServer extends Thread {
 	 * Safe method to stop server.
 	 */
 	public synchronized void stopThread() {
-		if (mSocket == null)
+		if (mCommandSocket == null)
 			return;
 		try {
-			mSocket.close();
+			mCommandSocket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
-			mSocket = null;
+			mCommandSocket = null;
 		}
-		if (mWorker != null) {
-			mWorker.interrupt();
+		if (mCommandWorker != null) {
+			mCommandWorker.interrupt();
 		}
 	}
 
@@ -131,7 +160,7 @@ public class HttpServer extends Thread {
 	 * @return {@link Boolean}
 	 */
 	public synchronized boolean isRunning() {
-		return mSocket != null && !mSocket.isClosed();
+		return mCommandSocket != null && !mCommandSocket.isClosed();
 	}
 
 	/**
@@ -151,24 +180,24 @@ public class HttpServer extends Thread {
 	 */
 	public void setConfiguration(ConcurrentHashMap<String, Gadget> map) {
 		mConfiguration = map;
-		mHandler.setGadgetConfiguration(mConfiguration);
+		mPatternHandler.setGadgetConfiguration(mConfiguration);
 	}
 
 	/**
-	 * Locks {@link #mHandler}.
+	 * Locks {@link #mPatternHandler}.
 	 */
 	public void lock() {
-		if (mHandler != null) {
-			mHandler.lock();
+		if (mPatternHandler != null) {
+			mPatternHandler.lock();
 		}
 	}
 
 	/**
-	 * Unlocks {@link #mHandler}.
+	 * Unlocks {@link #mPatternHandler}.
 	 */
 	public void unlock() {
-		if (mHandler != null) {
-			mHandler.unlock();
+		if (mPatternHandler != null) {
+			mPatternHandler.unlock();
 		}
 	}
 
@@ -219,11 +248,23 @@ public class HttpServer extends Thread {
 
 		private Set<Thread> workerThreads = Collections.synchronizedSet(new HashSet<Thread>());
 
+		private ServerSocket mSocket;
+		private Thread mWorkerThread;
+
+		public RequestWorker(ServerSocket socket) {
+			mSocket = socket;
+		}
+
+		public void setWorkerThread(Thread workerThread) {
+			mWorkerThread = workerThread;
+		}
+
 		@Override
 		public void run() {
 			try {
-				Log.d("Server", "Server now running!");
-				while ((mSocket != null) && (mWorker == Thread.currentThread()) && !Thread.interrupted()) {
+				Log.d("Server",
+						"Server now running! " + mSocket.getInetAddress().toString() + ":" + mSocket.getLocalPort());
+				while ((mSocket != null) && (mWorkerThread == Thread.currentThread()) && !Thread.interrupted()) {
 					try {
 						accept();
 					} catch (Exception e) {
@@ -245,17 +286,17 @@ public class HttpServer extends Thread {
 		protected void accept() throws IOException {
 			Socket socket = mSocket.accept();
 			DefaultHttpServerConnection conn = new DefaultHttpServerConnection();
-			conn.bind(socket, httpParams);
+			// conn.bind(socket, mHttpParams);
+			conn.bind(socket, new BasicHttpParams());
 
-			HttpService httpService = new HttpService(httpproc, reuseStrat, new DefaultHttpResponseFactory());
-			httpService.setParams(httpParams);
-			httpService.setHandlerResolver(registry);
+			HttpService httpService = new HttpService(mHttpProcessor, mReuseStrat, new DefaultHttpResponseFactory());
+			// httpService.setParams(mHttpParams);
+			httpService.setHandlerResolver(mHttpRegistry);
 
-			Thread t = new Thread(new Worker(httpService, conn));
+			Thread t = new Thread(new Worker(httpService, conn, mSocket));
 			workerThreads.add(t);
 			t.setDaemon(true);
 			t.start();
-			Log.d("Server", "Current worker: " + workerThreads.size());
 		}
 
 		/**
@@ -277,17 +318,19 @@ public class HttpServer extends Thread {
 
 			private final HttpService httpservice;
 			private final HttpServerConnection conn;
+			private final ServerSocket mSocket;
 
-			public Worker(final HttpService httpservice, final HttpServerConnection conn) {
+			public Worker(final HttpService httpservice, final HttpServerConnection conn, ServerSocket socket) {
 				this.httpservice = httpservice;
 				this.conn = conn;
+				this.mSocket = socket;
 			}
 
 			@Override
 			public void run() {
 				HttpContext context = new BasicHttpContext(null);
 				try {
-					while ((mSocket != null) && this.conn.isOpen() && !Thread.interrupted()) {
+					while ((this.mSocket != null) && this.conn.isOpen() && !Thread.interrupted()) {
 						this.httpservice.handleRequest(this.conn, context);
 					}
 				} catch (IOException ex) {

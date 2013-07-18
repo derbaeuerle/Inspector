@@ -22,12 +22,12 @@
         android:text="@string/open_settings" />
 
     <Button
-        android:id="@+id/gyroscope"
+        android:id="@+id/stateRequest"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_below="@+id/startServer"
         android:layout_marginTop="64dp"
-        android:text="@string/request_gyro" />
+        android:text="@string/request_state" />
 
 </RelativeLayout>

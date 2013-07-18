@@ -5,6 +5,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.content.Context;
+import android.util.Log;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
@@ -59,7 +60,9 @@ public class TimeoutTimer {
 
 		@Override
 		public void run() {
-			TimeoutTimer.this.mGadget.onUnregister(TimeoutTimer.this.mContext);
+			Log.d("", TimeoutTimer.this.mGadget.getIdentifier() + " timed out!");
+			TimeoutTimer.this.mGadget.setProcessing(false);
+			TimeoutTimer.this.mGadget.onProcessEnd(TimeoutTimer.this.mContext);
 			TimeoutTimer.this.mGadget.onDestroy(TimeoutTimer.this.mContext);
 			TimeoutTimer.this.mStarted.set(false);
 		}

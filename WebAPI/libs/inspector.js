@@ -1,213 +1,287 @@
-function addLoadEvent(func) {
-    var oldonload = window.onload;
-    if (typeof window.onload !== 'function') {
-        window.onload = func;
-    } else {
-        window.onload = function() {
-            if (oldonload) {
-                oldonload();
-            }
-            func();
-        }
-    }
-}
-
 inspector = {
-
-    initCommand: 'inspector://init/',
-    destroyCommand: 'inspector://destroy/',
-    serverAddress: 'http://localhost:9090/inspector/',
-    gadgets: {
-        AUDIO: 'AUDIO',
-        ACCELERATION: 'ACCELERATION',
-        GYROSCOPE: 'GYROSCOPE',
-        TEMPERATURE: 'TEMPERATURE',
-        LIGHT: 'LIGHT',
-        MAGNETIC: 'MAGNETIC',
-        ORIENTATION: 'ORIENTATION',
-        PRESSURE: 'PRESSURE',
-        PROXIMITY: 'PROXIMITY'
+    intents: {
+        init: 'inspector://init/'
     },
-    listeners: {},
-    timeout: -1,
+    connections: {},
+    commandAddress: 'http://localhost:9090/inspector/',
+    stateAddress: 'http://localhost:9191/state/',
+    max_timeouts: 10,
+    state_stream: null,
 
-    init : function() {
-        inspector.initInspector();
+    __id: null,
+
+    init: function() {
+        inspector.__id = inspector.__generateUID();
+        inspector.intents.init += inspector.__id + "/";
+        inspector.sendIntent(inspector.intents.init);
         var event = document.createEvent("Event");
         event.initEvent("inspector-ready", true, true);
         window.dispatchEvent(event);
-
-        window.addEventListener('blur', function(e) {
-            html = document.documentElement;
-            classes = html.className;
-            html.className = classes.replace('focused', 'blured');
-            console.log(html.className);
-        });
-        window.addEventListener('focus', function(e) {
-            html = document.documentElement;
-            classes = html.className;
-            html.className = classes.replace('blured', 'focused');
-            console.log(html.className);
-        });
     },
 
-    initInspector : function() {
-        inspector.sendIntent(inspector.initCommand);
-    },
-
-    destroyInspector : function() {
-        inspector.destroyListeners();
-        inspector.sendIntent(inspector.destroyCommand);
-    },
-
-    destroyListeners : function() {
-        for (var key in inspector.listeners) {
-            inspector.unlisten(key);
-        }
-    },
-
-    sendIntent : function(command) {
+    sendIntent: function(intent) {
         iframe = document.createElement("iframe");
         iframe.id = "ajaxFrame";
         iframe.style.display = "none";
-        iframe.onerror = function(e) {
-            document.body.removeChild(iframe);
-            console.log(e);
-        }
-        iframe.onload = function() {
-            document.body.removeChild(iframe);
-        }
-        if(!inspector.browser) {
-            iframe.src = command;
-        } else {
-            window.onbeforeunload = function() { window.location = '#'; window.stop(); };
-            window.location = command;
-        }
+        iframe.src = intent;
         document.body.appendChild(iframe);
+        window.setTimeout(function() {
+            document.body.removeChild(iframe);
+        }, 10);
     },
 
-    listen : function(gadget, opts, callback, error, delay) {
-        do {
-            streamId = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
-            opts.streamid = streamId;
-        } while (opts.streamid in inspector.listeners);
-
-        inspector.listeners[opts.streamid] = {
-            "streamid": opts.streamid,
-            "gadget": gadget,
-            "opts": opts,
-            "callback": callback,
-            "error": error,
-            "delay": delay || 500
-        };
-
-        inspector.call(gadget, opts, callback, error);
-
-        return streamId;
-    },
-
-    unlisten : function(id) {
-        if(id in inspector.listeners) {
-            delete inspector.listeners[id];
-        }
-    },
-
-    call : function(gadget, opts, callback, error, timeouts) {
-        url = inspector.serverAddress + gadget + "/";
-
-        do {
-            var cbName = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
-        } while (inspector[cbName]);
-
-        url += '?callback=inspector.' + cbName;
-        for(var key in opts) {
-            if(opts.hasOwnProperty(key)) {
-                url += "&" + key + "=" + opts[key];
+    use: function(gadget, keep_alive) {
+        if(!Object.keys(inspector.connections).length && !inspector.state_stream) {
+            inspector.state_stream = new inspector.stateStream();
+            inspector.state_stream.getState();
+        } else if(!Object.keys(inspector.connections).length && inspector.state_stream) {
+            console.log(inspector.state_stream.isRunning());
+            if(!inspector.state_stream.isRunning()) {
+                inspector.state_stream.timeouts = 0;
+                inspector.state_stream.getState();
             }
         }
 
-        script = document.createElement("script");
-        script.onerror = function(e) {
-            if(error) {
-                error(e, gadget, opts, callback, error);
-            } if(timeouts && timeouts > 0) {
-                inspector.initInspector();
-                window.setTimeout(function() {
-                    timeouts -= 1;
-                    inspector.call(gadget, opts, callback, error, timeouts);
-                }, 1500);
-            }
+        gadget = gadget.toUpperCase();
+        if(!(gadget in inspector.connections)) {
+            inspector.connections[gadget] = new inspector.gadget(gadget, keep_alive);
+        }
+        return inspector.connections[gadget];
+    },
+
+    __generateCallbackName: function() {
+        return "cb" + inspector.__generateUID();
+    },
+
+    __generateUID: function() {
+        return parseInt((new Date()).getTime() / Math.random() * 1000, 10);
+    },
+
+    stateStream : function() {
+        var me = this;
+        me.timeouts = 0;
+        me.callbackName = "inspector_state";
+        me.running = true;
+        me.script = null;
+
+        me.isRunning = function() {
+            return me.running;
         }
 
-        inspector[cbName] = function(response) {
-            try {
-                if(response['error']) {
-                    // Checks for specific error codes.
-                    if(response.error['errorCode']) {
-                        var eCode = response.error.errorCode;
-                        // Check error code for permission request.
-                        if(eCode == 2) {
-                            window.setTimeout(function() {
-                                inspector.requestPermission(gadget, opts, callback, error, timeouts);
-                            }, 100);
-                        }
-                    } else {
-                        // Check if error function has been submitted.
-                        if(error) {
-                            error(response);
-                        }
-                    }
-                } else {
-                    // Check if call was an stream.
-                    if('stream' in response && response.stream.streamid in inspector.listeners) {
-                        stream = inspector.listeners[response.stream.streamid];
-                        
-                        stream.callback(response);
-                        
-                        window.setTimeout(function() {
-                            inspector.call(stream['gadget'], stream['opts'], stream['callback'], stream['error']);
-                        }, stream['delay']);
-                    } else {
-                        // Call callback of call request.
-                        window.setTimeout(function() {
-                            callback(response);
-                        }, 100);
-                    }
-                    // inspector.logger(JSON.stringify(response));
+        me.getState = function() {
+            console.log("getState()");
+            me.callbackName = "inspector_state_" + inspector.__generateCallbackName();
+            window[me.callbackName] = __callback;
+            url = inspector.stateAddress + "?id=" + inspector.__id + "&callback=" + me.callbackName;
+            // url = "http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=" + me.callbackName + "&format=json";
+            me.script = document.createElement("script");
+            me.script.src = url;
+            me.script.onerror = function(e) {
+                me.timeouts += 1;
+                me.script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts && me.running) {
+                    inspector.sendIntent(inspector.intents.init);
+                    window.setTimeout(function() {
+                        me.getState();
+                    }, me.timeouts * 500);
                 }
-            } finally {
-                delete inspector[cbName];
-                script.parentNode.removeChild(script);
+            };
+            document.body.appendChild(me.script);
+        };
+
+        me.stop = function() {
+            me.running = false;
+        };
+
+        var __callback = function(data) {
+            try {
+                // Iterate all received event data.
+                for(id in data) {
+                    item = data[id];
+                    // Get connection for gadget.
+                    var connection = inspector.connections[item.gadget];
+                    // Test if connection is available and if there are listeners to this event.
+                    if(connection && connection.eventListener[item.event]) {
+                        // Get listener array.
+                        var listener = connection.eventListener[item.event];
+                        for(i in listener) {
+                            var l = listener[i];
+                            alarm = true;
+
+                            itemData = item.data;
+                            // Test if all listener conditions are confirmed.
+                            for(con in l.conditions) {
+                                if(!(con in itemData) || itemData[con] != l.conditions[con]) {
+                                    alarm = false;
+                                    break;
+                                }
+                            }
+                            if(alarm) {
+                                l.callback(item);
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log("error");
+            }
+            delete window[me.callbackName];
+            me.script.parentNode.removeChild(me.script);
+            me.script = null;
+
+            if(me.running) {
+                me.getState();
             }
         };
-        script.src = url;
-        document.body.appendChild(script);
     },
 
-    requestPermission : function(gadget, opts, callback, error, timeouts) {
-        var accept = confirm("Permission request: " + gadget);
-        if(accept) {
-            // If permission granted, send status update.
-            opts['permission'] = accept;
-            window.setTimeout(function() {
-                inspector.call(gadget, opts, callback, error, timeouts);
-            }, 100);
-        } else {
-            // Else publish error to request sender.
-            if(error) {
-                error({
-                    'error': {
-                        'message': 'Permission denied by user!',
-                        'code': -1
+    gadget : function(gadget, keep_alive) {
+        var me = this;
+        me.gadget = gadget;
+        me.callbackName = inspector.__generateCallbackName();
+        me.eventListener = {};
+        me.script = null;
+        me.basicUrl = inspector.commandAddress + gadget + '/';
+        me.timeouts = 0;
+        me.keep_alive = keep_alive || 200;
+        me.__destroyed = false;
+
+        me.on = function(event, callback, conditions) {
+            if(!(event in me.eventListener)) {
+                me.eventListener[event] = [];
+            }
+            me.eventListener[event].push({
+                "id" : me.eventListener[event].length,
+                "callback" : callback,
+                "conditions" : conditions
+            });
+            return me.eventListener[event].length - 1;
+        };
+
+        me.off = function(event, id) {
+            element = me.eventListener[event].findAttribute("id", id);
+            return !!(me.eventListener[event].splice(element, 1));
+        };
+
+        me.submit = function(params, callback, force) {
+            if(!me.__destroyed) {
+                __sendCommand(params, callback);
+            }
+        };
+
+        me.__destroy = function() {
+            // Send destroy command.
+            try {
+                delete window[me.callbackName];
+                me.callbackName = null;
+            } catch(e) {}
+            try {
+                me.script.parentNode.removeChild(me.script);
+                me.script = null;
+            } catch(e) {}
+
+            delete inspector.connections[me.gadget];
+            if(Object.keys(inspector.connections).length === 0) {
+                inspector.state_stream.stop();
+            }
+            me.__destroyed = true;
+        };
+
+        me.__errorHandler = function(code) {
+            if(code === 2) {
+                var accept = confirm("Permission request: " + me.gadget);
+                if(accept) {
+                    // If permission granted, send status update.
+                    params = {
+                        permission: accept
+                    };
+                    __sendCommand(params, function(data) {
+                        me.script.parentNode.removeChild(me.script);
+                        delete window[me.callbackName];
+                        __requestState();
+                    });
+                } else {
+                    // Else publish error to request sender.
+                    if(error) {
+                        error({
+                            'error': {
+                                'message': 'Permission denied by user!',
+                                'code': -1
+                            }
+                        });
                     }
-                });
+                }
             }
         }
-    },
 
-    logger : function(msg) {
-        console.log(msg);
+        var __sendCommand = function(params, callback) {
+            var cbName = inspector.__generateCallbackName();
+            url = me.basicUrl + "?callback=" + cbName;
+
+            for(key in params) {
+                if(params.hasOwnProperty(key)) {
+                    url += ("&" + key + "=" + params[key]);
+                }
+            }
+            script = document.createElement("script");
+            script.src = url;
+            script.onerror = function(e) {
+                me.timeouts += 1;
+                script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts) {
+                    window.setTimeout(function() {
+                        __sendCommand(params, callback);
+                    }, me.timeouts * 50);
+                }
+            };
+            window[cbName] = function(data) {
+                try {
+                    callback(data);
+                } finally {
+                    script.parentNode.removeChild(script);
+                    delete window[cbName];
+                    __requestState();
+                }
+            };
+
+            document.body.appendChild(script);
+        };
+
+        var __requestState = function() {
+            url = me.basicUrl + "keep-alive/?callback=" + me.callbackName;
+            me.script = document.createElement("script");
+            me.script.src = url;
+            me.script.onerror = function(e) {
+                me.timeouts += 1;
+                me.script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts) {
+                    window.setTimeout(function() {
+                        __requestState();
+                    }, me.timeouts * 50);
+                }
+            };
+            if(me.callbackName) {
+                window[me.callbackName] = __callback;
+                document.body.appendChild(me.script);
+            }
+        };
+
+         var __callback = function(data) {
+            try {
+                // Send new state to avoid gadget timeout.
+                window.setTimeout(function() {
+                    __requestState();
+                }, me.keep_alive)
+            } catch(e) {
+            } finally {
+                me.script.parentNode.removeChild(me.script);
+            }
+        };
+
+        __requestState();
+
     }
 
 };
-addLoadEvent(inspector.init);
+
+window.addEventListener("load", inspector.init);

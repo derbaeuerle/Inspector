@@ -12,4 +12,6 @@ public class GadgetExceptionConstants {
 	public static final int GADGET_IS_DISABLED = 3;
 	public static final int GADGET_NOT_AVAILABLE = 4;
 
+	public static final int NO_RESPONSES = 1000;
+
 }

@@ -1,463 +1,290 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-07-16
+/*! PROJECT_NAME - v0.1.0 - 2013-07-18
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
-function addLoadEvent(func) {
-    var oldonload = window.onload;
-    if (typeof window.onload !== 'function') {
-        window.onload = func;
-    } else {
-        window.onload = function() {
-            if (oldonload) {
-                oldonload();
-            }
-            func();
-        }
-    }
-}
-
 inspector = {
-
-    initCommand: 'inspector://init/',
-    destroyCommand: 'inspector://destroy/',
-    serverAddress: 'http://localhost:9090/inspector/',
-    gadgets: {
-        AUDIO: 'AUDIO',
-        ACCELERATION: 'ACCELERATION',
-        GYROSCOPE: 'GYROSCOPE',
-        TEMPERATURE: 'TEMPERATURE',
-        LIGHT: 'LIGHT',
-        MAGNETIC: 'MAGNETIC',
-        ORIENTATION: 'ORIENTATION',
-        PRESSURE: 'PRESSURE',
-        PROXIMITY: 'PROXIMITY'
+    intents: {
+        init: 'inspector://init/'
     },
-    listeners: {},
-    timeout: -1,
+    connections: {},
+    commandAddress: 'http://localhost:9090/inspector/',
+    stateAddress: 'http://localhost:9191/state/',
+    max_timeouts: 10,
+    state_stream: null,
 
-    init : function() {
-        inspector.initInspector();
+    __id: null,
+
+    init: function() {
+        inspector.__id = inspector.__generateUID();
+        inspector.intents.init += inspector.__id + "/";
+        inspector.sendIntent(inspector.intents.init);
         var event = document.createEvent("Event");
         event.initEvent("inspector-ready", true, true);
         window.dispatchEvent(event);
-
-        window.addEventListener('blur', function(e) {
-            html = document.documentElement;
-            classes = html.className;
-            html.className = classes.replace('focused', 'blured');
-            console.log(html.className);
-        });
-        window.addEventListener('focus', function(e) {
-            html = document.documentElement;
-            classes = html.className;
-            html.className = classes.replace('blured', 'focused');
-            console.log(html.className);
-        });
     },
 
-    initInspector : function() {
-        inspector.sendIntent(inspector.initCommand);
-    },
-
-    destroyInspector : function() {
-        inspector.destroyListeners();
-        inspector.sendIntent(inspector.destroyCommand);
-    },
-
-    destroyListeners : function() {
-        for (var key in inspector.listeners) {
-            inspector.unlisten(key);
-        }
-    },
-
-    sendIntent : function(command) {
+    sendIntent: function(intent) {
         iframe = document.createElement("iframe");
         iframe.id = "ajaxFrame";
         iframe.style.display = "none";
-        iframe.onerror = function(e) {
-            document.body.removeChild(iframe);
-            console.log(e);
-        }
-        iframe.onload = function() {
-            document.body.removeChild(iframe);
-        }
-        if(!inspector.browser) {
-            iframe.src = command;
-        } else {
-            window.onbeforeunload = function() { window.location = '#'; window.stop(); };
-            window.location = command;
-        }
+        iframe.src = intent;
         document.body.appendChild(iframe);
+        window.setTimeout(function() {
+            document.body.removeChild(iframe);
+        }, 10);
     },
 
-    listen : function(gadget, opts, callback, error, delay) {
-        do {
-            streamId = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
-            opts.streamid = streamId;
-        } while (opts.streamid in inspector.listeners);
-
-        inspector.listeners[opts.streamid] = {
-            "streamid": opts.streamid,
-            "gadget": gadget,
-            "opts": opts,
-            "callback": callback,
-            "error": error,
-            "delay": delay || 500
-        };
-
-        inspector.call(gadget, opts, callback, error);
-
-        return streamId;
-    },
-
-    unlisten : function(id) {
-        if(id in inspector.listeners) {
-            delete inspector.listeners[id];
-        }
-    },
-
-    call : function(gadget, opts, callback, error, timeouts) {
-        url = inspector.serverAddress + gadget + "/";
-
-        do {
-            var cbName = "inspector" + parseInt((new Date()).getTime() / Math.random() * 1000, 10);
-        } while (inspector[cbName]);
-
-        url += '?callback=inspector.' + cbName;
-        for(var key in opts) {
-            if(opts.hasOwnProperty(key)) {
-                url += "&" + key + "=" + opts[key];
+    use: function(gadget, keep_alive) {
+        if(!Object.keys(inspector.connections).length && !inspector.state_stream) {
+            inspector.state_stream = new inspector.stateStream();
+            inspector.state_stream.getState();
+        } else if(!Object.keys(inspector.connections).length && inspector.state_stream) {
+            console.log(inspector.state_stream.isRunning());
+            if(!inspector.state_stream.isRunning()) {
+                inspector.state_stream.timeouts = 0;
+                inspector.state_stream.getState();
             }
         }
 
-        script = document.createElement("script");
-        script.onerror = function(e) {
-            if(error) {
-                error(e, gadget, opts, callback, error);
-            } if(timeouts && timeouts > 0) {
-                inspector.initInspector();
-                window.setTimeout(function() {
-                    timeouts -= 1;
-                    inspector.call(gadget, opts, callback, error, timeouts);
-                }, 1500);
-            }
+        gadget = gadget.toUpperCase();
+        if(!(gadget in inspector.connections)) {
+            inspector.connections[gadget] = new inspector.gadget(gadget, keep_alive);
+        }
+        return inspector.connections[gadget];
+    },
+
+    __generateCallbackName: function() {
+        return "cb" + inspector.__generateUID();
+    },
+
+    __generateUID: function() {
+        return parseInt((new Date()).getTime() / Math.random() * 1000, 10);
+    },
+
+    stateStream : function() {
+        var me = this;
+        me.timeouts = 0;
+        me.callbackName = "inspector_state";
+        me.running = true;
+        me.script = null;
+
+        me.isRunning = function() {
+            return me.running;
         }
 
-        inspector[cbName] = function(response) {
-            try {
-                if(response['error']) {
-                    // Checks for specific error codes.
-                    if(response.error['errorCode']) {
-                        var eCode = response.error.errorCode;
-                        // Check error code for permission request.
-                        if(eCode == 2) {
-                            window.setTimeout(function() {
-                                inspector.requestPermission(gadget, opts, callback, error, timeouts);
-                            }, 100);
-                        }
-                    } else {
-                        // Check if error function has been submitted.
-                        if(error) {
-                            error(response);
-                        }
-                    }
-                } else {
-                    // Check if call was an stream.
-                    if('stream' in response && response.stream.streamid in inspector.listeners) {
-                        stream = inspector.listeners[response.stream.streamid];
-                        
-                        stream.callback(response);
-                        
-                        window.setTimeout(function() {
-                            inspector.call(stream['gadget'], stream['opts'], stream['callback'], stream['error']);
-                        }, stream['delay']);
-                    } else {
-                        // Call callback of call request.
-                        window.setTimeout(function() {
-                            callback(response);
-                        }, 100);
-                    }
-                    // inspector.logger(JSON.stringify(response));
+        me.getState = function() {
+            console.log("getState()");
+            me.callbackName = "inspector_state_" + inspector.__generateCallbackName();
+            window[me.callbackName] = __callback;
+            url = inspector.stateAddress + "?id=" + inspector.__id + "&callback=" + me.callbackName;
+            // url = "http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=" + me.callbackName + "&format=json";
+            me.script = document.createElement("script");
+            me.script.src = url;
+            me.script.onerror = function(e) {
+                me.timeouts += 1;
+                me.script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts && me.running) {
+                    inspector.sendIntent(inspector.intents.init);
+                    window.setTimeout(function() {
+                        me.getState();
+                    }, me.timeouts * 500);
                 }
-            } finally {
-                delete inspector[cbName];
-                script.parentNode.removeChild(script);
-            }
-        };
-        script.src = url;
-        document.body.appendChild(script);
-    },
-
-    requestPermission : function(gadget, opts, callback, error, timeouts) {
-        var accept = confirm("Permission request: " + gadget);
-        if(accept) {
-            // If permission granted, send status update.
-            opts['permission'] = accept;
-            window.setTimeout(function() {
-                inspector.call(gadget, opts, callback, error, timeouts);
-            }, 100);
-        } else {
-            // Else publish error to request sender.
-            if(error) {
-                error({
-                    'error': {
-                        'message': 'Permission denied by user!',
-                        'code': -1
-                    }
-                });
-            }
-        }
-    },
-
-    logger : function(msg) {
-        console.log(msg);
-    }
-
-};
-addLoadEvent(inspector.init);
-inspector.audio = {
-
-    template: '<span class="state">unknown</span>' +
-              '<span class="play" inspector-action="play" onclick="inspector.audio.onClick(this);" href="#">Play</span>&nbsp;' +
-              '<span class="pause" inspector-action="pause" onclick="inspector.audio.onClick(this);" href="#">Pause</span>&nbsp;' +
-              '<span class="stop" inspector-action="stop" onclick="inspector.audio.onClick(this);" href="#">Stop</span>&nbsp;',
-    instances: {},
-    elements: {},
-    force: true,
-
-    onClick: function(el) {
-        action = el.getAttribute("inspector-action");
-        file = el.parentNode.getAttribute("src");
-        playerid = el.parentNode.id;
-
-        // Change relative path of source to absolute path.
-        if(file.indexOf('http') === -1) {
-            loc = window.location.href.replace(location.hash,"").replace('#', '');
-            file = (loc.indexOf('/', loc.length - 1)) ? loc + file : loc + '/' + file;
-        }
-        file = encodeURIComponent(file);
-        opts = {
-            "audiofile" : file,
-            "do" : action,
-            "playerid" : playerid
-        };
-
-        for(a=0;a<el.parentNode.attributes.length;a++) {
-            attr = el.parentNode.attributes[a];
-            if(attr.value === true || attr.value === "") {
-                attr.value = true;
-            } else if (!attr.value) {
-                attr.value = false;
-            }
-            opts[attr.name.replace('inspector-', '')] = attr.value;
-        }
-        inspector.call(inspector.gadgets.AUDIO, opts, function(data) {
-            if(data['playerid']) {
-                playerid = data.playerid;
-                el = inspector.audio.elements[playerid];
-            }
-
-            var event = document.createEvent("Event");
-            event.initEvent('state', true, true);
-            event.detail = data;
-            event.request = {
-                message: action,
-                audiofile: file,
-                playerid: playerid,
-                response: data
             };
-            el.dispatchEvent(event);
+            document.body.appendChild(me.script);
+        };
 
-            el.update(data);
+        me.stop = function() {
+            me.running = false;
+        };
 
-            if(action === "play") {
-                // If starts playing, safe id of stream and send states for current player state request.
-                inspector.audio.instances[playerid] = inspector.listen(inspector.gadgets.AUDIO, {
-                    "do": "state",
-                    "playerid": playerid
-                }, function(data) {
-                    if(data['playerid']) {
-                        playerid = data.playerid;
-                        el = inspector.audio.elements[playerid];
+        var __callback = function(data) {
+            try {
+                // Iterate all received event data.
+                for(id in data) {
+                    item = data[id];
+                    // Get connection for gadget.
+                    var connection = inspector.connections[item.gadget];
+                    // Test if connection is available and if there are listeners to this event.
+                    if(connection && connection.eventListener[item.event]) {
+                        // Get listener array.
+                        var listener = connection.eventListener[item.event];
+                        for(i in listener) {
+                            var l = listener[i];
+                            alarm = true;
+
+                            itemData = item.data;
+                            // Test if all listener conditions are confirmed.
+                            for(con in l.conditions) {
+                                if(!(con in itemData) || itemData[con] != l.conditions[con]) {
+                                    alarm = false;
+                                    break;
+                                }
+                            }
+                            if(alarm) {
+                                l.callback(item);
+                            }
+                        }
                     }
-                    var event = document.createEvent("Event");
-                    event.initEvent('state', true, true);
-                    event.detail = data;
-                    el.dispatchEvent(event);
-
-                    el.update(data);
-
-                    inspector.audio.checkState(data);
-                }, null, 200);
+                }
+            } catch(e) {
+                console.log("error");
             }
+            delete window[me.callbackName];
+            me.script.parentNode.removeChild(me.script);
+            me.script = null;
 
-            inspector.audio.checkState(data);
-        }, null, 20);
-
+            if(me.running) {
+                me.getState();
+            }
+        };
     },
 
-    checkState: function(data) {
-        // Stopping stream if media player has stoppedd or paused!
-        if(!data || data['stopped'] == true || data['state'] == 'PAUSED' || data['state'] == 'STOPPED') {
-            stream = data.stream;
+    gadget : function(gadget, keep_alive) {
+        var me = this;
+        me.gadget = gadget;
+        me.callbackName = inspector.__generateCallbackName();
+        me.eventListener = {};
+        me.script = null;
+        me.basicUrl = inspector.commandAddress + gadget + '/';
+        me.timeouts = 0;
+        me.keep_alive = keep_alive || 200;
+        me.__destroyed = false;
 
-            if("playerid" in data && data.playerid) {
-                if(inspector.audio.instances[data.playerid] == stream.streamid) {
-                    inspector.unlisten(stream.streamid);
-                    delete inspector.audio.instances[key];
-                }
-            } else {
-                for(key in inspector.audio.instances) {
-                    if(inspector.audio.instances[key] == stream.streamid) {
-                        inspector.unlisten(stream.streamid);
-                        delete inspector.audio.instances[key];
-                    }
-                }
+        me.on = function(event, callback, conditions) {
+            if(!(event in me.eventListener)) {
+                me.eventListener[event] = [];
             }
-        }
-    },
+            me.eventListener[event].push({
+                "id" : me.eventListener[event].length,
+                "callback" : callback,
+                "conditions" : conditions
+            });
+            return me.eventListener[event].length - 1;
+        };
 
-    needReplacement: function(el) {
-        srcs = el.getElementsByTagName('source');
-        for(x=0; x<srcs.length; x++) {
-            if(el.canPlayType(srcs[x].getAttribute('type'))) {
-                return false;
+        me.off = function(event, id) {
+            element = me.eventListener[event].findAttribute("id", id);
+            return !!(me.eventListener[event].splice(element, 1));
+        };
+
+        me.submit = function(params, callback, force) {
+            if(!me.__destroyed) {
+                __sendCommand(params, callback);
             }
-        }
-        return true;
-    },
+        };
 
-    check: function() {
-        var audios = document.getElementsByTagName('audio');
-        for(i=0; i<audios.length; i++) {
-            audio = audios[i];
-            if(inspector.audio.force || inspector.audio.needReplacement(audio)) {
-                id = parseInt((new Date()).getTime() / Math.random(), 10);
-                id = 'iaudio' + id;
-                iaudio = document.createElement('inspector-audio');
-                iaudio.id = id;
-                iaudio.setAttribute("inspector-playerid", id);
-                iaudio.setAttribute("src", audio.getElementsByTagName('source')[0].getAttribute('src'));
-                iaudio.innerHTML = inspector.audio.template;
+        me.__destroy = function() {
+            // Send destroy command.
+            try {
+                delete window[me.callbackName];
+                me.callbackName = null;
+            } catch(e) {}
+            try {
+                me.script.parentNode.removeChild(me.script);
+                me.script = null;
+            } catch(e) {}
 
-                for(o=0;o<audio.attributes.length;o++) {
-                    iaudio.setAttribute(audio.attributes[o].name, audio.attributes[o].value);
-                }
+            delete inspector.connections[me.gadget];
+            if(Object.keys(inspector.connections).length === 0) {
+                inspector.state_stream.stop();
+            }
+            me.__destroyed = true;
+        };
 
-                iaudio.play = function() {
-                    el = this.getElementsByClassName("play")[0];
-                    if(el) {
-                        el.click();
+        me.__errorHandler = function(code) {
+            if(code === 2) {
+                var accept = confirm("Permission request: " + me.gadget);
+                if(accept) {
+                    // If permission granted, send status update.
+                    params = {
+                        permission: accept
+                    };
+                    __sendCommand(params, function(data) {
+                        me.script.parentNode.removeChild(me.script);
+                        delete window[me.callbackName];
+                        __requestState();
+                    });
+                } else {
+                    // Else publish error to request sender.
+                    if(error) {
+                        error({
+                            'error': {
+                                'message': 'Permission denied by user!',
+                                'code': -1
+                            }
+                        });
                     }
                 }
-                iaudio.stop = function() {
-                    el = this.getElementsByClassName("stop")[0];
-                    if(el) {
-                        el.click();
-                    }
-                }
-                iaudio.stop = function() {
-                    el = this.getElementsByClassName("pause")[0];
-                    if(el) {
-                        el.click();
-                    }
-                }
-                iaudio.update = function(data) {
-                    el = this.getElementsByClassName("state")[0];
-                    if(el) {
-                        el.innerHTML = data['state'] || 'unknown';
-                    }
-                };
-
-                iaudio.seek = function(to) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "seek",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "seekto" : to
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.volume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.leftVolume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume-left" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.rightVolume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume-right" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-
-                audio.parentNode.replaceChild(iaudio, audio);
-                inspector.audio.elements[id] = iaudio;
-                i--;
-                inspector.audio.autoplay(iaudio);
             }
         }
-    },
 
-    autoplay: function(iaudio) {
-        if(iaudio.getAttribute('autoplay') || iaudio.getAttribute('autoplay') === "") {
-            iaudio.play();
-        }
-    },
+        var __sendCommand = function(params, callback) {
+            var cbName = inspector.__generateCallbackName();
+            url = me.basicUrl + "?callback=" + cbName;
 
-    init: function() {
-        inspector.audio.check();
-        var event = document.createEvent("Event");
-        event.initEvent('inspector-audio-ready', true, true);
-        window.dispatchEvent(event);
+            for(key in params) {
+                if(params.hasOwnProperty(key)) {
+                    url += ("&" + key + "=" + params[key]);
+                }
+            }
+            script = document.createElement("script");
+            script.src = url;
+            script.onerror = function(e) {
+                me.timeouts += 1;
+                script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts) {
+                    window.setTimeout(function() {
+                        __sendCommand(params, callback);
+                    }, me.timeouts * 50);
+                }
+            };
+            window[cbName] = function(data) {
+                try {
+                    callback(data);
+                } finally {
+                    script.parentNode.removeChild(script);
+                    delete window[cbName];
+                    __requestState();
+                }
+            };
+
+            document.body.appendChild(script);
+        };
+
+        var __requestState = function() {
+            url = me.basicUrl + "keep-alive/?callback=" + me.callbackName;
+            me.script = document.createElement("script");
+            me.script.src = url;
+            me.script.onerror = function(e) {
+                me.timeouts += 1;
+                me.script.parentNode.removeChild(me.script);
+                if(me.timeouts < inspector.max_timeouts) {
+                    window.setTimeout(function() {
+                        __requestState();
+                    }, me.timeouts * 50);
+                }
+            };
+            if(me.callbackName) {
+                window[me.callbackName] = __callback;
+                document.body.appendChild(me.script);
+            }
+        };
+
+         var __callback = function(data) {
+            try {
+                // Send new state to avoid gadget timeout.
+                window.setTimeout(function() {
+                    __requestState();
+                }, me.keep_alive)
+            } catch(e) {
+            } finally {
+                me.script.parentNode.removeChild(me.script);
+            }
+        };
+
+        __requestState();
+
     }
 
 };
-addLoadEvent(inspector.audio.init);
-var tagsToReplace = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;'
-};
 
-function replaceTag(tag) {
-    return tagsToReplace[tag] || tag;
-}
-
-function safe_tags_replace(str) {
-    return str.replace(/[&<>]/g, replaceTag);
-}
+window.addEventListener("load", inspector.init);

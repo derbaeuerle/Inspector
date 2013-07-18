@@ -5,11 +5,10 @@ import java.util.Map;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.intf.Gadget;
-import de.hsrm.inspector.gadgets.utils.GadgetAudioPlayer;
+import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 
 /**
@@ -27,8 +26,8 @@ public class AudioGadget extends Gadget {
 	}
 
 	@Override
-	public void onUnregister(Context context) {
-		super.onUnregister(context);
+	public void onProcessEnd(Context context) {
+		super.onProcessEnd(context);
 		for (GadgetAudioPlayer mp : mPlayers.values()) {
 			try {
 				mp.stop();
@@ -39,12 +38,9 @@ public class AudioGadget extends Gadget {
 	}
 
 	@Override
-	public Object gogo(Context context, InspectorRequest iRequest) throws Exception {
+	public void gogo(Context context, InspectorRequest iRequest) throws Exception {
 		if (!iRequest.hasParameter(AudioConstants.PARAM_PLAYERID))
 			throw new GadgetException("No playerid or command set for audio gadget.");
-
-		Log.d("", "player: " + iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString() + ", command: "
-				+ iRequest.getParameter(AudioConstants.PARAM_COMMAND));
 
 		GadgetAudioPlayer mp = null;
 		String playerId = iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString();
@@ -61,23 +57,17 @@ public class AudioGadget extends Gadget {
 					loop = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_LOOP).toString());
 				}
 
-				mp = new GadgetAudioPlayer(playerId);
+				mp = new GadgetAudioPlayer(playerId, this);
 				mp.setLooping(loop);
 				mp.setAutoplay(autoplay);
 
-				String src = Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString());
-				Log.d("MP", src);
-				mp.setDataSource(src);
+				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
 				mPlayers.put(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString(), mp);
 			}
 		}
 		if (mp != null) {
 			doCommand(iRequest, mp);
-			return mp.getPlayerState();
 		}
-		Map<String, Object> def = GadgetAudioPlayer.getDefaultState();
-		def.put(AudioConstants.PARAM_PLAYERID, playerId);
-		return def;
 	}
 
 	/**

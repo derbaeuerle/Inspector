@@ -17,6 +17,8 @@ import android.net.UrlQuerySanitizer.ParameterValuePair;
  */
 public class InspectorRequest {
 
+	public static final String COMMAND_KEEP_ALIVE = "KEEP-ALIVE";
+
 	private static final String REFERER_KEY = "Referer";
 
 	private UrlQuerySanitizer mQuery;
@@ -38,7 +40,9 @@ public class InspectorRequest {
 			mCallback = mQuery.getValue("callback");
 		}
 
-		mReferer = request.getFirstHeader(REFERER_KEY).toString();
+		if (request.getFirstHeader(REFERER_KEY) != null) {
+			mReferer = request.getFirstHeader(REFERER_KEY).toString();
+		}
 
 		String segs = requestLine.toString().substring(0, requestLine.toString().indexOf("?") - 1);
 		mSegments = Uri.parse(segs).getPathSegments();
@@ -89,6 +93,13 @@ public class InspectorRequest {
 	 */
 	public String getGadgetIdentifier() {
 		return mSegments.get(1).toUpperCase();
+	}
+
+	public String getCommand() {
+		if (mSegments.size() > 2) {
+			return mSegments.get(2).toUpperCase();
+		}
+		return "";
 	}
 
 	/**
