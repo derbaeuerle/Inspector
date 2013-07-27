@@ -3,34 +3,28 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector Test</title>
-<script type="text/javascript" src="concat/inspector.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+<style type="text/css">
+    a {
+        display:block;
+        padding:15px;
+        margin-top:20px;
+        background:#EFEFEF;
+        border:1px solid #AAA;
+        font-weight:bold;
+        font-size:24px;
+        text-align:center;
+        color:#333;
+        text-decoration:none;
+    }
+    a:hover {
+        color:#00ADFF;
+    }
+</style>
 </head>
 <body>
-    <audio controls>
-        <source src="test.mp3" type="audio/mp3">
-        <source src="test.ogv" type="audio/ogv">
-    </audio><br />
-    <audio controls>
-        <source src="test.mp3" type="audio/mp3">
-        <source src="test.ogv" type="audio/ogv">
-    </audio>
-    <div id="cons"></div>
-<script type="text/javascript">
-    inspector.logger = function(msg) {
-        cons = $('#cons');
-        cons.append(JSON.stringify(msg) + "<br/>");
-    }
-    window.onblur = function(e) {
-        html = document.documentElement;
-        html.className = html.className.replace('focused', '');
-        html.className = html.className + " " + "blured";
-    };
-    window.onfocus = function(e) {
-        html = document.documentElement;
-        html.className = html.className.replace('blured', '');
-        html.className = html.className + " " + "focused";
-    };
-</script>
+    <a href="audio.html">HTML5 Audio Tags</a><br/>
+    <a href="color.html">Gyroscope2Color</a><br/>
+    <a href="compass.html">Compass</a><br/>
 </body>
 </html>

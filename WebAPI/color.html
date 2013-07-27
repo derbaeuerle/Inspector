@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<meta charset=utf-8>
+<title>Inspector Test</title>
+<script type="text/javascript" src="concat/inspector.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+</head>
+<body>
+    <div id="console" style="padding:5px; background:#FFF; border:1px solid #333; display:none;">Console!!!!</div>
+<script type="text/javascript">
+var a = null;
+$(document).ready(function() {
+    log = function(msg) {
+        $('#console').html(JSON.stringify(msg));
+    }
+    function componentToHex(c) {
+        var hex = c.toString(16);
+        return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    a = inspector.use("ORIENTATION");
+    a.on(inspector.events.data, function(response) {
+        try {
+            if(response.data.length >= 3) {
+                var r = parseInt(response.data[0] / 360 * 255, 10);
+                var g = parseInt((response.data[1] + 180) / 360 * 255);
+                var b = parseInt((response.data[2] + 90) / 180 * 255);
+                var hex = "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+                $('html').css({
+                    background: hex
+                })
+                // log(hex);
+            }
+        } catch(e) {
+            // log(JSON.stringify(e.message));
+        }
+    });
+    // log("use orientation");
+});
+</script>
+</body>
+</html>

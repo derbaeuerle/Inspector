@@ -17,11 +17,8 @@ $(function() {
     var oldData;
     $('#start').click(function(e) {
         a = inspector.use("GYROSCOPE", 400);
-        a.on("state", function(response) {
-            console.log(response.data, true);
-            if(response.event == "error") {
-                a.__destroy();
-            }
+        a.on(inspector.events.data, function(response) {
+            // console.log(response.data, true);
         });
     });
     $('#stop').click(function(e) {
@@ -40,7 +37,7 @@ $(function() {
     console = {
         log: function(msg, replace) {
             if(replace) {
-                $('#cons').html(JSON.stringify(msg).substr(0,100));
+                $('#cons').html(JSON.stringify(msg));
             } else {
                 $('#cons').append(JSON.stringify(msg).substr(0,100) + "<br/>");
             }

@@ -1,26 +1,19 @@
 package de.hsrm.inspector.gadgets.intf;
 
+import de.hsrm.inspector.gadgets.communication.GadgetEvent;
+
 /**
  * Observer pattern interface for observers on {@link Gadget} objects.
  */
 public interface GadgetObserver {
 
 	/**
-	 * Possible events of which a {@link GadgetObserver} can be notified.
-	 */
-	public enum EVENT {
-		DESTROY
-	};
-
-	/**
 	 * Notify every registered {@link GadgetObserver} of {@link EVENT} and
 	 * notifying {@link Gadget}.
 	 * 
 	 * @param event
-	 *            {@link EVENT}
-	 * @param gadget
-	 *            {@link Gadget}
+	 *            {@link GadgetEvent}
 	 */
-	public void notifyGadgetEvent(EVENT event, Gadget gadget);
+	public void notifyGadgetEvent(GadgetEvent event);
 
 }

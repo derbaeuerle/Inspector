@@ -4,7 +4,7 @@
 <meta charset=utf-8>
 <title>Inspector Test</title>
 <meta name="viewport" content="width=800, initial-scale=0.5" />
-<script type="text/javascript" src="js/inspector.min.js"></script>
+<script type="text/javascript" src="concat/inspector.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 <style type="text/css">
     html, body {
@@ -48,7 +48,7 @@
                 compass = inspector.use("ORIENTATION");
 
                 // Register to state event.
-                compass.on("state", function(response) {
+                compass.on(inspector.events.data, function(response) {
                     deg = -1 * parseInt(response.data[0], 10);
                     $compass.css({
                         '-webkit-transform': 'rotate(' + deg + 'deg)',

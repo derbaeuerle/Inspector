@@ -1,9 +1,13 @@
 package de.hsrm.inspector.gadgets.communication;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
+import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
@@ -12,44 +16,91 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
  */
 public class ResponsePool {
 
-	private static final String GLOBAL_QUEUE = "GLOBAL_QUEUE";
-
-	private ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>> mResponses;
+	private ConcurrentHashMap<String, ConcurrentLinkedQueue<GadgetEvent>> mResponsePool;
+	private ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>> mDataEvents;
+	private ConcurrentHashMap<String, Set<Gadget>> mBrowserInstances;
 
 	public ResponsePool() {
-		mResponses = new ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>>();
+		mResponsePool = new ConcurrentHashMap<String, ConcurrentLinkedQueue<GadgetEvent>>();
+		mDataEvents = new ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>>();
+		mBrowserInstances = new ConcurrentHashMap<String, Set<Gadget>>();
 	}
 
 	/**
-	 * Add a new {@link GadgetEvent} to the pool.
 	 * 
-	 * @param caller
-	 *            {@link String}
+	 * @param id
+	 * @param gadget
+	 */
+	public synchronized void addBrowserGadget(String id, Gadget gadget) {
+		if (!mBrowserInstances.containsKey(id)) {
+			mBrowserInstances.put(id, new HashSet<Gadget>());
+		}
+		mBrowserInstances.get(id).add(gadget);
+	}
+
+	/**
+	 * 
+	 * @param gadget
+	 */
+	public synchronized void removeGadget(Gadget gadget) {
+		for (Set<Gadget> set : mBrowserInstances.values()) {
+			set.remove(gadget);
+		}
+	}
+
+	/**
+	 * Add a new {@link GadgetEvent} to the pool. If {@link GadgetEvent} is
+	 * {@link EVENT_TYPE#DATA} only the last added {@link GadgetEvent} will be
+	 * published to web application.
+	 * 
 	 * @param response
 	 *            {@link GadgetEvent}
 	 */
-	public synchronized void add(String caller, GadgetEvent response) {
-		if (!mResponses.containsKey(GLOBAL_QUEUE)) {
-			mResponses.put(GLOBAL_QUEUE, new ConcurrentHashMap<Gadget, GadgetEvent>());
+	public synchronized void add(GadgetEvent response) {
+		for (String id : mBrowserInstances.keySet()) {
+			// Check each browser id, if instance uses this gadget.
+			if (mBrowserInstances.get(id).contains(response.getGadget())) {
+				// If event is data event.
+				if (response.getEvent().equals(EVENT_TYPE.DATA)) {
+					if (!mDataEvents.containsKey(id)) {
+						mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
+					}
+					mDataEvents.get(id).put(response.getGadget(), response);
+				} else {
+					mResponsePool.get(id).add(response);
+				}
+			}
 		}
-		mResponses.get(GLOBAL_QUEUE).put(response.getGadget(), response);
+	}
+
+	public synchronized void addAll(List<GadgetEvent> events) {
+		for (GadgetEvent e : events) {
+			add(e);
+		}
 	}
 
 	/**
 	 * Get all {@link GadgetEvent} objects for one web application.
 	 * 
-	 * @param caller
+	 * @param id
 	 *            {@link String}
 	 * @return {@link List} of {@link GadgetEvent}
 	 */
-	public synchronized List<GadgetEvent> popAll(String caller) {
+	public synchronized List<GadgetEvent> popAll(String id) {
 		ArrayList<GadgetEvent> responses = new ArrayList<GadgetEvent>();
-		if (mResponses.containsKey(GLOBAL_QUEUE)) {
-			for (Gadget key : mResponses.get(GLOBAL_QUEUE).keySet()) {
-				responses.add(mResponses.get(GLOBAL_QUEUE).get(key));
-				mResponses.get(GLOBAL_QUEUE).remove(key);
+
+		if (mResponsePool.containsKey(id)) {
+			while (!mResponsePool.get(id).isEmpty()) {
+				responses.add(mResponsePool.get(id).poll());
 			}
 		}
+		if (mDataEvents.containsKey(id)) {
+			for (GadgetEvent e : mDataEvents.get(id).values()) {
+				responses.add(e);
+			}
+			mDataEvents.get(id).clear();
+		}
+
 		return responses;
 	}
 
@@ -57,15 +108,32 @@ public class ResponsePool {
 	 * Returns <code>true</code> if {@link #mResponses} contains a pool for
 	 * given parameter and this pool isn't empty.
 	 * 
-	 * @param caller
+	 * @param id
 	 *            {@link String}
 	 * @return {@link Boolean}
 	 */
-	public synchronized boolean hasItems(String caller) {
-		return mResponses.containsKey(GLOBAL_QUEUE) && !mResponses.get(GLOBAL_QUEUE).isEmpty();
+	public synchronized boolean hasItems(String id) {
+		return (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty())
+				|| (mDataEvents.get(id) != null && !mDataEvents.get(id).isEmpty());
 	}
 
-	public synchronized int size(String caller) {
-		return mResponses.get(GLOBAL_QUEUE).size();
+	public synchronized int size(String id) {
+		int size = 0;
+		if (mDataEvents.get(id) != null) {
+			size += mDataEvents.get(id).size();
+		}
+		if (mResponsePool.get(id) != null) {
+			size += mResponsePool.get(id).size();
+		}
+		return size;
+	}
+
+	public synchronized void clear(String id) {
+		if (mDataEvents.containsKey(id)) {
+			mDataEvents.get(id).clear();
+		}
+		if (mResponsePool.containsKey(id)) {
+			mResponsePool.get(id).clear();
+		}
 	}
 }

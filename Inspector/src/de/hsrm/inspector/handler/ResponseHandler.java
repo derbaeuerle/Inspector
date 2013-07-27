@@ -21,7 +21,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import de.hsrm.inspector.ExtendedApplication;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
 import de.hsrm.inspector.gadgets.communication.ResponsePool;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
@@ -32,22 +31,16 @@ import de.hsrm.inspector.web.HttpServer;
  * {@link HttpRequestHandler} for requests on port
  * {@value HttpServer#STATE_PORT} for state requests.
  */
-public class StateHandler implements HttpRequestHandler {
+public class ResponseHandler implements HttpRequestHandler {
 
 	private Context mContext;
 	private ResponsePool mResponsePool;
+	private InspectorRequest mStateRequest;
 	private Gson mGson = new Gson();
 
-	/**
-	 * Constructor for {@link StateHandler}
-	 * 
-	 * @param app
-	 *            {@link ExtendedApplication} to get current {@link Context} and
-	 *            {@link ResponsePool}
-	 */
-	public StateHandler(ExtendedApplication app) {
-		mContext = app.getApplicationContext();
-		mResponsePool = app.getOrCreateResponseQueue();
+	public ResponseHandler(Context context, ResponsePool pool) {
+		mContext = context;
+		mResponsePool = pool;
 	}
 
 	@Override
@@ -56,10 +49,10 @@ public class StateHandler implements HttpRequestHandler {
 		Object obj;
 
 		try {
-			InspectorRequest stateRequest = new InspectorRequest(request);
+			mStateRequest = new InspectorRequest(request);
 
 			// Check if there are responses in queue to send to client.
-			if (mResponsePool.hasItems("")) {
+			if (mResponsePool.hasItems(mStateRequest.getBrowserId())) {
 				obj = processResponses();
 			} else {
 				FutureTask<JsonArray> queueWaiter = new FutureTask<JsonArray>(new QueueCallable());
@@ -70,7 +63,7 @@ public class StateHandler implements HttpRequestHandler {
 					obj = JsonConverter.exceptionToJson(e, mContext);
 				}
 			}
-			response(obj.toString(), stateRequest, response);
+			response(obj.toString(), mStateRequest, response);
 		} catch (Exception e) {
 			e.printStackTrace();
 			obj = JsonConverter.exceptionToJson(e, mContext);
@@ -112,11 +105,13 @@ public class StateHandler implements HttpRequestHandler {
 	private JsonArray processResponses() {
 		JsonArray response = new JsonArray();
 		JsonObject tmp;
-		for (GadgetEvent res : mResponsePool.popAll("")) {
+		StringBuffer b = new StringBuffer();
+		for (GadgetEvent res : mResponsePool.popAll(mStateRequest.getBrowserId())) {
 			tmp = new JsonObject();
-			tmp.addProperty("event", res.getEvent());
+			tmp.addProperty("event", res.getEvent().name());
 			tmp.addProperty("gadget", res.getGadget().getIdentifier());
 			tmp.add("data", mGson.toJsonTree(res.getResponse()));
+			b.append(res.getGadget().getIdentifier() + ": " + res.getEvent().name() + "\n");
 			response.add(tmp);
 		}
 		return response;
@@ -124,13 +119,13 @@ public class StateHandler implements HttpRequestHandler {
 
 	/**
 	 * {@link FutureTask} {@link Callable} to wait until
-	 * {@link StateHandler#mResponsePool} has items.
+	 * {@link ResponseHandler#mResponsePool} has items.
 	 */
 	private class QueueCallable implements Callable<JsonArray> {
 
 		@Override
 		public JsonArray call() throws Exception {
-			while (!mResponsePool.hasItems("")) {
+			while (!mResponsePool.hasItems(mStateRequest.getBrowserId())) {
 				Thread.sleep(20);
 			}
 			return processResponses();

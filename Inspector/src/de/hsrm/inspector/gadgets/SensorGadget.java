@@ -1,7 +1,6 @@
 package de.hsrm.inspector.gadgets;
 
 import android.content.Context;
-import android.util.Log;
 import de.hsrm.inspector.constants.SensorConstants;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.utils.sensors.SensorObject;
@@ -15,25 +14,24 @@ public class SensorGadget extends Gadget {
 	private SensorObject mSensorObject;
 
 	@Override
-	public void onCreate(Context context) {
+	public void onCreate(Context context) throws Exception {
 		super.onCreate(context);
 		mSensorObject = new SensorObject(context, this, SensorConstants.SensorType.valueOf(getIdentifier()).getType());
 	}
 
 	@Override
-	public void onProcessStart(Context context) {
-		super.onProcessStart(context);
+	public void onProcessStart() {
+		super.onProcessStart();
 		mSensorObject.registerListener();
 	}
 
 	@Override
-	public void onProcessEnd(Context context) {
-		super.onProcessEnd(context);
+	public void onProcessEnd() {
+		super.onProcessEnd();
 		mSensorObject.unregisterListener();
 	}
 
 	@Override
-	public void gogo(Context context, InspectorRequest iRequest) throws Exception {
-		Log.d("SENSORGADGET", "gogo: " + iRequest.getSegments().toString());
+	public void gogo(InspectorRequest iRequest) throws Exception {
 	}
 }

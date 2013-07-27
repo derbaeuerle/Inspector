@@ -5,7 +5,6 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.content.Context;
-import android.util.Log;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
@@ -16,7 +15,6 @@ public class TimeoutTimer {
 	private Gadget mGadget;
 	private AtomicBoolean mStarted;
 	private Timer mTimer;
-	private Context mContext;
 
 	/**
 	 * Constructor of {@link TimeoutTimer}.
@@ -26,10 +24,9 @@ public class TimeoutTimer {
 	 * @param gadget
 	 *            {@link Gadget} object to time out.
 	 */
-	public TimeoutTimer(Context context, Gadget gadget) {
+	public TimeoutTimer(Gadget gadget) {
 		mGadget = gadget;
 		mStarted = new AtomicBoolean(false);
-		mContext = context;
 	}
 
 	/**
@@ -60,13 +57,14 @@ public class TimeoutTimer {
 
 		@Override
 		public void run() {
-			Log.d("", TimeoutTimer.this.mGadget.getIdentifier() + " timed out!");
-			TimeoutTimer.this.mGadget.setProcessing(false);
-			TimeoutTimer.this.mGadget.onProcessEnd(TimeoutTimer.this.mContext);
-			TimeoutTimer.this.mGadget.onDestroy(TimeoutTimer.this.mContext);
+			TimeoutTimer.this.mGadget.onProcessEnd();
+			try {
+				TimeoutTimer.this.mGadget.onDestroy();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			TimeoutTimer.this.mStarted.set(false);
 		}
-
 	}
 
 }

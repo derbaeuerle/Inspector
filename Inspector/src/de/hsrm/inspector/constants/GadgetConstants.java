@@ -7,6 +7,8 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
  */
 public class GadgetConstants {
 
-	public static final String PARAM_STREAM_ID = "streamid";
+	public static final String PARAM_BROWSER_ID = "browserid";
+	public static final String PARAM_CALLBACK = "callback";
+	public static final String COMMAND_KEEP_ALIVE = "KEEP-ALIVE";
 
 }

@@ -19,7 +19,6 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
 import de.hsrm.inspector.gadgets.intf.Gadget;
@@ -40,8 +39,6 @@ public class ServerService extends IntentService {
 	public static final String CMD_REFRESH = "refresh";
 	public static final String CMD_START_TIMEOUT = "start-timeout";
 	public static final String CMD_STOP_TIMEOUT = "stop-timeout";
-	public static final String CMD_LOCK = "lock";
-	public static final String CMD_UNLOCK = "unlock";
 	public static final String CMD_PREFERENCE_CHANGED = "preference-changed";
 
 	public static final String DATA_CHANGED_PREFERENCE = "preference:changed";
@@ -68,7 +65,7 @@ public class ServerService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		android.os.Debug.waitForDebugger();
-		Log.e("", "Intent received: " + intent.toURI());
+		// Log.e("", "Intent received: " + intent.toURI());
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
 			init();
@@ -93,10 +90,6 @@ public class ServerService extends IntentService {
 			startActivity(i);
 		} else if (command.equals(CMD_REFRESH)) {
 			init();
-		} else if (intent.getAction().equals("android.intent.action.SCREEN_OFF")) {
-			lock();
-		} else if (intent.getAction().equals("android.intent.action.SCREEN_ON")) {
-			unlock();
 		} else if (command.equals(CMD_START_TIMEOUT)) {
 			if (mServer != null) {
 				mServer.startTimeout();
@@ -105,10 +98,6 @@ public class ServerService extends IntentService {
 			if (mServer != null) {
 				mServer.stopTimeout();
 			}
-		} else if (command.equals(CMD_LOCK)) {
-			lock();
-		} else if (command.equals(CMD_UNLOCK)) {
-			unlock();
 		} else if (command.equals(CMD_PREFERENCE_CHANGED)) {
 			if (intent.hasExtra(DATA_CHANGED_PREFERENCE)) {
 				changeGadgetPreference(intent.getExtras().getString(DATA_CHANGED_PREFERENCE));
@@ -147,24 +136,6 @@ public class ServerService extends IntentService {
 	}
 
 	/**
-	 * Locks the {@link #mServer}.
-	 */
-	private void lock() {
-		if (mServer != null) {
-			mServer.lock();
-		}
-	}
-
-	/**
-	 * Unlocks the {@link #mServer}.
-	 */
-	private void unlock() {
-		if (mServer != null) {
-			mServer.unlock();
-		}
-	}
-
-	/**
 	 * Reads {@link SharedPreferences} of this applications and parses them into
 	 * a {@link ConcurrentHashMap}. This {@link Map} contains {@link String} as
 	 * key and {@link Gadget} as value. The {@link Gadget} instances are
@@ -184,7 +155,7 @@ public class ServerService extends IntentService {
 			}
 		}
 
-		readprefs(config);
+		readPreferences(config);
 		return config;
 	}
 
@@ -195,7 +166,7 @@ public class ServerService extends IntentService {
 	 * @param config
 	 * @return
 	 */
-	private void readprefs(ConcurrentHashMap<String, Gadget> config) {
+	private void readPreferences(ConcurrentHashMap<String, Gadget> config) {
 		Context c = getApplicationContext();
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
 		if (config.size() == 0) {

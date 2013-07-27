@@ -11,6 +11,7 @@ public class GadgetException extends Exception {
 
 	private static final long serialVersionUID = 2788066028132522302L;
 	private int mErrorCode = Integer.MIN_VALUE;
+	private Object mRequest;
 
 	/**
 	 * Constructor of {@link GadgetException} with only a {@link String} as
@@ -33,8 +34,13 @@ public class GadgetException extends Exception {
 	 *            {@link Integer}
 	 */
 	public GadgetException(String msg, int errorCode) {
-		super(msg);
+		this(msg);
 		mErrorCode = errorCode;
+	}
+
+	public GadgetException(String msg, int errorCode, Object request) {
+		this(msg, errorCode);
+		mRequest = request;
 	}
 
 	/**
@@ -45,6 +51,10 @@ public class GadgetException extends Exception {
 	 */
 	public int getErrorCode() {
 		return mErrorCode;
+	}
+
+	public Object getRequest() {
+		return mRequest;
 	}
 
 }

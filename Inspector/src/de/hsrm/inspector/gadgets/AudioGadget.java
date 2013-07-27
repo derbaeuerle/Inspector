@@ -2,11 +2,18 @@ package de.hsrm.inspector.gadgets;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
+import de.hsrm.inspector.gadgets.communication.GadgetEvent;
+import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
@@ -17,17 +24,38 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
  */
 public class AudioGadget extends Gadget {
 
+	private static final int UPDATE_DELAY = 250;
+
 	private Map<String, GadgetAudioPlayer> mPlayers;
+	private ScheduledExecutorService mStateHandler;
 
 	@Override
-	public void onCreate(Context context) {
+	public void onCreate(Context context) throws Exception {
 		super.onCreate(context);
 		mPlayers = new HashMap<String, GadgetAudioPlayer>();
 	}
 
+	@SuppressLint("HandlerLeak")
 	@Override
-	public void onProcessEnd(Context context) {
-		super.onProcessEnd(context);
+	public void onProcessStart() {
+		super.onProcessStart();
+		mStateHandler = Executors.newScheduledThreadPool(1);
+		mStateHandler.scheduleAtFixedRate(new Runnable() {
+
+			@Override
+			public void run() {
+				if (isProcessing()) {
+					if (mPlayers.size() > 0) {
+						notifyGadgetEvent(new GadgetEvent(AudioGadget.this, getPlayerStates(), EVENT_TYPE.DATA));
+					}
+				}
+			}
+		}, 0, UPDATE_DELAY, TimeUnit.MILLISECONDS);
+	}
+
+	@Override
+	public void onProcessEnd() {
+		super.onProcessEnd();
 		for (GadgetAudioPlayer mp : mPlayers.values()) {
 			try {
 				mp.stop();
@@ -35,36 +63,36 @@ public class AudioGadget extends Gadget {
 			} catch (IllegalStateException e) {
 			}
 		}
+		if (mStateHandler != null && !mStateHandler.isShutdown()) {
+			mStateHandler.shutdown();
+		}
 	}
 
 	@Override
-	public void gogo(Context context, InspectorRequest iRequest) throws Exception {
+	public void gogo(InspectorRequest iRequest) throws Exception {
 		if (!iRequest.hasParameter(AudioConstants.PARAM_PLAYERID))
-			throw new GadgetException("No playerid or command set for audio gadget.");
+			throw new GadgetException("No playerid set for audio gadget.");
 
 		GadgetAudioPlayer mp = null;
 		String playerId = iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString();
 		if (mPlayers.containsKey(playerId)) {
 			mp = mPlayers.get(playerId);
-			mp.stopTimeout();
 		} else {
 			if (iRequest.getParameter(AudioConstants.PARAM_COMMAND).equals(AudioConstants.COMMAND_PLAY)) {
-				boolean autoplay = false, loop = false;
-				if (iRequest.hasParameter(AudioConstants.PARAM_AUTOPLAY)) {
-					autoplay = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_AUTOPLAY).toString());
-				}
+				boolean loop = false;
 				if (iRequest.hasParameter(AudioConstants.PARAM_LOOP)) {
 					loop = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_LOOP).toString());
 				}
 
-				mp = new GadgetAudioPlayer(playerId, this);
+				mp = new GadgetAudioPlayer(playerId);
 				mp.setLooping(loop);
-				mp.setAutoplay(autoplay);
+				mp.setAutoplay(true);
 
 				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
 				mPlayers.put(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString(), mp);
 			}
 		}
+		Log.d("AUDIO", (mp != null) ? mp.toString() : "null");
 		if (mp != null) {
 			doCommand(iRequest, mp);
 		}
@@ -124,4 +152,13 @@ public class AudioGadget extends Gadget {
 			}
 		}
 	}
+
+	private HashMap<String, Object> getPlayerStates() {
+		HashMap<String, Object> players = new HashMap<String, Object>();
+		for (GadgetAudioPlayer p : mPlayers.values()) {
+			players.put(p.getPlayerId(), p.getPlayerState());
+		}
+		return players;
+	}
+
 }

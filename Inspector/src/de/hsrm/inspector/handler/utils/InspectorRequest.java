@@ -1,23 +1,23 @@
 package de.hsrm.inspector.handler.utils;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpRequest;
-
-import de.hsrm.inspector.gadgets.intf.Gadget;
-import de.hsrm.inspector.web.HttpServer;
 
 import android.net.Uri;
 import android.net.UrlQuerySanitizer;
 import android.net.UrlQuerySanitizer.ParameterValuePair;
+import de.hsrm.inspector.constants.GadgetConstants;
+import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.web.HttpServer;
 
 /**
  * Utility object for {@link HttpRequest} of {@link HttpServer}.
  */
 public class InspectorRequest {
-
-	public static final String COMMAND_KEEP_ALIVE = "KEEP-ALIVE";
 
 	private static final String REFERER_KEY = "Referer";
 
@@ -25,6 +25,7 @@ public class InspectorRequest {
 	private List<String> mSegments;
 	private String mCallback;
 	private String mReferer;
+	private String mBrowserId;
 
 	/**
 	 * Constructor of {@link InspectorRequest}.
@@ -36,8 +37,11 @@ public class InspectorRequest {
 	public InspectorRequest(HttpRequest request) throws Exception {
 		Uri requestLine = Uri.parse(request.getRequestLine().getUri());
 		mQuery = new UrlQuerySanitizer(requestLine.toString());
-		if (mQuery.hasParameter("callback")) {
-			mCallback = mQuery.getValue("callback");
+		if (mQuery.hasParameter(GadgetConstants.PARAM_CALLBACK)) {
+			mCallback = mQuery.getValue(GadgetConstants.PARAM_CALLBACK);
+		}
+		if (mQuery.hasParameter(GadgetConstants.PARAM_BROWSER_ID)) {
+			mBrowserId = mQuery.getValue(GadgetConstants.PARAM_BROWSER_ID);
 		}
 
 		if (request.getFirstHeader(REFERER_KEY) != null) {
@@ -121,12 +125,34 @@ public class InspectorRequest {
 	}
 
 	/**
+	 * Returns the id of calling browser api instance.
+	 * 
+	 * @return {@link String}
+	 */
+	public String getBrowserId() {
+		return mBrowserId;
+	}
+
+	/**
 	 * Returns referer of {@link HttpRequest}.
 	 * 
 	 * @return {@link String}
 	 */
 	public String getReferer() {
 		return mReferer;
+	}
+
+	/**
+	 * Returns all url parameters as {@link Map}.
+	 * 
+	 * @return {@link Map}
+	 */
+	public Map<String, String> getUrlParams() {
+		Map<String, String> params = new HashMap<String, String>();
+		for (ParameterValuePair pair : mQuery.getParameterList()) {
+			params.put(pair.mParameter, pair.mValue);
+		}
+		return params;
 	}
 
 	@Override

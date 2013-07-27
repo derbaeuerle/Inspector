@@ -1,7 +1,6 @@
 package de.hsrm.inspector.gadgets.intf;
 
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -11,9 +10,7 @@ import android.content.ServiceConnection;
 import android.preference.PreferenceScreen;
 import android.util.Log;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
-import de.hsrm.inspector.gadgets.communication.GadgetRequest;
-import de.hsrm.inspector.gadgets.communication.ResponsePool;
-import de.hsrm.inspector.gadgets.intf.GadgetObserver.EVENT;
+import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.services.utils.AsyncServiceBinder;
@@ -27,8 +24,6 @@ public abstract class Gadget {
 
 	private GadgetObserver mObserver;
 
-	private ResponsePool mResponsePool;
-
 	private String mIdentifier;
 	private String mPreferences;
 	private boolean mKeepAlive;
@@ -37,8 +32,7 @@ public abstract class Gadget {
 	private TimeoutTimer mTimeoutTimer;
 	private AtomicBoolean mRunning, mProcessing;
 	private HashMap<Service, ServiceConnection> mServicesBound;
-	private ConcurrentLinkedQueue<GadgetRequest> mRequests;
-	private GadgetEvent mLastEvent;
+	private Context mContext;
 
 	public Gadget() {
 		this("");
@@ -52,7 +46,6 @@ public abstract class Gadget {
 	 */
 	public Gadget(String identifier) {
 		super();
-		mRequests = new ConcurrentLinkedQueue<GadgetRequest>();
 		mServicesBound = new HashMap<Service, ServiceConnection>();
 		mRunning = new AtomicBoolean(false);
 		mProcessing = new AtomicBoolean(false);
@@ -65,10 +58,12 @@ public abstract class Gadget {
 	 * @param context
 	 *            {Context}
 	 */
-	public void onCreate(Context context) {
+	public void onCreate(Context context) throws Exception {
+		mContext = context;
 		if (mTimeout != 0) {
-			mTimeoutTimer = new TimeoutTimer(context, this);
+			mTimeoutTimer = new TimeoutTimer(this);
 		}
+		mRunning.set(true);
 	}
 
 	/**
@@ -78,32 +73,27 @@ public abstract class Gadget {
 	 * @param context
 	 *            {Context}
 	 */
-	public void onDestroy(Context context) {
+	public void onDestroy() throws Exception {
 		if (mObserver != null) {
-			mObserver.notifyGadgetEvent(EVENT.DESTROY, this);
+			mObserver.notifyGadgetEvent(new GadgetEvent(this, null, EVENT_TYPE.DESTROY));
 		}
+		mRunning.set(false);
 	}
 
 	/**
 	 * Gets called when a instance of this gadget gets registered to runtime
 	 * process.
-	 * 
-	 * @param context
-	 *            {Context}
 	 */
-	public void onProcessStart(Context context) {
-		setRunning(true);
+	public void onProcessStart() {
+		mProcessing.set(true);
 	}
 
 	/**
 	 * Gets called when a instance of this gadget gets unregistered to runtime
 	 * process.
-	 * 
-	 * @param context
-	 *            {Context}
 	 */
-	public void onProcessEnd(Context context) {
-		setRunning(false);
+	public void onProcessEnd() {
+		mProcessing.set(false);
 	}
 
 	/**
@@ -111,65 +101,31 @@ public abstract class Gadget {
 	 * will be messages to keep the {@link Gadget} alive, which can be
 	 * determined over the {@link InspectorRequest#getCommand()} method.
 	 * 
-	 * @param context
-	 *            {Context}
 	 * @param iRequest
 	 *            {InspectorRequest}
 	 * @throws Exception
 	 */
-	public abstract void gogo(Context context, InspectorRequest iRequest) throws Exception;
+	public abstract void gogo(InspectorRequest iRequest) throws Exception;
 
 	/**
+	 * Returns current application's {@link Context}.
 	 * 
+	 * @return {@link Context}
 	 */
-	public void process() {
-		if (mProcessing.get()) {
-			return;
-		}
-		mProcessing.set(true);
-		(new Runnable() {
-
-			@Override
-			public void run() {
-
-				while (isRunning() && mProcessing.get()) {
-					if (mLastEvent != null) {
-						synchronized (mLastEvent) {
-							mResponsePool.add("", mLastEvent);
-							mLastEvent = null;
-						}
-					}
-					try {
-						Thread.sleep(50);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		}).run();
+	public Context getApplicationContext() {
+		return mContext;
 	}
 
 	/**
-	 * Adds an {@link GadgetRequest} to the request queue {@link #mRequests}.
-	 * 
-	 * @param request
-	 *            {@link GadgetRequest}
-	 */
-	public synchronized void addRequest(GadgetRequest request) {
-		mRequests.add(request);
-	}
-
-	/**
-	 * Set {@link #mLastEvent} of this {@link Gadget} to publish the last event
-	 * to the {@link ResponsePool}. Currently only the last event will be
-	 * published.
+	 * Publishes {@link GadgetEvent} to {@link #mObserver}.
 	 * 
 	 * @param event
-	 *            {@link Gadget}
+	 *            {@link GadgetEvent}
 	 */
 	public void notifyGadgetEvent(GadgetEvent event) {
-		if (mLastEvent == null) {
-			mLastEvent = event;
+		if (mObserver != null) {
+			Log.d(mIdentifier, event.toString());
+			mObserver.notifyGadgetEvent(event);
 		}
 	}
 
@@ -271,13 +227,13 @@ public abstract class Gadget {
 	}
 
 	/**
-	 * Sets {@link #mRunning}.
+	 * Returns true if {@link Gadget} has started its {@link Runnable} to
+	 * process new events.
 	 * 
-	 * @param running
-	 *            {@link Boolean} to set.
+	 * @return {@link Boolean}
 	 */
-	public void setRunning(boolean running) {
-		mRunning.set(running);
+	public boolean isProcessing() {
+		return mProcessing.get();
 	}
 
 	/**
@@ -362,7 +318,6 @@ public abstract class Gadget {
 	 * Starts the {@link #mTimeoutTimer}.
 	 */
 	public void startTimeout() {
-		Log.d("GADGET", getIdentifier() + ": start timeout");
 		if (mTimeoutTimer != null) {
 			mTimeoutTimer.start();
 		}
@@ -373,7 +328,6 @@ public abstract class Gadget {
 	 */
 	public void cancelTimeout() {
 		if (mTimeoutTimer != null) {
-			Log.d("GADGET", getIdentifier() + ": cancel timeout");
 			mTimeoutTimer.cancel();
 		}
 	}
@@ -393,30 +347,6 @@ public abstract class Gadget {
 	 */
 	public void removeObserver() {
 		mObserver = null;
-	}
-
-	/**
-	 * Turn {@link #mProcessing} to <code>false</code> to stop handle the
-	 * {@link #mLastEvent}.
-	 * 
-	 * @param processing
-	 *            {@link Boolean}
-	 */
-	public void setProcessing(boolean processing) {
-		mProcessing.set(processing);
-	}
-
-	/**
-	 * Setter for {@link #mResponsePool}.
-	 * 
-	 * @param queue
-	 *            {@link ResponsePool}
-	 */
-	public void setResponseQueue(ResponsePool queue) {
-		if (mResponsePool != null) {
-			return;
-		}
-		mResponsePool = queue;
 	}
 
 }

@@ -5,7 +5,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
+import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
@@ -29,7 +31,7 @@ public class SensorObject implements SensorEventListener {
 	 * @param type
 	 *            Type as {@link Integer} of sensor.
 	 */
-	public SensorObject(Context context, Gadget gadget, int type) {
+	public SensorObject(Context context, Gadget gadget, int type) throws UnsupportedOperationException, GadgetException {
 		mGadget = gadget;
 		mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 		setSensorType(type);
@@ -38,13 +40,15 @@ public class SensorObject implements SensorEventListener {
 	@Override
 	public void onSensorChanged(SensorEvent sensorEvent) {
 		if (System.currentTimeMillis() - mLastEvent > NOTIFY_FREQUENCY) {
-			mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, sensorEvent.values, "state"));
+			mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, sensorEvent.values, EVENT_TYPE.DATA));
 			mLastEvent = System.currentTimeMillis();
 		}
 	}
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int i) {
+		// mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, i,
+		// EVENT_TYPE.FEEDBACK));
 	}
 
 	/**
@@ -74,12 +78,15 @@ public class SensorObject implements SensorEventListener {
 	 *            {@link Integer}
 	 * @throws UnsupportedOperationException
 	 */
-	public void setSensorType(int type) throws UnsupportedOperationException {
+	public void setSensorType(int type) throws UnsupportedOperationException, GadgetException {
 		if (SENSOR_TYPE == -1) {
 			SENSOR_TYPE = type;
 			mSensor = mSensorManager.getDefaultSensor(SENSOR_TYPE);
 		} else {
 			throw new UnsupportedOperationException();
+		}
+		if (mSensor == null) {
+			throw new GadgetException("Your device doesn't support this sensor!");
 		}
 	}
 

@@ -3,17 +3,12 @@ package de.hsrm.inspector.gadgets.utils.audio;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.MediaPlayer.OnSeekCompleteListener;
-import de.hsrm.inspector.constants.AudioConstants;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent;
-import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
  * Wrapper class for {@link MediaPlayer} object. This object provides a safer
@@ -39,15 +34,12 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private STATE mState = STATE.BUFFERING;
 	private int mSeekTo = Integer.MIN_VALUE;
 	private float mLeftVolume = 1f, mRightVolume = 1f;
-	private Timer mTimeoutTimer;
-	private Gadget mGadget;
 
 	/**
 	 * Default constructor.
 	 */
-	public GadgetAudioPlayer(String id, Gadget gadget) {
+	public GadgetAudioPlayer(String id) {
 		super();
-		mGadget = gadget;
 		mPlayerId = id;
 		setOnCompletionListener(this);
 		setOnPreparedListener(this);
@@ -80,7 +72,6 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 	@Override
 	public void onPrepared(MediaPlayer mp) {
-		mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, getPlayerState(), "state"));
 		mPrepared = true;
 		mState = STATE.PREPARED;
 		mDuration = mp.getDuration();
@@ -95,7 +86,6 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 	@Override
 	public void onCompletion(MediaPlayer mp) {
-		mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, getPlayerState(), "state"));
 		mPrepared = false;
 		if (!isLooping()) {
 			stop();
@@ -109,7 +99,6 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 	@Override
 	public void onSeekComplete(MediaPlayer mp) {
-		mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, getPlayerState(), "state"));
 		if (isPrepared()) {
 			if (mAutoPlay) {
 				mp.start();
@@ -193,34 +182,11 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		map.put("stopped", this.mStopped);
 		map.put("autoplay", this.mAutoPlay);
 		map.put("prepared", this.mPrepared);
-
-		startTimeout();
 		return map;
 	}
 
-	/**
-	 * Starts {@link #mTimeoutTimer} to stop playback if stream stopped
-	 * requesting state.
-	 */
-	public void startTimeout() {
-		mTimeoutTimer = new Timer();
-		mTimeoutTimer.schedule(new TimerTask() {
-
-			@Override
-			public void run() {
-				GadgetAudioPlayer.this.stop();
-			}
-
-		}, AudioConstants.MAX_LAST_STATE);
-	}
-
-	/**
-	 * Stops {@link #mTimeoutTimer} on new state request.
-	 */
-	public void stopTimeout() {
-		if (mTimeoutTimer != null) {
-			mTimeoutTimer.cancel();
-		}
+	public String getPlayerId() {
+		return mPlayerId;
 	}
 
 	/**
