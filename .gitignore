@@ -20,3 +20,7 @@ settings.gradle
 WebAPI/.grunt
 *.psd
 WebAPI/node_modules
+.DS_Store
+WebAPI/concat
+WebAPI/js
+
