@@ -14,6 +14,15 @@ inspector.audio = {
         var action = el.getAttribute("inspector-action");
         var file = el.parentNode.getAttribute("src");
         var playerid = el.parentNode.id;
+
+        var actives = el.parentNode.getElementsByClassName("active");
+        for(var i=0; i<actives.length; i++) {
+            var act = actives[i];
+            act.className = act.className.replace(new RegExp('(\\s|^)active(\\s|$)'),' ').replace(/^\s+|\s+$/g, '');
+        }
+        if(!new RegExp('active').test(el.className)) {
+            el.className += " active";
+        }
         el = el.parentNode;
 
         // Change relative path of source to absolute path.
@@ -72,7 +81,9 @@ inspector.audio = {
     updateState: function(data) {
         var id = data.playerid;
         var el = inspector.audio.elements[id];
-        el.getElementsByClassName("state")[0].innerHTML = data.state;
+        var state = el.getElementsByClassName("state")[0];
+        state.className = "state " + data.state.toLowerCase();
+        state.innerHTML = data.state;
         el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
         el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
     },
@@ -88,7 +99,7 @@ inspector.audio = {
         x /= 60
         hours = parseInt(x % 24, 10);
 
-        return ((hours) ? hours + ':' : '') + ((minutes) ? minutes + ':' : '00:') + ((seconds) ? seconds : '');
+        return ((hours) ? hours + ':' : '') + ((minutes) ? minutes + ':' : '00:') + ((seconds) ? ((seconds < 10) ? '0' + seconds : seconds) : '00');
     },
 
     needReplacement: function(el) {

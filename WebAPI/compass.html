@@ -28,6 +28,9 @@
         width:300px;
         height:300px;
     }
+    #degree {
+        display:inline-block;
+    }
 </style>
 </head>
 <body>
@@ -70,6 +73,9 @@
                 compass = null;
             }
         }
+        window.addEventListener("load", function() {
+            listenOrientation();
+        });
     </script>
 </body>
 </html>

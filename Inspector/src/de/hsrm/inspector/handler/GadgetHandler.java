@@ -19,6 +19,7 @@ import org.apache.http.protocol.HttpRequestHandler;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -32,7 +33,7 @@ import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.communication.ResponsePool;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
-import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
+import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.handler.utils.JsonConverter;
 import de.hsrm.inspector.services.ServerService;
@@ -75,6 +76,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 		Object tmpResponseContent = "";
 		try {
 			InspectorRequest iRequest = new InspectorRequest(request);
+			Log.e("REQUEST", request.getRequestLine().toString());
 			try {
 				Gadget gadget = checkGadget(iRequest);
 				gadget.cancelTimeout();
@@ -95,8 +97,11 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 
 	/**
 	 * Checks if {@link InspectorRequest#getCommand()} is a keep-alive message.
-	 * If this message was keep-alive, nothing will happen and the
-	 * {@link Gadget} {@link TimeoutTimer} will restart.
+	 * If this message was keep-alive, there is a check whether the
+	 * {@link Gadget} is running. If it isn't running, it will be started. If
+	 * {@link Gadget} implements {@link OnKeepAliveListener},
+	 * {@link OnKeepAliveListener#onKeepAlive(InspectorRequest)} will be called
+	 * with {@link InspectorRequest}.
 	 * 
 	 * @param iRequest
 	 *            {@link InspectorRequest}
@@ -106,9 +111,10 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	private void checkKeepAlive(InspectorRequest iRequest, Gadget gadget) throws Exception {
 		// If request is not keep-alive or gadget isn't running and processing,
 		// go further!
-		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)
-				|| (!gadget.isRunning() && !gadget.isProcessing())) {
+		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
 			checkPermission(iRequest, gadget);
+		} else if (gadget instanceof OnKeepAliveListener) {
+			((OnKeepAliveListener) gadget).onKeepAlive(iRequest);
 		}
 	}
 
@@ -141,7 +147,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 		if (gadget.getPermissionType() == PERMISSION_REQUEST
 				&& !mPermissions.get(gadget.getIdentifier()).contains(iRequest.getReferer())) {
 			throw new GadgetException(gadget.getIdentifier() + " needs permission",
-					GadgetExceptionConstants.GADGET_NEEDS_PERMISSION, iRequest.getUrlParams());
+					GadgetExceptionConstants.GADGET_NEEDS_PERMISSION);
 
 		} else if (gadget.getPermissionType() == PERMISSION_DISABLED) {
 			throw new GadgetException(gadget.getIdentifier() + " is disabled",
@@ -197,6 +203,8 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 			obj.addProperty("event", EVENT_TYPE.STATE.name().toLowerCase());
 			obj.add("data", mGson.toJsonTree(content));
 		}
+		obj.add("request", mGson.toJsonTree(iRequest.getUrlParams()));
+		
 		content = obj.toString();
 		jsonContent = iRequest.getCallback() + "(" + content.toString() + ");";
 

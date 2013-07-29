@@ -3,6 +3,10 @@ package de.hsrm.inspector.gadgets.utils.audio;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import de.hsrm.inspector.gadgets.AudioGadget;
 
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
@@ -25,6 +29,8 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		BUFFERING, PREPARED, PLAYING, PAUSED, STOPPED
 	};
 
+	private static final int TIMEOUT = 2000;
+
 	private String mPlayerId;
 	private boolean mPrepared = false;;
 	private boolean mAutoPlay = false;
@@ -34,13 +40,16 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	private STATE mState = STATE.BUFFERING;
 	private int mSeekTo = Integer.MIN_VALUE;
 	private float mLeftVolume = 1f, mRightVolume = 1f;
+	private Timer mTimoutTimer;
+	private AudioGadget mHolder;
 
 	/**
 	 * Default constructor.
 	 */
-	public GadgetAudioPlayer(String id) {
+	public GadgetAudioPlayer(String id, AudioGadget gadget) {
 		super();
 		mPlayerId = id;
+		mHolder = gadget;
 		setOnCompletionListener(this);
 		setOnPreparedListener(this);
 		setOnBufferingUpdateListener(this);
@@ -71,6 +80,11 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	}
 
 	@Override
+	public boolean isPlaying() {
+		return mState.equals(STATE.PLAYING);
+	}
+
+	@Override
 	public void onPrepared(MediaPlayer mp) {
 		mPrepared = true;
 		mState = STATE.PREPARED;
@@ -86,7 +100,6 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 	@Override
 	public void onCompletion(MediaPlayer mp) {
-		mPrepared = false;
 		if (!isLooping()) {
 			stop();
 		}
@@ -111,6 +124,26 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		super.setVolume(leftVolume, rightVolume);
 		mLeftVolume = leftVolume;
 		mRightVolume = rightVolume;
+	}
+
+	@Override
+	public void stop() {
+		try {
+			super.stop();
+		} catch (IllegalStateException e) {
+		}
+		mStopped = true;
+		mState = STATE.STOPPED;
+	}
+
+	@Override
+	public void release() {
+		try {
+			super.release();
+			mPrepared = false;
+		} catch (IllegalStateException e) {
+
+		}
 	}
 
 	/**
@@ -142,23 +175,6 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	 */
 	public boolean isPrepared() {
 		return mPrepared;
-	}
-
-	/**
-	 * Stops playback and releases the source.
-	 */
-	public void stop() {
-		try {
-			super.stop();
-		} catch (IllegalStateException e) {
-		}
-		try {
-			super.release();
-		} catch (IllegalStateException e) {
-
-		}
-		mStopped = true;
-		mState = STATE.STOPPED;
 	}
 
 	/**
@@ -216,6 +232,28 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 	 */
 	public boolean getAutoplay() {
 		return mAutoPlay;
+	}
+
+	public void startTimeout() {
+		if (mTimoutTimer != null) {
+			mTimoutTimer.cancel();
+		}
+		mTimoutTimer = new Timer();
+		mTimoutTimer.schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				GadgetAudioPlayer.this.stop();
+				GadgetAudioPlayer.this.mHolder.onPlayerTimeout(GadgetAudioPlayer.this);
+			}
+		}, TIMEOUT);
+	}
+
+	public void stopTimeout() {
+		if (mTimoutTimer != null) {
+			mTimoutTimer.cancel();
+			mTimoutTimer = null;
+		}
 	}
 
 }

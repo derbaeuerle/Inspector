@@ -2,6 +2,8 @@ package de.hsrm.inspector.gadgets;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +17,7 @@ import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
 import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 
@@ -22,17 +25,17 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
  * {@link Gadget} implementation of audio support. This {@link AudioGadget}
  * supports multiple {@link GadgetAudioPlayer} simultaneously.
  */
-public class AudioGadget extends Gadget {
+public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	private static final int UPDATE_DELAY = 250;
 
-	private Map<String, GadgetAudioPlayer> mPlayers;
+	private ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>> mPlayers;
 	private ScheduledExecutorService mStateHandler;
 
 	@Override
 	public void onCreate(Context context) throws Exception {
 		super.onCreate(context);
-		mPlayers = new HashMap<String, GadgetAudioPlayer>();
+		mPlayers = new ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>>();
 	}
 
 	@SuppressLint("HandlerLeak")
@@ -56,15 +59,33 @@ public class AudioGadget extends Gadget {
 	@Override
 	public void onProcessEnd() {
 		super.onProcessEnd();
-		for (GadgetAudioPlayer mp : mPlayers.values()) {
-			try {
-				mp.stop();
-				mp.release();
-			} catch (IllegalStateException e) {
+		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
+			for (GadgetAudioPlayer mp : instances.values()) {
+				try {
+					mp.stop();
+					mp.release();
+				} catch (IllegalStateException e) {
+				}
 			}
 		}
 		if (mStateHandler != null && !mStateHandler.isShutdown()) {
 			mStateHandler.shutdown();
+		}
+		mPlayers.clear();
+	}
+
+	@Override
+	public void onKeepAlive(InspectorRequest iRequest) {
+		if (mPlayers != null) {
+			// There may be instances for this browser instance!
+			if (mPlayers.containsKey(iRequest.getBrowserId())) {
+				// Restart timeout for players on this instance.
+				for (GadgetAudioPlayer mp : mPlayers.get(iRequest.getBrowserId()).values()) {
+					Log.d("", "restart timeout!");
+					mp.stopTimeout();
+					mp.startTimeout();
+				}
+			}
 		}
 	}
 
@@ -75,8 +96,11 @@ public class AudioGadget extends Gadget {
 
 		GadgetAudioPlayer mp = null;
 		String playerId = iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString();
-		if (mPlayers.containsKey(playerId)) {
-			mp = mPlayers.get(playerId);
+		if (!mPlayers.containsKey(iRequest.getBrowserId())) {
+			mPlayers.put(iRequest.getBrowserId(), new HashMap<String, GadgetAudioPlayer>());
+		}
+		if (mPlayers.get(iRequest.getBrowserId()).containsKey(playerId)) {
+			mp = mPlayers.get(iRequest.getBrowserId()).get(playerId);
 		} else {
 			if (iRequest.getParameter(AudioConstants.PARAM_COMMAND).equals(AudioConstants.COMMAND_PLAY)) {
 				boolean loop = false;
@@ -84,15 +108,14 @@ public class AudioGadget extends Gadget {
 					loop = Boolean.parseBoolean(iRequest.getParameter(AudioConstants.PARAM_LOOP).toString());
 				}
 
-				mp = new GadgetAudioPlayer(playerId);
+				mp = new GadgetAudioPlayer(playerId, this);
 				mp.setLooping(loop);
 				mp.setAutoplay(true);
 
 				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
-				mPlayers.put(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString(), mp);
+				mPlayers.get(iRequest.getBrowserId()).put(playerId, mp);
 			}
 		}
-		Log.d("AUDIO", (mp != null) ? mp.toString() : "null");
 		if (mp != null) {
 			doCommand(iRequest, mp);
 		}
@@ -115,8 +138,12 @@ public class AudioGadget extends Gadget {
 
 		if (command.equals(AudioConstants.COMMAND_PLAY)) {
 			if (mp.isPrepared()) {
-				if (!mp.isPlaying()) {
-					mp.start();
+				try {
+					if (!mp.isPlaying()) {
+						mp.start();
+					}
+				} catch (IllegalStateException e) {
+					e.printStackTrace();
 				}
 			} else {
 				try {
@@ -132,7 +159,9 @@ public class AudioGadget extends Gadget {
 			}
 		} else if (command.equals(AudioConstants.COMMAND_STOP)) {
 			mp.stop();
-			mPlayers.remove(iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString());
+			mp.release();
+			mp.stopTimeout();
+			onPlayerTimeout(mp);
 		} else if (command.equals(AudioConstants.COMMAND_SEEK)) {
 			if (iRequest.hasParameter(AudioConstants.PARAM_SEEK_TO)) {
 				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_SEEK_TO).toString()));
@@ -155,10 +184,24 @@ public class AudioGadget extends Gadget {
 
 	private HashMap<String, Object> getPlayerStates() {
 		HashMap<String, Object> players = new HashMap<String, Object>();
-		for (GadgetAudioPlayer p : mPlayers.values()) {
-			players.put(p.getPlayerId(), p.getPlayerState());
+		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
+			for (GadgetAudioPlayer p : instances.values()) {
+				players.put(p.getPlayerId(), p.getPlayerState());
+			}
 		}
 		return players;
 	}
 
+	public void onPlayerTimeout(GadgetAudioPlayer mp) {
+		for (Map<String, GadgetAudioPlayer> i : mPlayers.values()) {
+			while (i.containsValue(mp)) {
+				for (Entry<String, GadgetAudioPlayer> entry : i.entrySet()) {
+					if (i.get(entry.getKey()).equals(mp)) {
+						i.remove(entry.getKey());
+						break;
+					}
+				}
+			}
+		}
+	}
 }

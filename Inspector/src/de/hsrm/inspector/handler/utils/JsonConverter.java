@@ -30,17 +30,14 @@ public class JsonConverter {
 		for (StackTraceElement s : e.getStackTrace()) {
 			b.append(s.toString() + "\n");
 		}
-		HashMap<String, String> map = new HashMap<String, String>();
+		HashMap<String, Object> map = new HashMap<String, Object>();
 		map.put(context.getString(R.string.exception_message), e.getMessage());
 		map.put(context.getString(R.string.exception_stacktrace), b.toString());
 		if (e instanceof GadgetException) {
 			map.put(context.getString(R.string.exception_error_code), ((GadgetException) e).getErrorCode() + "");
 		}
-		errorObject.add(context.getString(R.string.exception_data), mGson.toJsonTree(map));
-		if (e instanceof GadgetException) {
-			errorObject.add(context.getString(R.string.exception_request),
-					mGson.toJsonTree(((GadgetException) e).getRequest()));
-		}
+		map.put(context.getString(R.string.exception_request), ((GadgetException) e).getRequest());
+		errorObject.add("data", mGson.toJsonTree(map));
 		return errorObject;
 	}
 
