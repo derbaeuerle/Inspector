@@ -29,8 +29,11 @@ module.exports = function(grunt) {
         report: 'gzip'
       },
       dist: {
-        src: '<%= concat.dist.dest %>',
-        dest: 'js/inspector.min.js'
+        files: [{
+            expand: true,
+            src: 'libs/**/*.js',
+            dest: 'js'
+        }]
       }
     },
     jshint: {
@@ -77,7 +80,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jasmine');
 
   // Default task.
-  grunt.registerTask('default', ['jshint', 'concat', 'uglify']);
+  grunt.registerTask('default', ['jshint', /*'concat',*/ 'uglify']);
   grunt.registerTask('server', ['watch']);
   grunt.registerTask('test', ['jasmine']);
 

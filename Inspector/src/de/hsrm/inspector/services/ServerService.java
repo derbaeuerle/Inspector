@@ -19,6 +19,7 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
 import de.hsrm.inspector.gadgets.intf.Gadget;
@@ -65,9 +66,9 @@ public class ServerService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		android.os.Debug.waitForDebugger();
-		// Log.e("", "Intent received: " + intent.toURI());
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
+			Log.e("", "Init inspector server ...");
 			init();
 			start();
 		} else if (command.equals(CMD_DESTROY)) {

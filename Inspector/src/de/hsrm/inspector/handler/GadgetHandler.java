@@ -104,7 +104,10 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	 *            {@link Gadget}
 	 */
 	private void checkKeepAlive(InspectorRequest iRequest, Gadget gadget) throws Exception {
-		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
+		// If request is not keep-alive or gadget isn't running and processing,
+		// go further!
+		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)
+				|| (!gadget.isRunning() && !gadget.isProcessing())) {
 			checkPermission(iRequest, gadget);
 		}
 	}

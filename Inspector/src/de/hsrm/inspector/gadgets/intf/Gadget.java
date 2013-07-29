@@ -8,7 +8,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.ServiceConnection;
 import android.preference.PreferenceScreen;
-import android.util.Log;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
@@ -124,7 +123,6 @@ public abstract class Gadget {
 	 */
 	public void notifyGadgetEvent(GadgetEvent event) {
 		if (mObserver != null) {
-			Log.d(mIdentifier, event.toString());
 			mObserver.notifyGadgetEvent(event);
 		}
 	}

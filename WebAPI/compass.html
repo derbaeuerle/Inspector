@@ -4,7 +4,7 @@
 <meta charset=utf-8>
 <title>Inspector Test</title>
 <meta name="viewport" content="width=800, initial-scale=0.5" />
-<script type="text/javascript" src="concat/inspector.js"></script>
+<script type="text/javascript" src="js/libs/inspector.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 <style type="text/css">
     html, body {
@@ -38,6 +38,11 @@
     <div id="needle"></div>
     <div id="console"></div><br/>
     <script type="text/javascript">
+        console = {
+            log: function(msg) {
+                $console.append(JSON.stringify(msg) + "<br />");
+            }
+        }
         $console = $('#console');
         $compass = $('#compass');
         $deg = $('#degree');
@@ -46,7 +51,6 @@
             if(!compass) {
                 // Start using orientation sensor.
                 compass = inspector.use("ORIENTATION");
-
                 // Register to state event.
                 compass.on(inspector.events.data, function(response) {
                     deg = -1 * parseInt(response.data[0], 10);
