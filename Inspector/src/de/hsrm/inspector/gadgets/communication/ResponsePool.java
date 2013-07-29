@@ -114,7 +114,7 @@ public class ResponsePool {
 	 */
 	public synchronized boolean hasItems(String id) {
 		return (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty())
-				|| (mDataEvents.get(id) != null && !mDataEvents.get(id).isEmpty());
+				|| (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
 	}
 
 	public synchronized int size(String id) {
@@ -135,5 +135,11 @@ public class ResponsePool {
 		if (mResponsePool.containsKey(id)) {
 			mResponsePool.get(id).clear();
 		}
+	}
+
+	public synchronized void clearAll() {
+		mDataEvents.clear();
+		mResponsePool.clear();
+		mBrowserInstances.clear();
 	}
 }

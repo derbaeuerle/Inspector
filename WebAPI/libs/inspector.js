@@ -78,6 +78,9 @@ var inspector = {
         me.getData = function() {
             me.callbackName = "inspector_state_" + inspector.__generateCallbackName();
             window[me.callbackName] = __callback;
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
             var url = inspector.stateAddress + "?browserid=" + inspector.__id + "&callback=" + me.callbackName;
             me.script = document.createElement("script");
             me.script.src = url;
@@ -234,6 +237,9 @@ var inspector = {
             var cbName = inspector.__generateCallbackName();
             var url = me.basicUrl + "?callback=" + cbName;
 
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
             params.browserid = inspector.__id;
             for(var key in params) {
                 if(params.hasOwnProperty(key)) {
@@ -271,6 +277,9 @@ var inspector = {
         };
 
         var __requestState = function() {
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
             var url = me.basicUrl + "keep-alive/?callback=" + me.callbackName + "&browserid=" + inspector.__id;
             me.script = document.createElement("script");
             me.script.src = url;

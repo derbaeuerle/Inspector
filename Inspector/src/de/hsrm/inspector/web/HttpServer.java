@@ -147,6 +147,18 @@ public class HttpServer extends Thread {
 		if (mCommandWorker != null) {
 			mCommandWorker.interrupt();
 		}
+		if (mResponseSocket == null)
+			return;
+		try {
+			mResponseSocket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			mResponseSocket = null;
+		}
+		if (mResponseWorker != null) {
+			mResponseWorker.interrupt();
+		}
 	}
 
 	/**
@@ -203,6 +215,7 @@ public class HttpServer extends Thread {
 			public void run() {
 				Log.e("SERVER", "Server timed out!");
 				HttpServer.this.stopThread();
+				mResponsePool.clearAll();
 			}
 		};
 		mTimeoutTimer.schedule(task, mTimeout);
