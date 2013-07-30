@@ -19,7 +19,6 @@ import org.apache.http.protocol.HttpRequestHandler;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -114,9 +113,6 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	 *            {@link Gadget}
 	 */
 	private void checkKeepAlive(InspectorRequest iRequest, Gadget gadget) throws Exception {
-		if (iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
-			Log.d("", "keep-alive");
-		}
 		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
 			checkPermission(iRequest, gadget);
 		} else if (gadget instanceof OnKeepAliveListener) {

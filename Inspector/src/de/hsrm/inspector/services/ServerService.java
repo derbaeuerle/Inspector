@@ -51,12 +51,10 @@ public class ServerService extends IntentService {
 	 */
 	public ServerService() {
 		super("HttpService");
-		android.os.Debug.waitForDebugger();
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		android.os.Debug.waitForDebugger();
 		if (intent != null) {
 			onHandleIntent(intent);
 		}
@@ -65,7 +63,7 @@ public class ServerService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		android.os.Debug.waitForDebugger();
+		// android.os.Debug.waitForDebugger();
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
 			Log.e("", "Init inspector server ...");

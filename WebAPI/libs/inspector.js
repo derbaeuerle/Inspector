@@ -164,7 +164,6 @@ var inspector = {
         me.__initialQueue = [];
 
         me.__constructor = function() {
-            console.log("constructor");
             me.__initial = false;
             __sendCommand({'inspector-cmd': 'initial'}, __callback);
         };
@@ -206,10 +205,7 @@ var inspector = {
         };
 
         me.submit = function(params, callback) {
-            console.log("submit");
             if(!me.__destroyed) {
-                console.log("not destroyed");
-                console.log("initial? " + !me.__initial);
                 if(!me.__initial) {
                     me.__initialQueue.push({"params": params, "callback": callback});
                     return;
@@ -243,8 +239,6 @@ var inspector = {
         };
 
         var __sendCommand = function(params, callback) {
-            console.log("__sendCommand:");
-            console.log(params);
             var cbName = inspector.__generateCallbackName();
             var url = me.basicUrl + "?callback=" + cbName;
 
@@ -324,10 +318,8 @@ var inspector = {
 
         var __callback = function(response) {
             try {
-                console.log(response.data);
                 if (response.data === 'initial') {
                     me.__initial = true;
-                    console.log(me.__initial);
                 }
                 if(me.__initialQueue.length > 0) {
                     var next = me.__initialQueue.splice(0, 1)[0];

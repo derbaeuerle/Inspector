@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
@@ -81,7 +80,6 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 			if (mPlayers.containsKey(iRequest.getBrowserId())) {
 				// Restart timeout for players on this instance.
 				for (GadgetAudioPlayer mp : mPlayers.get(iRequest.getBrowserId()).values()) {
-					Log.d("", "restart timeout!");
 					mp.stopTimeout();
 					mp.startTimeout();
 				}
@@ -114,8 +112,6 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
 				mPlayers.get(iRequest.getBrowserId()).put(playerId, mp);
-
-				mp.startTimeout();
 			}
 		}
 		if (mp != null) {
@@ -155,6 +151,7 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 					e.printStackTrace();
 				}
 			}
+			mp.startTimeout();
 		} else if (command.equals(AudioConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {
 				mp.pause();

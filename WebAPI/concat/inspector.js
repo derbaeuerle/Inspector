@@ -167,7 +167,6 @@ var inspector = {
         me.__initialQueue = [];
 
         me.__constructor = function() {
-            console.log("constructor");
             me.__initial = false;
             __sendCommand({'inspector-cmd': 'initial'}, __callback);
         };
@@ -209,10 +208,7 @@ var inspector = {
         };
 
         me.submit = function(params, callback) {
-            console.log("submit");
             if(!me.__destroyed) {
-                console.log("not destroyed");
-                console.log("initial? " + !me.__initial);
                 if(!me.__initial) {
                     me.__initialQueue.push({"params": params, "callback": callback});
                     return;
@@ -246,8 +242,6 @@ var inspector = {
         };
 
         var __sendCommand = function(params, callback) {
-            console.log("__sendCommand:");
-            console.log(params);
             var cbName = inspector.__generateCallbackName();
             var url = me.basicUrl + "?callback=" + cbName;
 
@@ -327,10 +321,8 @@ var inspector = {
 
         var __callback = function(response) {
             try {
-                console.log(response.data);
                 if (response.data === 'initial') {
                     me.__initial = true;
-                    console.log(me.__initial);
                 }
                 if(me.__initialQueue.length > 0) {
                     var next = me.__initialQueue.splice(0, 1)[0];
@@ -390,14 +382,11 @@ inspector.audio = {
             inspector.audio.startStream();
         }
 
-        console.log("do: " + action);
-        console.log("gadget? " + !!inspector.audio.gadget);
         var params = {
             'do': action,
             'audiofile': file,
             'playerid': playerid
         };
-        console.log("submitting!");
         inspector.audio.gadget.submit(params);
 
         if(action !== 'stop') {
@@ -416,7 +405,6 @@ inspector.audio = {
     },
 
     startStream: function() {
-        console.log("startStream");
         if(!inspector.audio.gadget) {
             inspector.audio.gadget = inspector.use("AUDIO");
             inspector.audio.gadget.on(inspector.events.data, function(response) {
@@ -439,8 +427,12 @@ inspector.audio = {
         var id = data.playerid;
         var el = inspector.audio.elements[id];
         var state = el.getElementsByClassName("state")[0];
-        state.className = "state " + data.state.toLowerCase();
-        state.innerHTML = data.state;
+        var classes = state.className.split(' ');
+        if (classes.indexOf(data.state.toLowerCase()) === -1) {
+            console.log("switch state to: " + data.state.toLowerCase());
+            state.className = "state " + data.state.toLowerCase();
+            state.innerHTML = data.state;
+        }
         el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
         el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
     },

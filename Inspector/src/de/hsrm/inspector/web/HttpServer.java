@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -253,9 +254,10 @@ public class HttpServer extends Thread {
 			while ((mSocket != null) && (mWorkerThread == Thread.currentThread()) && !Thread.interrupted()) {
 				try {
 					accept();
+				} catch (SocketException e) {
+					e.printStackTrace();
 				} catch (Exception e) {
 					e.printStackTrace();
-					break;
 				}
 			}
 		}
@@ -266,7 +268,7 @@ public class HttpServer extends Thread {
 		 * 
 		 * @throws IOException
 		 */
-		protected void accept() throws IOException, HttpException {
+		protected void accept() throws IOException, HttpException, SocketException {
 			Socket socket = mSocket.accept();
 			DefaultHttpServerConnection conn = new DefaultHttpServerConnection();
 			conn.bind(socket, new BasicHttpParams());
