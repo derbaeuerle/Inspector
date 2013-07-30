@@ -7,7 +7,7 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </head>
 <body>
-    <div id="console" style="padding:5px; background:#FFF; border:1px solid #333; display:none;">Console!!!!</div>
+    <div id="console" style="padding:5px; background:#FFF; border:1px solid #333; display:block;"></div>
 <script type="text/javascript">
 var a = null;
 $(document).ready(function() {
@@ -21,7 +21,9 @@ $(document).ready(function() {
 
     a = inspector.use("ORIENTATION");
     a.on(inspector.events.data, function(response) {
+        log("callback");
         try {
+            log(response.data);
             if(response.data.length >= 3) {
                 var r = parseInt(response.data[0] / 360 * 255, 10);
                 var g = parseInt((response.data[1] + 180) / 360 * 255);
@@ -30,13 +32,12 @@ $(document).ready(function() {
                 $('html').css({
                     background: hex
                 })
-                // log(hex);
+                log(hex);
             }
         } catch(e) {
-            // log(JSON.stringify(e.message));
+            log(JSON.stringify(e.message));
         }
     });
-    // log("use orientation");
 });
 </script>
 </body>
