@@ -21,7 +21,7 @@ public class SensorObject implements SensorEventListener {
 	private SensorManager mSensorManager;
 	private Gadget mGadget;
 	private long mLastEvent;
-	private static final long NOTIFY_FREQUENCY = 30;
+	private long mRate = 30;
 
 	/**
 	 * Constructor of {@link SensorObject}.
@@ -39,7 +39,7 @@ public class SensorObject implements SensorEventListener {
 
 	@Override
 	public void onSensorChanged(SensorEvent sensorEvent) {
-		if (System.currentTimeMillis() - mLastEvent > NOTIFY_FREQUENCY) {
+		if (System.currentTimeMillis() - mLastEvent > mRate) {
 			mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, sensorEvent.values, EVENT_TYPE.DATA));
 			mLastEvent = System.currentTimeMillis();
 		}
@@ -88,6 +88,10 @@ public class SensorObject implements SensorEventListener {
 		if (mSensor == null) {
 			throw new GadgetException("Your device doesn't support this sensor!");
 		}
+	}
+
+	public void setRate(int rate) {
+		mRate = rate;
 	}
 
 }

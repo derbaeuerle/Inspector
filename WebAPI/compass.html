@@ -54,6 +54,8 @@
             if(!compass) {
                 // Start using orientation sensor.
                 compass = inspector.use("ORIENTATION");
+                compass.submit({rate: 30}, function(response) {
+                });
                 // Register to state event.
                 compass.on(inspector.events.data, function(response) {
                     deg = -1 * parseInt(response.data[0], 10);
@@ -73,9 +75,9 @@
                 compass = null;
             }
         }
-        window.addEventListener("load", function() {
+        window.onload = function() {
             listenOrientation();
-        });
+        };
     </script>
 </body>
 </html>

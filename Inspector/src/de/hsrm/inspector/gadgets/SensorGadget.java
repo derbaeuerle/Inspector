@@ -33,5 +33,15 @@ public class SensorGadget extends Gadget {
 
 	@Override
 	public void gogo(InspectorRequest iRequest) throws Exception {
+		if (iRequest.hasParameter(SensorConstants.PARAM_RATE)) {
+			try {
+				if (mSensorObject != null) {
+					mSensorObject.setRate(Integer
+							.parseInt(iRequest.getParameter(SensorConstants.PARAM_RATE).toString()));
+				}
+			} catch (ClassCastException e) {
+
+			}
+		}
 	}
 }

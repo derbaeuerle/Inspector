@@ -8,6 +8,8 @@ import android.provider.SyncStateContract.Constants;
  * {@link Constants} class for {@link SensorGadget}.
  */
 public class SensorConstants {
+	
+	public static final String PARAM_RATE = "rate";
 
 	/**
 	 * Intelligent {@link Enum} for all available {@link Sensor} object. Current

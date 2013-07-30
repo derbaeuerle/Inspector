@@ -123,10 +123,17 @@ public class ResponseHandler implements HttpRequestHandler {
 	 */
 	private class QueueCallable implements Callable<JsonArray> {
 
+		private final int MAX_CHECKS = 10;
+		private int mChecks = 0;
+
 		@Override
 		public JsonArray call() throws Exception {
 			while (!mResponsePool.hasItems(mStateRequest.getBrowserId())) {
 				Thread.sleep(20);
+				mChecks++;
+				if (mChecks == MAX_CHECKS) {
+					break;
+				}
 			}
 			return processResponses();
 		}

@@ -1,4 +1,4 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-07-27
+/*! PROJECT_NAME - v0.1.0 - 2013-07-30
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
 var inspector = {
@@ -54,7 +54,9 @@ var inspector = {
 
         gadget = gadget.toUpperCase();
         if(!(gadget in inspector.connections)) {
-            inspector.connections[gadget] = new inspector.gadget(gadget, keep_alive);
+            g = new inspector.gadget(gadget, keep_alive);
+            g.__constructor();
+            inspector.connections[gadget] = g;
         }
         return inspector.connections[gadget];
     },
@@ -81,6 +83,9 @@ var inspector = {
         me.getData = function() {
             me.callbackName = "inspector_state_" + inspector.__generateCallbackName();
             window[me.callbackName] = __callback;
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
             var url = inspector.stateAddress + "?browserid=" + inspector.__id + "&callback=" + me.callbackName;
             me.script = document.createElement("script");
             me.script.src = url;
@@ -151,12 +156,40 @@ var inspector = {
         var me = this;
         me.gadget = gadget;
         me.callbackName = inspector.__generateCallbackName();
+        me.stateCallbackName = inspector.__generateCallbackName();
         me.eventListener = {};
-        me.script = null;
+        me.stateScript = null;
         me.basicUrl = inspector.commandAddress + gadget + '/';
         me.timeouts = 0;
         me.keep_alive = keep_alive || 200;
         me.__destroyed = false;
+        me.__initial = false;
+        me.__initialQueue = [];
+
+        me.__constructor = function() {
+            console.log("constructor");
+            me.__initial = false;
+            __sendCommand({'inspector-cmd': 'initial'}, __callback);
+        };
+
+        me.__destroy = function() {
+            // Send destroy command.
+            try {
+                delete window[me.stateCallbackName];
+                me.stateCallbackName = null;
+            } catch(e) {}
+            try {
+                me.stateScript.parentNode.removeChild(me.stateScript);
+                me.stateScript = null;
+            } catch(e) {}
+
+            delete inspector.connections[me.gadget];
+            if(Object.keys(inspector.connections).length === 0) {
+                inspector.state_stream.stop();
+            }
+            me.__initial = false;
+            me.__destroyed = true;
+        };
 
         me.on = function(event, callback, conditions) {
             if(!(event in me.eventListener)) {
@@ -176,67 +209,51 @@ var inspector = {
         };
 
         me.submit = function(params, callback) {
+            console.log("submit");
             if(!me.__destroyed) {
+                console.log("not destroyed");
+                console.log("initial? " + !me.__initial);
+                if(!me.__initial) {
+                    me.__initialQueue.push({"params": params, "callback": callback});
+                    return;
+                }
                 __sendCommand(params, callback);
             }
         };
 
-        me.__destroy = function() {
-            // Send destroy command.
-            try {
-                delete window[me.callbackName];
-                me.callbackName = null;
-            } catch(e) {}
-            try {
-                me.script.parentNode.removeChild(me.script);
-                me.script = null;
-            } catch(e) {}
-
-            delete inspector.connections[me.gadget];
-            if(Object.keys(inspector.connections).length === 0) {
-                inspector.state_stream.stop();
-            }
-            me.__destroyed = true;
-        };
-
         me.__errorHandler = function(data) {
-            var code = parseInt(data.data.errorCode, 10);
-            if(code === 2) {
-                var accept = confirm("Permission request: " + me.gadget);
-                if(accept) {
-                    // If permission granted, send status update.
-                    var params = {
-                        permission: accept
-                    };
-                    if(data.request) {
-                        params = data.request;
-                        params.permission = accept;
+            try {
+                var code = parseInt(data.data.errorCode, 10);
+                if(code === 2) {
+                    var accept = confirm("Permission request: " + me.gadget);
+                    if(accept) {
+                        // If permission granted, send status update.
+                        var params = {
+                            permission: accept
+                        };
+                        if(data.request) {
+                            delete data.request.callback;
+                            params = data.request;
+                            params.permission = accept;
+                        }
+                        // TODO: Send original params!!!!
+                        __sendCommand(params, __callback);
                     }
-                    // TODO: Send original params!!!!
-                    __sendCommand(params, function(data) {
-                        me.script.parentNode.removeChild(me.script);
-                        delete window[me.callbackName];
-                        me.callbackName = inspector.__generateCallbackName();
-                        __requestState();
-                    });
-                } /* else {
-                    // Else publish error to request sender.
-                    if(error) {
-                        error({
-                            'error': {
-                                'message': 'Permission denied by user!',
-                                'code': -1
-                            }
-                        });
-                    }
-                } */
+                }
+            } catch (e) {
+
             }
         };
 
         var __sendCommand = function(params, callback) {
+            console.log("__sendCommand:");
+            console.log(params);
             var cbName = inspector.__generateCallbackName();
             var url = me.basicUrl + "?callback=" + cbName;
 
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
             params.browserid = inspector.__id;
             for(var key in params) {
                 if(params.hasOwnProperty(key)) {
@@ -244,72 +261,89 @@ var inspector = {
                 }
             }
 
-            var script = document.createElement("script");
+            script = document.createElement("script");
             script.src = url;
             script.onerror = function(e) {
                 me.timeouts += 1;
-                script.parentNode.removeChild(me.script);
+                script.parentNode.removeChild(script);
                 if(me.timeouts < inspector.max_timeouts) {
                     window.setTimeout(function() {
                         __sendCommand(params, callback);
                     }, me.timeouts * 50);
                 }
             };
-            window[cbName] = function(data) {
-                try {
-                    if(data.event === 'error') {
-                        me.__errorHandler(data);
+            if(!me.__destroyed) {
+                window[cbName] = function(data) {
+                    try {
+                        if(data.event === 'error') {
+                            me.__errorHandler(data);
+                        }
+                        if(callback) {
+                            callback(data);
+                        }
+                    } finally {
+                        script.parentNode.removeChild(script);
+                        delete window[cbName];
                     }
-                    if(callback) {
-                        callback(data);
-                    }
-                } finally {
-                    script.parentNode.removeChild(script);
-                    delete window[cbName];
-                    __requestState();
-                }
-            };
+                };
 
-            document.body.appendChild(script);
+                document.body.appendChild(script);
+            }
         };
 
         var __requestState = function() {
-            var url = me.basicUrl + "keep-alive/?callback=" + me.callbackName + "&browserid=" + inspector.__id;
-            me.script = document.createElement("script");
-            me.script.src = url;
-            me.script.onerror = function(e) {
+            if(!inspector.__id) {
+                inspector.__id = inspector.__generateUID();
+            }
+            var url = me.basicUrl + "keep-alive/?callback=" + me.stateCallbackName + "&browserid=" + inspector.__id;
+            me.stateScript = document.createElement("script");
+            me.stateScript.src = url;
+            me.stateScript.onerror = function(e) {
                 me.timeouts += 1;
-                me.script.parentNode.removeChild(me.script);
+                me.stateScript.parentNode.removeChild(me.stateScript);
                 if(me.timeouts < inspector.max_timeouts) {
                     window.setTimeout(function() {
                         __requestState();
                     }, me.timeouts * 50);
                 }
             };
-            if(me.callbackName) {
-                window[me.callbackName] = __callback;
-                document.body.appendChild(me.script);
+            if(me.stateCallbackName && !me.__destroyed) {
+                window[me.stateCallbackName] = __stateCallback;
+                document.body.appendChild(me.stateScript);
             }
         };
 
-         var __callback = function(data) {
+        var __stateCallback = function(data) {
             try {
-                if(data.event === 'error') {
-                    me.__errorHandler(data);
-                } else {
-                    me.callbackName = inspector.__generateCallbackName();
-                    // Send new state to avoid gadget timeout.
+                me.stateCallbackName = inspector.__generateCallbackName();
+                window.setTimeout(function() {
+                    __requestState();
+                }, me.keep_alive);
+            } catch(e) {
+            } finally {
+                me.stateScript.parentNode.removeChild(me.stateScript);
+            }
+        }
+
+        var __callback = function(response) {
+            try {
+                console.log(response.data);
+                if (response.data === 'initial') {
+                    me.__initial = true;
+                    console.log(me.__initial);
+                }
+                if(me.__initialQueue.length > 0) {
+                    var next = me.__initialQueue.splice(0, 1)[0];
+                    __sendCommand(next.params, next.callback);
+                }
+                if (response.data === 'initial') {
                     window.setTimeout(function() {
                         __requestState();
                     }, me.keep_alive);
                 }
             } catch(e) {
-            } finally {
-                me.script.parentNode.removeChild(me.script);
             }
         };
-
-        __requestState();
 
     }
 
@@ -333,6 +367,15 @@ inspector.audio = {
         var action = el.getAttribute("inspector-action");
         var file = el.parentNode.getAttribute("src");
         var playerid = el.parentNode.id;
+
+        var actives = el.parentNode.getElementsByClassName("active");
+        for(var i=0; i<actives.length; i++) {
+            var act = actives[i];
+            act.className = act.className.replace(new RegExp('(\\s|^)active(\\s|$)'),' ').replace(/^\s+|\s+$/g, '');
+        }
+        if(!new RegExp('active').test(el.className)) {
+            el.className += " active";
+        }
         el = el.parentNode;
 
         // Change relative path of source to absolute path.
@@ -347,11 +390,14 @@ inspector.audio = {
             inspector.audio.startStream();
         }
 
+        console.log("do: " + action);
+        console.log("gadget? " + !!inspector.audio.gadget);
         var params = {
             'do': action,
             'audiofile': file,
             'playerid': playerid
         };
+        console.log("submitting!");
         inspector.audio.gadget.submit(params);
 
         if(action !== 'stop') {
@@ -370,6 +416,7 @@ inspector.audio = {
     },
 
     startStream: function() {
+        console.log("startStream");
         if(!inspector.audio.gadget) {
             inspector.audio.gadget = inspector.use("AUDIO");
             inspector.audio.gadget.on(inspector.events.data, function(response) {
@@ -391,7 +438,9 @@ inspector.audio = {
     updateState: function(data) {
         var id = data.playerid;
         var el = inspector.audio.elements[id];
-        el.getElementsByClassName("state")[0].innerHTML = data.state;
+        var state = el.getElementsByClassName("state")[0];
+        state.className = "state " + data.state.toLowerCase();
+        state.innerHTML = data.state;
         el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
         el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
     },
@@ -407,7 +456,7 @@ inspector.audio = {
         x /= 60
         hours = parseInt(x % 24, 10);
 
-        return ((hours) ? hours + ':' : '') + ((minutes) ? minutes + ':' : '00:') + ((seconds) ? seconds : '');
+        return ((hours) ? hours + ':' : '') + ((minutes) ? minutes + ':' : '00:') + ((seconds) ? ((seconds < 10) ? '0' + seconds : seconds) : '00');
     },
 
     needReplacement: function(el) {

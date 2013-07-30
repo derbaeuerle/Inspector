@@ -114,6 +114,8 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
 				mPlayers.get(iRequest.getBrowserId()).put(playerId, mp);
+
+				mp.startTimeout();
 			}
 		}
 		if (mp != null) {

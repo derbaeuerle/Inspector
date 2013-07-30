@@ -7,6 +7,7 @@ import de.hsrm.inspector.exceptions.GadgetException;
  */
 public class GadgetExceptionConstants {
 
+	public static final int INITIAL = -1;
 	public static final int SERVER_IS_LOCKED = 1;
 	public static final int GADGET_NEEDS_PERMISSION = 2;
 	public static final int GADGET_IS_DISABLED = 3;

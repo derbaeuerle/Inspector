@@ -76,12 +76,17 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 		Object tmpResponseContent = "";
 		try {
 			InspectorRequest iRequest = new InspectorRequest(request);
-			Log.e("REQUEST", request.getRequestLine().toString());
 			try {
 				Gadget gadget = checkGadget(iRequest);
 				gadget.cancelTimeout();
 
 				checkKeepAlive(iRequest, gadget);
+
+				if (iRequest.hasParameter(GadgetConstants.PARAM_CMD)
+						&& iRequest.getParameter(GadgetConstants.PARAM_CMD).toString().toLowerCase()
+								.equals(GadgetConstants.COMMAND_INITIAL.toLowerCase())) {
+					tmpResponseContent = "initial";
+				}
 
 				gadget.startTimeout();
 			} catch (Exception e) {
@@ -109,8 +114,9 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	 *            {@link Gadget}
 	 */
 	private void checkKeepAlive(InspectorRequest iRequest, Gadget gadget) throws Exception {
-		// If request is not keep-alive or gadget isn't running and processing,
-		// go further!
+		if (iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
+			Log.d("", "keep-alive");
+		}
 		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
 			checkPermission(iRequest, gadget);
 		} else if (gadget instanceof OnKeepAliveListener) {
@@ -159,9 +165,15 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 			if (iRequest.hasParameter(GadgetConstants.PARAM_BROWSER_ID)) {
 				mResponsePool.addBrowserGadget(iRequest.getParameter(GadgetConstants.PARAM_BROWSER_ID).toString(),
 						gadget);
+				if (!iRequest.hasParameter(GadgetConstants.PARAM_CMD)
+						|| (iRequest.hasParameter(GadgetConstants.PARAM_CMD) && !iRequest
+								.getParameter(GadgetConstants.PARAM_CMD).toString().toLowerCase()
+								.equals(GadgetConstants.COMMAND_INITIAL.toLowerCase()))) {
+					gadget.gogo(iRequest);
+				}
+			} else {
+				throw new GadgetException("No browser id submitted!");
 			}
-
-			gadget.gogo(iRequest);
 		}
 	}
 
@@ -204,7 +216,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 			obj.add("data", mGson.toJsonTree(content));
 		}
 		obj.add("request", mGson.toJsonTree(iRequest.getUrlParams()));
-		
+
 		content = obj.toString();
 		jsonContent = iRequest.getCallback() + "(" + content.toString() + ");";
 

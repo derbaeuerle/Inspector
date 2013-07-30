@@ -37,11 +37,14 @@ inspector.audio = {
             inspector.audio.startStream();
         }
 
+        console.log("do: " + action);
+        console.log("gadget? " + !!inspector.audio.gadget);
         var params = {
             'do': action,
             'audiofile': file,
             'playerid': playerid
         };
+        console.log("submitting!");
         inspector.audio.gadget.submit(params);
 
         if(action !== 'stop') {
@@ -60,6 +63,7 @@ inspector.audio = {
     },
 
     startStream: function() {
+        console.log("startStream");
         if(!inspector.audio.gadget) {
             inspector.audio.gadget = inspector.use("AUDIO");
             inspector.audio.gadget.on(inspector.events.data, function(response) {
