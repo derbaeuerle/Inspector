@@ -79,6 +79,11 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 				Gadget gadget = checkGadget(iRequest);
 				gadget.cancelTimeout();
 
+				if (iRequest.hasParameter(GadgetConstants.PARAM_BROWSER_ID)) {
+					mResponsePool.addBrowserGadget(iRequest.getParameter(GadgetConstants.PARAM_BROWSER_ID).toString(),
+							gadget);
+				}
+
 				checkKeepAlive(iRequest, gadget);
 
 				if (iRequest.hasParameter(GadgetConstants.PARAM_CMD)
@@ -159,8 +164,6 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 			initGadget(gadget);
 
 			if (iRequest.hasParameter(GadgetConstants.PARAM_BROWSER_ID)) {
-				mResponsePool.addBrowserGadget(iRequest.getParameter(GadgetConstants.PARAM_BROWSER_ID).toString(),
-						gadget);
 				if (!iRequest.hasParameter(GadgetConstants.PARAM_CMD)
 						|| (iRequest.hasParameter(GadgetConstants.PARAM_CMD) && !iRequest
 								.getParameter(GadgetConstants.PARAM_CMD).toString().toLowerCase()

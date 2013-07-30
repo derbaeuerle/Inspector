@@ -63,7 +63,7 @@ public class ServerService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		// android.os.Debug.waitForDebugger();
+		android.os.Debug.waitForDebugger();
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
 			Log.e("", "Init inspector server ...");

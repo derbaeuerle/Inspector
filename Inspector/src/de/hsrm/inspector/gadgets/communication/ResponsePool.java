@@ -32,12 +32,10 @@ public class ResponsePool {
 	 * @param gadget
 	 */
 	public void addBrowserGadget(String id, Gadget gadget) {
-		synchronized (mBrowserInstances) {
-			if (!mBrowserInstances.containsKey(id)) {
-				mBrowserInstances.put(id, new HashSet<Gadget>());
-			}
-			mBrowserInstances.get(id).add(gadget);
+		if (!mBrowserInstances.containsKey(id)) {
+			mBrowserInstances.put(id, new HashSet<Gadget>());
 		}
+		mBrowserInstances.get(id).add(gadget);
 	}
 
 	/**
@@ -61,23 +59,17 @@ public class ResponsePool {
 	 *            {@link GadgetEvent}
 	 */
 	public void add(GadgetEvent response) {
-		synchronized (mBrowserInstances) {
-			for (String id : mBrowserInstances.keySet()) {
-				// Check each browser id, if instance uses this gadget.
-				if (mBrowserInstances.get(id).contains(response.getGadget())) {
-					// If event is data event.
-					if (response.getEvent().equals(EVENT_TYPE.DATA)) {
-						synchronized (mDataEvents) {
-							if (!mDataEvents.containsKey(id)) {
-								mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
-							}
-							mDataEvents.get(id).put(response.getGadget(), response);
-						}
-					} else {
-						synchronized (mResponsePool) {
-							mResponsePool.get(id).add(response);
-						}
+		for (String id : mBrowserInstances.keySet()) {
+			// Check each browser id, if instance uses this gadget.
+			if (mBrowserInstances.get(id).contains(response.getGadget())) {
+				// If event is data event.
+				if (response.getEvent().equals(EVENT_TYPE.DATA)) {
+					if (!mDataEvents.containsKey(id)) {
+						mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
 					}
+					mDataEvents.get(id).put(response.getGadget(), response);
+				} else {
+					mResponsePool.get(id).add(response);
 				}
 			}
 		}
@@ -127,12 +119,8 @@ public class ResponsePool {
 	 * @return {@link Boolean}
 	 */
 	public boolean hasItems(String id) {
-		synchronized (mResponsePool) {
-			synchronized (mDataEvents) {
-				return (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty())
-						|| (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
-			}
-		}
+		return (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty())
+				|| (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
 	}
 
 	public int size(String id) {
