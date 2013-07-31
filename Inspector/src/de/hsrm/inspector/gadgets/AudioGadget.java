@@ -27,6 +27,7 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
 public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	private static final int UPDATE_DELAY = 250;
+	private String mTest;
 
 	private ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>> mPlayers;
 	private ScheduledExecutorService mStateHandler;
@@ -75,6 +76,7 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	@Override
 	public void onKeepAlive(InspectorRequest iRequest) {
+		// TODO: change to timeout of browser instance.
 		if (mPlayers != null) {
 			// There may be instances for this browser instance!
 			if (mPlayers.containsKey(iRequest.getBrowserId())) {
@@ -202,5 +204,9 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 				}
 			}
 		}
+	}
+
+	public String getTest() {
+		return mTest;
 	}
 }

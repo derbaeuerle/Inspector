@@ -7,19 +7,18 @@
         <EditTextPreference
             android:defaultValue="5"
             android:inputType="number"
-            android:key="audio:timeout"
+            android:key="audio:mTimeout"
             android:title="Timeout (sec.)" />
-
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="audio:keep-alive"
-            android:title="Keep-Alive" />
+        <EditTextPreference
+            android:defaultValue="tester"
+            android:key="audio:mTest"
+            android:title="Test" />
 
         <ListPreference
             android:defaultValue="1"
             android:entries="@array/pref_attr_auth_types"
             android:entryValues="@array/auth_types"
-            android:key="audio:permission"
+            android:key="audio:mPermissionType"
             android:title="@string/pref_title_auth_types" />
     </PreferenceCategory>
 

@@ -2,10 +2,10 @@ package de.hsrm.inspector.services;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jdom2.Element;
@@ -16,9 +16,9 @@ import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.net.Uri;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
@@ -135,26 +135,26 @@ public class ServerService extends IntentService {
 	}
 
 	/**
-	 * Reads {@link SharedPreferences} of this applications and parses them into
-	 * a {@link ConcurrentHashMap}. This {@link Map} contains {@link String} as
-	 * key and {@link Gadget} as value. The {@link Gadget} instances are
-	 * instantiated by {@link Resources} xml configuration.
+	 * Creates {@link Gadget} instances from inspector configuration xml and
+	 * sets default {@link SharedPreferences} values of their
+	 * {@link PreferenceScreen} attribute. After initializing all {@link Gadget}
+	 * instances, their runtime attributes will be set via
+	 * {@link SharedPreferences} and reflection api.
 	 * 
-	 * @return
+	 * @return {@link ConcurrentHashMap} of {@link String} to {@link Gadget}
 	 */
 	private ConcurrentHashMap<String, Gadget> configure() {
 		ConcurrentHashMap<String, Gadget> config = mServer.getConfiguration();
-		if (config == null) {
-			config = new ConcurrentHashMap<String, Gadget>();
-			for (Gadget g : config.values()) {
-				if (g.getPreferences() != null) {
-					PreferenceManager.setDefaultValues(getApplicationContext(),
-							getResources().getIdentifier(g.getPreferences(), "xml", getPackageName()), true);
-				}
-			}
+		// If config is not set or empty, try read inspector xml.
+		if (config == null || config.size() == 0) {
+			// Reads gadgets from inspector configuration file and sets default
+			// values of shared preferences.
+			readInspectorConfiguration(config);
 		}
 
-		readPreferences(config);
+		// Reads all keys of shared preferences and sets instance attributes via
+		// reflection api.
+		configureGadgetInstances(config);
 		return config;
 	}
 
@@ -165,21 +165,20 @@ public class ServerService extends IntentService {
 	 * @param config
 	 * @return
 	 */
-	private void readPreferences(ConcurrentHashMap<String, Gadget> config) {
+	private void configureGadgetInstances(ConcurrentHashMap<String, Gadget> config) {
 		Context c = getApplicationContext();
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-		if (config.size() == 0) {
-			readGadgets(config);
-		}
-		for (Gadget g : config.values()) {
-			String id = g.getIdentifier().toLowerCase();
-			g.setKeepAlive(prefs.getBoolean(id + ":" + c.getString(R.string.configuration_keep_alive), g.isKeepAlive()));
-			g.setPermissionType(Integer.parseInt(prefs.getString(
-					id + ":" + c.getString(R.string.configuration_permission), c.getString(R.string.auth_type_granted))));
-			long timeout = Long.parseLong(prefs.getString(id + ":" + c.getString(R.string.configuration_timeout), ""
-					+ Long.MIN_VALUE));
-			if (timeout != Long.MIN_VALUE) {
-				g.setTimeout(timeout * 1000);
+
+		for (String key : prefs.getAll().keySet()) {
+			// <identifier>:<attribute>
+			String[] splits = key.split(":");
+
+			if (config.containsKey(splits[0].toUpperCase())) {
+				Gadget g = config.get(splits[0].toUpperCase());
+				Object value = getPreferenceValue(prefs, key);
+				if (value != null) {
+					setAttribute(g, splits[1], value);
+				}
 			}
 		}
 	}
@@ -194,8 +193,8 @@ public class ServerService extends IntentService {
 	 * @throws InstantiationException
 	 */
 	@SuppressWarnings("unchecked")
-	private void createGadget(Element gadget, ConcurrentHashMap<String, Gadget> gadgets) throws ClassNotFoundException,
-			IllegalAccessException, InstantiationException {
+	private void createGadgetInstance(Element gadget, ConcurrentHashMap<String, Gadget> gadgets)
+			throws ClassNotFoundException, IllegalAccessException, InstantiationException {
 		try {
 			Class<Gadget> gadgetClass = (Class<Gadget>) Class.forName(gadget.getChildText(getApplicationContext()
 					.getString(R.string.configuration_class)));
@@ -209,6 +208,8 @@ public class ServerService extends IntentService {
 					g.setIdentifier(identifier.getText().toUpperCase());
 					if (gadget.getChild(getString(R.string.configuration_preference_screen)) != null) {
 						g.setPreferences(gadget.getChildText(getString(R.string.configuration_preference_screen)));
+						PreferenceManager.setDefaultValues(getApplicationContext(),
+								getResources().getIdentifier(g.getPreferences(), "xml", getPackageName()), true);
 					}
 					if (gadgets.contains(g.getIdentifier())) {
 						gadgets.replace(g.getIdentifier(), g);
@@ -222,6 +223,8 @@ public class ServerService extends IntentService {
 						getApplicationContext().getString(R.string.configuration_identifier)).toUpperCase());
 				if (gadget.getChild(getString(R.string.configuration_preference_screen)) != null) {
 					g.setPreferences(gadget.getChildText(getString(R.string.configuration_preference_screen)));
+					PreferenceManager.setDefaultValues(getApplicationContext(),
+							getResources().getIdentifier(g.getPreferences(), "xml", getPackageName()), true);
 				}
 				if (gadgets.contains(g.getIdentifier())) {
 					gadgets.replace(g.getIdentifier(), g);
@@ -240,7 +243,7 @@ public class ServerService extends IntentService {
 	 * 
 	 * @param config
 	 */
-	private void readGadgets(ConcurrentHashMap<String, Gadget> config) {
+	private void readInspectorConfiguration(ConcurrentHashMap<String, Gadget> config) {
 		try {
 			SAXBuilder builder = new SAXBuilder();
 			InputStream file = getApplicationContext().getResources().openRawResource(R.raw.inspector_default);
@@ -248,7 +251,7 @@ public class ServerService extends IntentService {
 			List<Element> gadgets = root.getChildren(getApplicationContext().getString(R.string.configuration_gadgets));
 
 			for (Element gadget : gadgets) {
-				createGadget(gadget, config);
+				createGadgetInstance(gadget, config);
 			}
 			String serverTimeout = root.getAttributeValue(getString(R.string.configuration_timeout));
 			if (serverTimeout != null) {
@@ -286,28 +289,109 @@ public class ServerService extends IntentService {
 			ConcurrentHashMap<String, Gadget> settings = mServer.getConfiguration();
 			Gadget gadget = settings.get(splits[0].toUpperCase());
 
-			if (c.getString(R.string.configuration_keep_alive).equals(splits[1])) {
+			setAttribute(gadget, splits[1], getPreferenceValue(prefs, key));
+		}
+	}
+
+	/**
+	 * Returns value of {@link SharedPreferences} key.
+	 * 
+	 * @param prefs
+	 *            {@link SharedPreferences}
+	 * @param key
+	 *            {@link String}
+	 * @return {@link Object}
+	 */
+	private Object getPreferenceValue(SharedPreferences prefs, String key) {
+		Object value = null;
+		try {
+			value = prefs.getBoolean(key, false);
+		} catch (Exception e1) {
+			try {
+				value = prefs.getFloat(key, 0f);
+			} catch (Exception e2) {
 				try {
-					gadget.setKeepAlive(prefs.getBoolean(key, gadget.isKeepAlive()));
-				} catch (ClassCastException e) {
-					String value = prefs.getString(key, gadget.isKeepAlive() + "");
-					gadget.setKeepAlive(Boolean.parseBoolean(value));
-				}
-			} else if (c.getString(R.string.configuration_timeout).equals(splits[1])) {
-				try {
-					gadget.setTimeout(prefs.getLong(key, gadget.getTimeout()));
-				} catch (ClassCastException e) {
-					String value = prefs.getString(key, gadget.getTimeout() + "");
-					gadget.setTimeout(Long.parseLong(value));
-				}
-			} else if (c.getString(R.string.configuration_permission).equals(splits[1])) {
-				try {
-					gadget.setPermissionType(prefs.getInt(key, gadget.getPermissionType()));
-				} catch (ClassCastException e) {
-					String value = prefs.getString(key, gadget.getPermissionType() + "");
-					gadget.setPermissionType(Integer.parseInt(value));
+					value = prefs.getInt(key, 0);
+				} catch (Exception e3) {
+					try {
+						value = prefs.getLong(key, 0);
+					} catch (Exception e4) {
+						try {
+							value = prefs.getString(key, "");
+						} catch (Exception e5) {
+						}
+					}
 				}
 			}
+		}
+		return value;
+	}
+
+	/**
+	 * Returns {@link Field} of given {@link Class} and name recursively.
+	 * 
+	 * @param clazz
+	 *            {@link Class}
+	 * @param name
+	 *            {@link String}
+	 * @return {@link Field}
+	 * @throws NoSuchFieldException
+	 */
+	private Field getField(Class<?> clazz, String name) throws NoSuchFieldException {
+		try {
+			return clazz.getDeclaredField(name);
+		} catch (SecurityException e) {
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			Class<?> superClazz = clazz.getSuperclass();
+			if (superClazz == null) {
+				throw e;
+			}
+			return getField(superClazz, name);
+		}
+		return null;
+	}
+
+	/**
+	 * Sets attribute of {@link Gadget} by field name.
+	 * 
+	 * @param gadget
+	 *            {@link Gadget}
+	 * @param name
+	 *            {@link String}
+	 * @param value
+	 *            {@link Object}
+	 */
+	private void setAttribute(Gadget gadget, String name, Object value) {
+		Class<?> clazz = gadget.getClass();
+		try {
+			Field field = getField(clazz, name);
+			if (field != null) {
+				if (!field.isAccessible()) {
+					field.setAccessible(true);
+				}
+				if (field.getType().equals(Integer.TYPE)) {
+					field.setInt(gadget, Integer.parseInt(value.toString()));
+				} else if (field.getType().equals(Long.TYPE)) {
+					field.setLong(gadget, Long.parseLong(value.toString()));
+				} else if (field.getType().equals(Float.TYPE)) {
+					field.setFloat(gadget, Float.parseFloat(value.toString()));
+				} else if (field.getType().equals(Double.TYPE)) {
+					field.setDouble(gadget, Double.parseDouble(value.toString()));
+				} else if (field.getType().equals(Boolean.TYPE)) {
+					field.setBoolean(gadget, Boolean.parseBoolean(value.toString()));
+				} else {
+					field.set(gadget, value);
+				}
+			}
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+		} catch (NumberFormatException e) {
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
 		}
 	}
 }
