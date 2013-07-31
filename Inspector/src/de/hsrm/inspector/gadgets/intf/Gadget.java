@@ -74,7 +74,7 @@ public abstract class Gadget {
 	 */
 	public void onDestroy() throws Exception {
 		if (mObserver != null) {
-			mObserver.notifyGadgetEvent(new GadgetEvent(this, null, EVENT_TYPE.DESTROY));
+			mObserver.onGadgetEvent(new GadgetEvent(this, null, EVENT_TYPE.DESTROY));
 		}
 		mRunning.set(false);
 	}
@@ -123,7 +123,7 @@ public abstract class Gadget {
 	 */
 	public void notifyGadgetEvent(GadgetEvent event) {
 		if (mObserver != null) {
-			mObserver.notifyGadgetEvent(event);
+			mObserver.onGadgetEvent(event);
 		}
 	}
 

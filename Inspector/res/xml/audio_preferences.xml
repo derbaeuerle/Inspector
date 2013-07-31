@@ -9,10 +9,11 @@
             android:inputType="number"
             android:key="audio:mTimeout"
             android:title="Timeout (sec.)" />
-        <EditTextPreference
-            android:defaultValue="tester"
-            android:key="audio:mTest"
-            android:title="Test" />
+
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="audio:mUseTimeout"
+            android:title="Use player timeout" />
 
         <ListPreference
             android:defaultValue="1"

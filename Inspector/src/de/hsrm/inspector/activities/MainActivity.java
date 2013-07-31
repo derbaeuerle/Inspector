@@ -14,7 +14,9 @@ import de.hsrm.inspector.R;
  */
 public class MainActivity extends Activity implements OnClickListener {
 
-	private Button mSendIntent, mOpenSettings, mStateRequest;
+	private static final boolean DEBUG = true;
+
+	private Button mSendIntent, mStopServer, mOpenSettings, mStateRequest;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -22,10 +24,20 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		mSendIntent = (Button) findViewById(R.id.startServer);
 		mSendIntent.setOnClickListener(this);
+
+		mStopServer = (Button) findViewById(R.id.stopServer);
+		mStopServer.setOnClickListener(this);
+
 		mOpenSettings = (Button) findViewById(R.id.openSettings);
 		mOpenSettings.setOnClickListener(this);
+
 		mStateRequest = (Button) findViewById(R.id.stateRequest);
 		mStateRequest.setOnClickListener(this);
+
+		if (!DEBUG) {
+			mOpenSettings.performClick();
+			finish();
+		}
 	}
 
 	private void send(View v) {
@@ -37,6 +49,9 @@ public class MainActivity extends Activity implements OnClickListener {
 			startActivity(i);
 		} else if (v.equals(mOpenSettings)) {
 			i.setData(Uri.parse("inspector://settings/"));
+			startActivity(i);
+		} else if (v.equals(mStopServer)) {
+			i.setData(Uri.parse("inspector://destroy/"));
 			startActivity(i);
 		}
 	}

@@ -33,9 +33,9 @@ public class TimeoutTimer {
 	 * Starts the {@link #mTimer} {@link Timer}.
 	 */
 	public void start() {
-		if (!mStarted.get()) {
+		if (!mStarted.get() && mGadget.getTimeout() > 0) {
 			mTimer = new Timer();
-			mTimer.schedule(new TimeoutTimerTask(), mGadget.getTimeout());
+			mTimer.schedule(new TimeoutTimerTask(), mGadget.getTimeout() * 1000);
 			mStarted.set(true);
 		}
 	}

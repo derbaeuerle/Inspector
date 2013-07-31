@@ -7,43 +7,11 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 </head>
 <body>
-    <button id="start">Start</button></br>
-    <button id="stop">Stop</button><br/><br/>
-    <button id="count">Count up</button><br/>
     <div id="cons"></div>
-<script type="text/javascript">
-var a = b = null;
-$(function() {
-    var oldData;
-    $('#start').click(function(e) {
-        a = inspector.use("GYROSCOPE", 400);
-        a.on(inspector.events.data, function(response) {
-            // console.log(response.data, true);
-        });
+    <script type="text/javascript">
+    window.addEventListener('blur', function() {
+        $('#cons').append("blur<br/>");
     });
-    $('#stop').click(function(e) {
-        if(a) {
-            console.log("a destroy");
-            a.__destroy();
-        }
-    });
-    $('#count').click(function(e) {
-        if(a) {
-            a.submit({}, function(data) {
-                console.log(data);
-            });
-        }
-    });
-    console = {
-        log: function(msg, replace) {
-            if(replace) {
-                $('#cons').html(JSON.stringify(msg));
-            } else {
-                $('#cons').append(JSON.stringify(msg).substr(0,100) + "<br/>");
-            }
-        }
-    };
-});
-</script>
+    </script>
 </body>
 </html>

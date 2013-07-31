@@ -14,11 +14,19 @@
         android:text="@string/start_server" />
 
     <Button
-        android:id="@+id/openSettings"
+        android:id="@+id/stopServer"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_below="@+id/startServer"
+        android:text="@string/stop_server" />
+
+    <Button
+        android:id="@+id/openSettings"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/stopServer"
         android:text="@string/open_settings" />
 
     <Button
@@ -26,7 +34,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/startServer"
+        android:layout_below="@+id/openSettings"
         android:layout_marginTop="64dp"
         android:text="@string/request_state" />
 

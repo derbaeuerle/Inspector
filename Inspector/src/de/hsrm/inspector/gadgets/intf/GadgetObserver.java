@@ -14,6 +14,6 @@ public interface GadgetObserver {
 	 * @param event
 	 *            {@link GadgetEvent}
 	 */
-	public void notifyGadgetEvent(GadgetEvent event);
+	public void onGadgetEvent(GadgetEvent event);
 
 }

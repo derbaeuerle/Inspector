@@ -100,8 +100,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 	@Override
 	public void onCompletion(MediaPlayer mp) {
-		if (!isLooping()) {
-			stop();
+		try {
+			if (!isLooping()) {
+				stop();
+				release();
+				mHolder.onPlayerTimeout(this);
+			}
+		} catch (IllegalStateException e) {
 		}
 	}
 
@@ -243,9 +248,11 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 
 			@Override
 			public void run() {
-				GadgetAudioPlayer.this.stop();
-				GadgetAudioPlayer.this.release();
-				GadgetAudioPlayer.this.mHolder.onPlayerTimeout(GadgetAudioPlayer.this);
+				if (GadgetAudioPlayer.this.mHolder.useTimeout()) {
+					GadgetAudioPlayer.this.stop();
+					GadgetAudioPlayer.this.release();
+					GadgetAudioPlayer.this.mHolder.onPlayerTimeout(GadgetAudioPlayer.this);
+				}
 			}
 		}, TIMEOUT);
 	}

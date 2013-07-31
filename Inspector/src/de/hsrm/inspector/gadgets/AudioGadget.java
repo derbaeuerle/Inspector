@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.communication.GadgetEvent;
@@ -27,10 +28,10 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
 public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	private static final int UPDATE_DELAY = 250;
-	private String mTest;
 
 	private ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>> mPlayers;
 	private ScheduledExecutorService mStateHandler;
+	private boolean mUseTimeout;
 
 	@Override
 	public void onCreate(Context context) throws Exception {
@@ -62,8 +63,10 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
 			for (GadgetAudioPlayer mp : instances.values()) {
 				try {
-					mp.stop();
-					mp.release();
+					if (useTimeout()) {
+						mp.stop();
+						mp.release();
+					}
 				} catch (IllegalStateException e) {
 				}
 			}
@@ -194,6 +197,7 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	}
 
 	public void onPlayerTimeout(GadgetAudioPlayer mp) {
+		int size = 0;
 		for (Map<String, GadgetAudioPlayer> i : mPlayers.values()) {
 			while (i.containsValue(mp)) {
 				for (Entry<String, GadgetAudioPlayer> entry : i.entrySet()) {
@@ -203,10 +207,14 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 					}
 				}
 			}
+			size += i.size();
+		}
+		if (size == 0) {
+			notifyGadgetEvent(new GadgetEvent(this, null, EVENT_TYPE.DESTROY));
 		}
 	}
 
-	public String getTest() {
-		return mTest;
+	public boolean useTimeout() {
+		return mUseTimeout;
 	}
 }

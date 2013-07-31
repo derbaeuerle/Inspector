@@ -5,6 +5,7 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="title_activity_settings">Inspector: Einstellungen</string>
     <string name="start_server">Start server</string>
+    <string name="stop_server">Stop server</string>
     <string name="open_settings">Open settings</string>
     <string name="request_state">request state</string>
 

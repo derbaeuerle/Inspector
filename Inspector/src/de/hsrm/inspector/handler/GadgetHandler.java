@@ -233,7 +233,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	}
 
 	@Override
-	public void notifyGadgetEvent(GadgetEvent event) {
+	public void onGadgetEvent(GadgetEvent event) {
 		if (mGadgets.containsKey(event.getGadget().getIdentifier())) {
 			if (event.getEvent() == EVENT_TYPE.DESTROY) {
 				event.getGadget().removeObserver();

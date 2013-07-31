@@ -388,13 +388,9 @@ public class ServerService extends IntentService {
 				}
 			}
 		} catch (NoSuchFieldException e) {
-			e.printStackTrace();
 		} catch (NumberFormatException e) {
-			e.printStackTrace();
 		} catch (IllegalArgumentException e) {
-			e.printStackTrace();
 		} catch (IllegalAccessException e) {
-			e.printStackTrace();
 		}
 	}
 }
