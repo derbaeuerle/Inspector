@@ -145,8 +145,11 @@ public class ServerService extends IntentService {
 	 */
 	private ConcurrentHashMap<String, Gadget> configure() {
 		ConcurrentHashMap<String, Gadget> config = mServer.getConfiguration();
-		// If config is not set or empty, try read inspector xml.
-		if (config == null || config.size() == 0) {
+		if (config == null) {
+			config = new ConcurrentHashMap<String, Gadget>();
+		}
+		// If config is empty, try read inspector xml.
+		if (config.size() == 0) {
 			// Reads gadgets from inspector configuration file and sets default
 			// values of shared preferences.
 			readInspectorConfiguration(config);
