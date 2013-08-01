@@ -1,6 +1,6 @@
 package de.hsrm.inspector.gadgets.intf;
 
-import de.hsrm.inspector.gadgets.communication.GadgetEvent;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent;
 
 /**
  * Observer pattern interface for observers on {@link Gadget} objects.

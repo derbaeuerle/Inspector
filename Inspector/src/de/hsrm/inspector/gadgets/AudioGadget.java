@@ -11,13 +11,12 @@ import java.util.concurrent.TimeUnit;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 import de.hsrm.inspector.constants.AudioConstants;
 import de.hsrm.inspector.exceptions.GadgetException;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 
@@ -79,14 +78,13 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	@Override
 	public void onKeepAlive(InspectorRequest iRequest) {
-		// TODO: change to timeout of browser instance.
 		if (mPlayers != null) {
-			// There may be instances for this browser instance!
 			if (mPlayers.containsKey(iRequest.getBrowserId())) {
-				// Restart timeout for players on this instance.
 				for (GadgetAudioPlayer mp : mPlayers.get(iRequest.getBrowserId()).values()) {
 					mp.stopTimeout();
-					mp.startTimeout();
+					if (useTimeout()) {
+						mp.startTimeout();
+					}
 				}
 			}
 		}
@@ -156,7 +154,9 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 					e.printStackTrace();
 				}
 			}
-			mp.startTimeout();
+			if (useTimeout()) {
+				mp.startTimeout();
+			}
 		} else if (command.equals(AudioConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {
 				mp.pause();
@@ -165,7 +165,7 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 			mp.stop();
 			mp.release();
 			mp.stopTimeout();
-			onPlayerTimeout(mp);
+			onPlayerDestroy(mp);
 		} else if (command.equals(AudioConstants.COMMAND_SEEK)) {
 			if (iRequest.hasParameter(AudioConstants.PARAM_SEEK_TO)) {
 				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_SEEK_TO).toString()));
@@ -186,6 +186,11 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		}
 	}
 
+	/**
+	 * Returns all states if {@link GadgetAudioPlayer} in {@link #mPlayers}.
+	 * 
+	 * @return {@link HashMap}
+	 */
 	private HashMap<String, Object> getPlayerStates() {
 		HashMap<String, Object> players = new HashMap<String, Object>();
 		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
@@ -196,7 +201,14 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		return players;
 	}
 
-	public void onPlayerTimeout(GadgetAudioPlayer mp) {
+	/**
+	 * Removes {@link GadgetAudioPlayer} from {@link #mPlayers} if it has been
+	 * destroyed.
+	 * 
+	 * @param mp
+	 *            {@link GadgetAudioPlayer}
+	 */
+	public void onPlayerDestroy(GadgetAudioPlayer mp) {
 		int size = 0;
 		for (Map<String, GadgetAudioPlayer> i : mPlayers.values()) {
 			while (i.containsValue(mp)) {
@@ -214,6 +226,11 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		}
 	}
 
+	/**
+	 * Returns {@link #mUseTimeout}
+	 * 
+	 * @return {@link Boolean}
+	 */
 	public boolean useTimeout() {
 		return mUseTimeout;
 	}

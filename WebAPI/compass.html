@@ -50,6 +50,7 @@
         $compass = $('#compass');
         $deg = $('#degree');
         var compass = null;
+        var on = off = null;
         listenOrientation = function() {
             if(!compass) {
                 // Start using orientation sensor.
@@ -67,12 +68,24 @@
                     });
                     $deg.html(deg);
                 });
+                off = inspector.on('SCREEN_OFF', function(data) {
+                    console.log("SCREEN_OFF");
+                });
+                on = inspector.on('SCREEN_ON', function(data) {
+                    console.log("SCREEN_ON");
+                });
             }
         }
         unlistenOrientation = function() {
             if(compass) {
                 compass.__destroy();
                 compass = null;
+            }
+            if(off) {
+                inspector.off('SCREEN_OFF', off);
+            }
+            if(on) {
+                inspector.off('SCREEN_ON', on);
             }
         }
         window.onload = function() {

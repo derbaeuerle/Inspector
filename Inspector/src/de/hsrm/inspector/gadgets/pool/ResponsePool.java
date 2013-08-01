@@ -1,4 +1,4 @@
-package de.hsrm.inspector.gadgets.communication;
+package de.hsrm.inspector.gadgets.pool;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -7,8 +7,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 
 /**
  * Pool of processed {@link GadgetRequest} objects. Only holds the last
@@ -59,22 +59,42 @@ public class ResponsePool {
 	 *            {@link GadgetEvent}
 	 */
 	public void add(GadgetEvent response) {
-		for (String id : mBrowserInstances.keySet()) {
-			// Check each browser id, if instance uses this gadget.
-			if (mBrowserInstances.get(id).contains(response.getGadget())) {
-				// If event is data event.
-				if (response.getEvent().equals(EVENT_TYPE.DATA)) {
-					if (!mDataEvents.containsKey(id)) {
-						mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
+		// If response is an SystemEvent, all browser instances should be
+		// notified.
+		if (response instanceof SystemEvent) {
+			for (String id : mBrowserInstances.keySet()) {
+				if (!mResponsePool.contains(id)) {
+					mResponsePool.put(id, new ConcurrentLinkedQueue<GadgetEvent>());
+				}
+				mResponsePool.get(id).add((SystemEvent) response);
+			}
+		} else {
+			for (String id : mBrowserInstances.keySet()) {
+				// Check each browser id, if instance uses this gadget.
+				if (mBrowserInstances.get(id).contains(response.getGadget())) {
+					// If event is data event.
+					if (response.getEvent().equals(EVENT_TYPE.DATA)) {
+						if (!mDataEvents.containsKey(id)) {
+							mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
+						}
+						mDataEvents.get(id).put(response.getGadget(), response);
+					} else {
+						if (!mResponsePool.contains(id)) {
+							mResponsePool.put(id, new ConcurrentLinkedQueue<GadgetEvent>());
+						}
+						mResponsePool.get(id).add(response);
 					}
-					mDataEvents.get(id).put(response.getGadget(), response);
-				} else {
-					mResponsePool.get(id).add(response);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Add all {@link GadgetEvent} of a {@link List} to the response pool.
+	 * 
+	 * @param events
+	 *            {@link List} of {@link GadgetEvent}
+	 */
 	public void addAll(List<GadgetEvent> events) {
 		for (GadgetEvent e : events) {
 			add(e);
@@ -123,6 +143,14 @@ public class ResponsePool {
 				|| (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
 	}
 
+	/**
+	 * Returns size of {@link #mDataEvents} and {@link #mResponsePool} for given
+	 * browser instance.
+	 * 
+	 * @param id
+	 *            {@link String}
+	 * @return {@link Integer}
+	 */
 	public int size(String id) {
 		int size = 0;
 		synchronized (mDataEvents) {
@@ -138,6 +166,12 @@ public class ResponsePool {
 		return size;
 	}
 
+	/**
+	 * Clears all events for given browser instance.
+	 * 
+	 * @param id
+	 *            {@link String}
+	 */
 	public void clear(String id) {
 		synchronized (mDataEvents) {
 			if (mDataEvents.containsKey(id)) {
@@ -151,6 +185,9 @@ public class ResponsePool {
 		}
 	}
 
+	/**
+	 * Clears entire response pool.
+	 */
 	public void clearAll() {
 		synchronized (mDataEvents) {
 			mDataEvents.clear();

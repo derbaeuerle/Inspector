@@ -29,8 +29,8 @@ import org.apache.http.protocol.ResponseServer;
 
 import android.content.Context;
 import android.util.Log;
-import de.hsrm.inspector.gadgets.communication.ResponsePool;
 import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.pool.ResponsePool;
 import de.hsrm.inspector.handler.GadgetHandler;
 import de.hsrm.inspector.handler.ResponseHandler;
 
@@ -69,9 +69,10 @@ public class HttpServer extends Thread {
 	 * @param configuration
 	 *            InputStream for configuration file.
 	 */
-	public HttpServer(Context context) {
+	public HttpServer(Context context, ResponsePool responsePool) {
 		super(SERVER_NAME);
 		mReuseStrat = new DefaultConnectionReuseStrategy();
+		mResponsePool = responsePool;
 
 		mHttpParams = new BasicHttpParams();
 		mHttpParams.setIntParameter(CoreConnectionPNames.SO_TIMEOUT, 60000)
@@ -84,8 +85,6 @@ public class HttpServer extends Thread {
 		mHttpProcessor.addInterceptor(new ResponseServer());
 		mHttpProcessor.addInterceptor(new ResponseContent());
 		mHttpProcessor.addInterceptor(new ResponseConnControl());
-
-		mResponsePool = new ResponsePool();
 
 		mHttpRegistry = new HttpRequestHandlerRegistry();
 		mGadgetHandler = new GadgetHandler(context, mResponsePool);
@@ -136,29 +135,29 @@ public class HttpServer extends Thread {
 	 * Safe method to stop server.
 	 */
 	public synchronized void stopThread() {
-		if (mCommandSocket == null)
-			return;
-		try {
-			mCommandSocket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			mCommandSocket = null;
+		if (mCommandSocket != null) {
+			try {
+				mCommandSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				mCommandSocket = null;
+			}
+			if (mCommandWorker != null) {
+				mCommandWorker.interrupt();
+			}
 		}
-		if (mCommandWorker != null) {
-			mCommandWorker.interrupt();
-		}
-		if (mResponseSocket == null)
-			return;
-		try {
-			mResponseSocket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			mResponseSocket = null;
-		}
-		if (mResponseWorker != null) {
-			mResponseWorker.interrupt();
+		if (mResponseSocket != null) {
+			try {
+				mResponseSocket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				mResponseSocket = null;
+			}
+			if (mResponseWorker != null) {
+				mResponseWorker.interrupt();
+			}
 		}
 	}
 
@@ -250,7 +249,7 @@ public class HttpServer extends Thread {
 
 		@Override
 		public void run() {
-			Log.d("Server", "Server now running! " + mSocket.getInetAddress().toString() + ":" + mSocket.getLocalPort());
+			Log.d("Server", "Server: " + mSocket.getInetAddress().toString() + ":" + mSocket.getLocalPort());
 			while ((mSocket != null) && (mWorkerThread == Thread.currentThread()) && !Thread.interrupted()) {
 				try {
 					accept();

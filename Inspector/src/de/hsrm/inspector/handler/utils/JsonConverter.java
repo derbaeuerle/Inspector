@@ -9,7 +9,7 @@ import com.google.gson.JsonObject;
 
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.exceptions.GadgetException;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 
 public class JsonConverter {
 
@@ -36,7 +36,9 @@ public class JsonConverter {
 		if (e instanceof GadgetException) {
 			map.put(context.getString(R.string.exception_error_code), ((GadgetException) e).getErrorCode() + "");
 		}
-		map.put(context.getString(R.string.exception_request), ((GadgetException) e).getRequest());
+		if (((GadgetException) e).getRequest() != null) {
+			map.put(context.getString(R.string.exception_request), ((GadgetException) e).getRequest());
+		}
 		errorObject.add("data", mGson.toJsonTree(map));
 		return errorObject;
 	}

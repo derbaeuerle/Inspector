@@ -1,6 +1,19 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-07-30
+/*! PROJECT_NAME - v0.1.0 - 2013-08-01
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
+Array.prototype.findAttribute = function(key, value) {
+    for(var i=0; i<this.length; i++) {
+        if(typeof(this[i]) === typeof({})) {
+            if(key in this[i]) {
+                if(this[i][key] == value) {
+                    return this[i];
+                }
+            }
+        }
+    }
+    return false;
+};
+
 var inspector = {
     intents: {
         init: 'inspector://init/'
@@ -69,6 +82,40 @@ var inspector = {
         return parseInt((new Date()).getTime() / Math.random() * 1000, 10);
     },
 
+    on : function(eventType, callback, conditions) {
+        if(!("SYSTEM" in inspector.connections)) {
+            inspector.connections["SYSTEM"] = {};
+            inspector.connections.SYSTEM.eventListener = {};
+        }
+        if(!(eventType in inspector.connections.SYSTEM.eventListener)) {
+            inspector.connections.SYSTEM.eventListener[eventType] = [];
+        }
+        inspector.connections.SYSTEM.eventListener[eventType].push({
+            "test": "test",
+            "id" : inspector.connections.SYSTEM.eventListener[eventType].length,
+            'event': eventType,
+            'callback': callback,
+            'conditions': conditions
+        });
+        return inspector.connections.SYSTEM.eventListener[eventType].length;
+    },
+
+    off : function(eventType, id) {
+        var element = inspector.connections.SYSTEM.eventListener[eventType].findAttribute("id", id);
+        var ret = !!(inspector.connections.SYSTEM.eventListener[eventType].splice(element, 1));
+
+        if(inspector.connections.SYSTEM.eventListener[eventType].length === 0) {
+            delete inspector.connections.SYSTEM.eventListener[eventType];
+            if(Object.keys(inspector.connections.SYSTEM.eventListener).length === 0) {
+                delete inspector.connections.SYSTEM;
+                if(Object.keys(inspector.connections).length === 0) {
+                    inspector.state_stream.stop();
+                }
+            }
+        }
+        return ret;
+    },
+
     stateStream : function() {
         var me = this;
         me.timeouts = 0;
@@ -129,7 +176,8 @@ var inspector = {
                                     break;
                                 }
                             }
-                            if(alarm) {
+
+                            if(alarm && l.callback) {
                                 l.callback(item);
                             }
                         }
@@ -186,6 +234,7 @@ var inspector = {
             if(Object.keys(inspector.connections).length === 0) {
                 inspector.state_stream.stop();
             }
+            me.eventListener = {};
             me.__initial = false;
             me.__destroyed = true;
         };

@@ -21,8 +21,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import de.hsrm.inspector.gadgets.communication.GadgetEvent;
-import de.hsrm.inspector.gadgets.communication.ResponsePool;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent;
+import de.hsrm.inspector.gadgets.pool.ResponsePool;
+import de.hsrm.inspector.gadgets.pool.SystemEvent;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.handler.utils.JsonConverter;
 import de.hsrm.inspector.web.HttpServer;
@@ -105,13 +106,16 @@ public class ResponseHandler implements HttpRequestHandler {
 	private JsonArray processResponses() {
 		JsonArray response = new JsonArray();
 		JsonObject tmp;
-		StringBuffer b = new StringBuffer();
 		for (GadgetEvent res : mResponsePool.popAll(mStateRequest.getBrowserId())) {
 			tmp = new JsonObject();
-			tmp.addProperty("event", res.getEvent().name());
-			tmp.addProperty("gadget", res.getGadget().getIdentifier());
+			if (res instanceof SystemEvent) {
+				tmp.addProperty("gadget", ((SystemEvent) res).getName());
+				tmp.addProperty("event", ((SystemEvent) res).getResponse().toString());
+			} else {
+				tmp.addProperty("gadget", res.getGadget().getIdentifier());
+				tmp.addProperty("event", res.getEvent().name());
+			}
 			tmp.add("data", mGson.toJsonTree(res.getResponse()));
-			b.append(res.getGadget().getIdentifier() + ": " + res.getEvent().name() + "\n");
 			response.add(tmp);
 		}
 		return response;

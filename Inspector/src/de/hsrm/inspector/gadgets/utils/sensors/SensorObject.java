@@ -6,9 +6,9 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import de.hsrm.inspector.exceptions.GadgetException;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent;
-import de.hsrm.inspector.gadgets.communication.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent;
+import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 
 /**
  * Wrapper class for {@link Sensor} support which implements

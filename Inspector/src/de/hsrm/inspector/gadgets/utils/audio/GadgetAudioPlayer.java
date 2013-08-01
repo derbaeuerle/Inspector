@@ -104,7 +104,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 			if (!isLooping()) {
 				stop();
 				release();
-				mHolder.onPlayerTimeout(this);
+				mHolder.onPlayerDestroy(this);
 			}
 		} catch (IllegalStateException e) {
 		}
@@ -239,6 +239,9 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		return mAutoPlay;
 	}
 
+	/**
+	 * Starts timeout of {@link GadgetAudioPlayer}.
+	 */
 	public void startTimeout() {
 		if (mTimoutTimer != null) {
 			mTimoutTimer.cancel();
@@ -251,12 +254,15 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 				if (GadgetAudioPlayer.this.mHolder.useTimeout()) {
 					GadgetAudioPlayer.this.stop();
 					GadgetAudioPlayer.this.release();
-					GadgetAudioPlayer.this.mHolder.onPlayerTimeout(GadgetAudioPlayer.this);
+					GadgetAudioPlayer.this.mHolder.onPlayerDestroy(GadgetAudioPlayer.this);
 				}
 			}
 		}, TIMEOUT);
 	}
 
+	/**
+	 * Stops timeout of {@link GadgetAudioPlayer}.
+	 */
 	public void stopTimeout() {
 		if (mTimoutTimer != null) {
 			mTimoutTimer.cancel();

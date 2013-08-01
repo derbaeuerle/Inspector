@@ -13,8 +13,10 @@ import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
 import android.app.IntentService;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
@@ -22,7 +24,9 @@ import android.preference.PreferenceScreen;
 import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
+import de.hsrm.inspector.broadcasts.SystemIntentReceiver;
 import de.hsrm.inspector.gadgets.intf.Gadget;
+import de.hsrm.inspector.gadgets.pool.ResponsePool;
 import de.hsrm.inspector.web.HttpServer;
 
 /**
@@ -33,6 +37,7 @@ import de.hsrm.inspector.web.HttpServer;
 public class ServerService extends IntentService {
 
 	private static HttpServer mServer;
+	private ResponsePool mResponsePool;
 
 	public static final String CMD_INIT = "init";
 	public static final String CMD_DESTROY = "destroy";
@@ -54,6 +59,17 @@ public class ServerService extends IntentService {
 	}
 
 	@Override
+	public void onCreate() {
+		super.onCreate();
+		mResponsePool = new ResponsePool();
+		android.os.Debug.waitForDebugger();
+		IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
+		filter.addAction(Intent.ACTION_SCREEN_OFF);
+		BroadcastReceiver mReceiver = new SystemIntentReceiver(mResponsePool);
+		registerReceiver(mReceiver, filter);
+	}
+
+	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null) {
 			onHandleIntent(intent);
@@ -63,7 +79,6 @@ public class ServerService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		android.os.Debug.waitForDebugger();
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
 			Log.e("", "Init inspector server ...");
@@ -111,7 +126,7 @@ public class ServerService extends IntentService {
 	 */
 	private void init() {
 		if (mServer == null) {
-			mServer = new HttpServer(getApplication());
+			mServer = new HttpServer(getApplication(), mResponsePool);
 			mServer.setConfiguration(configure());
 		}
 	}

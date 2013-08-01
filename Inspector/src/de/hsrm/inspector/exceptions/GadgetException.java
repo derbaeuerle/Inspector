@@ -38,6 +38,17 @@ public class GadgetException extends Exception {
 		mErrorCode = errorCode;
 	}
 
+	/**
+	 * Constructor of {@link GadgetException} with {@link String} as message,
+	 * {@link Integer} as error code and request {@link Object}.
+	 * 
+	 * @param msg
+	 *            {@link String}
+	 * @param errorCode
+	 *            {@link Integer}
+	 * @param request
+	 *            {@link Object}
+	 */
 	public GadgetException(String msg, int errorCode, Object request) {
 		this(msg, errorCode);
 		mRequest = request;
@@ -53,6 +64,11 @@ public class GadgetException extends Exception {
 		return mErrorCode;
 	}
 
+	/**
+	 * Returns request object.
+	 * 
+	 * @return {@link Object}
+	 */
 	public Object getRequest() {
 		return mRequest;
 	}

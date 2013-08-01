@@ -1,4 +1,4 @@
-package de.hsrm.inspector.gadgets.communication;
+package de.hsrm.inspector.gadgets.pool;
 
 import com.google.gson.Gson;
 
