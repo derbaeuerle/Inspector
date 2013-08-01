@@ -65,6 +65,8 @@ public class ServerService extends IntentService {
 		android.os.Debug.waitForDebugger();
 		IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
+		filter.addAction(Intent.ACTION_POWER_CONNECTED);
+		filter.addAction(Intent.ACTION_POWER_DISCONNECTED);
 		BroadcastReceiver mReceiver = new SystemIntentReceiver(mResponsePool);
 		registerReceiver(mReceiver, filter);
 	}

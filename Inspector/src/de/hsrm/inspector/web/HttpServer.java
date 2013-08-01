@@ -255,6 +255,7 @@ public class HttpServer extends Thread {
 					accept();
 				} catch (SocketException e) {
 					e.printStackTrace();
+					stopThread();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
