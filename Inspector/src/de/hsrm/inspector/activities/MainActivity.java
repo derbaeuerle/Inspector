@@ -16,7 +16,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	private static final boolean DEBUG = true;
 
-	private Button mSendIntent, mStopServer, mOpenSettings, mStateRequest;
+	private Button mSendIntent, mStopServer, mOpenSettings;
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -30,10 +30,6 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		mOpenSettings = (Button) findViewById(R.id.openSettings);
 		mOpenSettings.setOnClickListener(this);
-
-		mStateRequest = (Button) findViewById(R.id.stateRequest);
-		mStateRequest.setOnClickListener(this);
-
 		if (!DEBUG) {
 			mOpenSettings.performClick();
 			finish();

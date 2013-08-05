@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Inspector</string>
+    <string name="title_activity_main">Hauptbildschirm</string>
+    <string name="title_activity_settings">Inspector: Einstellungen</string>
+    <string name="start_server">Server starten</string>
+    <string name="stop_server">Server stoppen</string>
+    <string name="open_settings">Einstellungen</string>
+
+    <!-- Preferences -->
+    <string name="pref_title_audio">Audiounterstützung</string>
+    <string name="pref_title_sensors">Sensoren</string>
+    <string name="pref_attr_timeout">Timeout</string>
+    <string name="pref_title_auth_types">Berechtigung</string>
+
+    <!-- Preferences: AudioGadget -->
+    <string name="pref_attr_use_player_timeout">Nutze Player-Timeout</string>
+
+    <!-- Preferences: SensorGadget -->
+    <string name="pref_title_acceleration">Beschleunigung</string>
+    <string name="pref_title_proximity">Umgebung</string>
+    <string name="pref_title_gyroscope">Gyroskop</string>
+    <string name="pref_title_light">Helligkeit</string>
+    <string name="pref_title_temperature">Temperatur</string>
+    <string name="pref_title_orientation">Orientierung</string>
+    <string name="pref_title_magnetic">Magnetisches Umfeld</string>
+    <string name="pref_title_pressure">Druck</string>
+
+    <string-array name="pref_attr_auth_types">
+        <item>Deaktiviert</item>
+        <item>Immer erlauben</item>
+        <item>Benötigt Zustimmung</item>
+    </string-array>
+    <string-array name="auth_types">
+        <item>-1</item>
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
+    <string name="auth_type_disabled">-1</string>
+    <string name="auth_type_granted">0</string>
+    <string name="auth_type_permission">1</string>
+
+</resources>

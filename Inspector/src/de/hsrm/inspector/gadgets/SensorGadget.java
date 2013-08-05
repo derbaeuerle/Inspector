@@ -20,13 +20,13 @@ public class SensorGadget extends Gadget {
 	}
 
 	@Override
-	public void onProcessStart() {
+	public void onProcessStart() throws Exception {
 		super.onProcessStart();
 		mSensorObject.registerListener();
 	}
 
 	@Override
-	public void onProcessEnd() {
+	public void onProcessEnd() throws Exception {
 		super.onProcessEnd();
 		mSensorObject.unregisterListener();
 	}

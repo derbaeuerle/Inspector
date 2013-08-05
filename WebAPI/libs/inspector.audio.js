@@ -2,9 +2,9 @@ inspector.audio = {
 
     template: '<small class="state">unknown</small>&nbsp;&nbsp;' +
               '<span class="position">00:00</span>/<span class="duration">00:00</span>&nbsp;&nbsp;&nbsp;' +
-              '<span class="play" inspector-action="play" onclick="inspector.audio.onClick(this);" href="#">Play</span>&nbsp;' +
-              '<span class="pause" inspector-action="pause" onclick="inspector.audio.onClick(this);" href="#">Pause</span>&nbsp;' +
-              '<span class="stop" inspector-action="stop" onclick="inspector.audio.onClick(this);" href="#">Stop</span>',
+              '<span class="btn play" inspector-action="play" onclick="inspector.audio.onClick(this);" href="#">Play</span>&nbsp;' +
+              '<span class="btn pause" inspector-action="pause" onclick="inspector.audio.onClick(this);" href="#">Pause</span>&nbsp;' +
+              '<span class="btn stop" inspector-action="stop" onclick="inspector.audio.onClick(this);" href="#">Stop</span>',
     instances: {},
     elements: {},
     force: true,
@@ -14,17 +14,7 @@ inspector.audio = {
         var action = el.getAttribute("inspector-action");
         var file = el.parentNode.getAttribute("src");
         var playerid = el.parentNode.id;
-
-        var actives = el.parentNode.getElementsByClassName("active");
-        for(var i=0; i<actives.length; i++) {
-            var act = actives[i];
-            act.className = act.className.replace(new RegExp('(\\s|^)active(\\s|$)'),' ').replace(/^\s+|\s+$/g, '');
-        }
-        if(!new RegExp('active').test(el.className)) {
-            el.className += " active";
-        }
         el = el.parentNode;
-
         // Change relative path of source to absolute path.
         if(file.indexOf('http') === -1) {
             var loc = window.location.href;
@@ -36,16 +26,19 @@ inspector.audio = {
         if(!inspector.audio.gadget) {
             inspector.audio.startStream();
         }
-
         var params = {
             'do': action,
             'audiofile': file,
-            'playerid': playerid
+            'playerid': playerid,
+            'loop': !!el.getAttribute('loop') || el.getAttribute('loop') === ""
         };
         inspector.audio.gadget.submit(params);
 
         if(action !== 'stop') {
-            inspector.audio.instances[playerid] = playerid;
+            inspector.audio.instances[playerid] = {
+                id: playerid,
+                timeout: 2
+            };
         } else {
             delete inspector.audio.instances[playerid];
             inspector.audio.updateState({
@@ -53,10 +46,7 @@ inspector.audio = {
                 state: 'STOPPED'
             });
         }
-        if(!Object.keys(inspector.audio.instances).length) {
-            inspector.audio.gadget.__destroy();
-            inspector.audio.gadget = null;
-        }
+        inspector.audio.checkInstances();
     },
 
     startStream: function() {
@@ -69,27 +59,50 @@ inspector.audio = {
                     // Check if playerid is in this instances.
                     if(inspector.audio.instances[playerid]) {
                         // Check if response was messed up.
+                        inspector.audio.instances[playerid].timeout = 2;
                         if(typeof(item) === typeof({})) {
+                            if(item.state === 'ERROR') {
+                                inspector.audio.onError(item);
+                            }
                             inspector.audio.updateState(item);
                         }
                     }
                 }
+                inspector.audio.checkInstances();
             });
         }
     },
 
+    onError: function(data) {
+        var el = inspector.audio.elements[data.playerid];
+        if(!el.getAttribute('dispatched')) {
+            var event = document.createEvent("Event");
+            event.initEvent('error', true, true);
+            el.dispatchEvent(event);
+
+            el.setAttribute('dispatched', 'true');
+        }
+    },
+
+    checkInstances: function() {
+        if(!Object.keys(inspector.audio.instances).length) {
+            inspector.audio.gadget.__destroy();
+            inspector.audio.gadget = null;
+        }
+    },
+
     updateState: function(data) {
+        console.log("update: " + data.playerid + ", " + data.state.toLowerCase());
         var id = data.playerid;
         var el = inspector.audio.elements[id];
-        var state = el.getElementsByClassName("state")[0];
-        var classes = state.className.split(' ');
-        if (classes.indexOf(data.state.toLowerCase()) === -1) {
-            console.log("switch state to: " + data.state.toLowerCase());
-            state.className = "state " + data.state.toLowerCase();
-            state.innerHTML = data.state;
+        if(el.className.indexOf('error') === -1 && (data.state.toLowerCase() !== 'buffering' || data.state.toLowerCase() !== 'playing')) {
+            el.className = data.state.toLowerCase();
         }
         el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
         el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
+        if(data.state === "COMPLETED" || data.state === "STOPPED" || data.state === "ERROR") {
+            delete inspector.audio.instances[id];
+        }
     },
 
     milliToTime: function(ms) {
@@ -103,7 +116,7 @@ inspector.audio = {
         x /= 60
         hours = parseInt(x % 24, 10);
 
-        return ((hours) ? hours + ':' : '') + ((minutes) ? minutes + ':' : '00:') + ((seconds) ? ((seconds < 10) ? '0' + seconds : seconds) : '00');
+        return ((hours) ? hours + ':' : '') + ((minutes) ? ((minutes < 10) ? '0' + minutes : minutes) + ':' : '00:') + ((seconds) ? ((seconds < 10) ? '0' + seconds : seconds) : '00');
     },
 
     needReplacement: function(el) {
@@ -119,21 +132,33 @@ inspector.audio = {
     play: function() {
         var el = this.getElementsByClassName("play")[0];
         if(el) {
-            el.click();
+            if(el.click) {
+                el.click();
+            } else if(el.onclick) {
+                el.onclick();
+            }
         }
     },
 
     stop: function() {
         var el = this.getElementsByClassName("stop")[0];
         if(el) {
-            el.click();
+            if(el.click) {
+                el.click();
+            } else if(el.onclick) {
+                el.onclick();
+            }
         }
     },
 
     pause: function() {
         var el = this.getElementsByClassName("pause")[0];
         if(el) {
-            el.click();
+            if(el.click) {
+                el.click();
+            } else if(el.onclick) {
+                el.onclick();
+            }
         }
     },
 
@@ -158,7 +183,11 @@ inspector.audio = {
                 iaudio.innerHTML = inspector.audio.template;
 
                 for(var o=0;o<audio.attributes.length;o++) {
-                    iaudio.setAttribute(audio.attributes[o].name, audio.attributes[o].value);
+                    if(audio.attributes[o].value === "") {
+                        iaudio.setAttribute(audio.attributes[o].name, "true");
+                    } else {
+                        iaudio.setAttribute(audio.attributes[o].name, audio.attributes[o].value);
+                    }
                 }
 
                 iaudio.play = inspector.audio.play;

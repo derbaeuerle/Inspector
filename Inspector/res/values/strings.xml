@@ -38,6 +38,19 @@
     <string name="pref_attr_keep_alive">Keep alive</string>
     <string name="pref_title_auth_types">Permission</string>
 
+    <!-- Preferences: AudioGadget -->
+    <string name="pref_attr_use_player_timeout">Use player timeout</string>
+
+    <!-- Preferences: SensorGadget -->
+    <string name="pref_title_acceleration">Acceleration</string>
+    <string name="pref_title_proximity">Proximity</string>
+    <string name="pref_title_gyroscope">Gyroscope</string>
+    <string name="pref_title_light">Light</string>
+    <string name="pref_title_temperature">Temperature</string>
+    <string name="pref_title_orientation">Orientation</string>
+    <string name="pref_title_magnetic">Magnetic</string>
+    <string name="pref_title_pressure">Pressure</string>
+
     <string-array name="pref_attr_auth_types">
         <item>Disabled</item>
         <item>Granted</item>
@@ -52,11 +65,5 @@
     <string name="auth_type_disabled">-1</string>
     <string name="auth_type_granted">0</string>
     <string name="auth_type_permission">1</string>
-
-    <!-- Dialog strings -->
-    <string name="dialog_title">Permission request</string>
-    <string name="dialog_desc">This website wants to get access to the following gadgets: {0}</string>
-    <string name="dialog_ok">Grant</string>
-    <string name="dialog_deny">Deny</string>
 
 </resources>

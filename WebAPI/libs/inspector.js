@@ -30,7 +30,7 @@ var inspector = {
     __id: null,
 
     init: function() {
-        inspector.__id = inspector.__generateUID();
+        inspector.__id = (inspector.__id) ? inspector.__id : inspector.__generateUID();
         inspector.intents.init += inspector.__id + "/";
         inspector.sendIntent(inspector.intents.init);
         var event = document.createEvent("Event");
@@ -51,6 +51,7 @@ var inspector = {
     },
 
     use: function(gadget, keep_alive) {
+        inspector.__id = (inspector.__id) ? inspector.__id : inspector.__generateUID();
         if(!Object.keys(inspector.connections).length && !inspector.state_stream) {
             inspector.state_stream = new inspector.stateStream();
             inspector.state_stream.getData();
@@ -127,9 +128,6 @@ var inspector = {
         me.getData = function() {
             me.callbackName = "inspector_state_" + inspector.__generateCallbackName();
             window[me.callbackName] = __callback;
-            if(!inspector.__id) {
-                inspector.__id = inspector.__generateUID();
-            }
             var url = inspector.stateAddress + "?browserid=" + inspector.__id + "&callback=" + me.callbackName;
             me.script = document.createElement("script");
             me.script.src = url;
@@ -141,6 +139,8 @@ var inspector = {
                     window.setTimeout(function() {
                         me.getData();
                     }, me.timeouts * 500);
+                } else {
+                    me.timeouts = 0;
                 }
             };
             document.body.appendChild(me.script);
@@ -167,10 +167,12 @@ var inspector = {
 
                             var itemData = item.data;
                             // Test if all listener conditions are confirmed.
-                            for(var con in l.conditions) {
-                                if(!(con in itemData) || itemData[con] !== l.conditions[con]) {
-                                    alarm = false;
-                                    break;
+                            if(l.conditions) {
+                                for(var con in l.conditions) {
+                                    if(!__checkConditions(itemData, con, l.conditions[con])) {
+                                        alarm = false;
+                                        break;
+                                    }
                                 }
                             }
 
@@ -195,20 +197,35 @@ var inspector = {
                 me.getData();
             }
         };
+
+        var __checkConditions = function(obj, key, value) {
+            if(typeof obj === typeof {}) {
+                for(var i in obj) {
+                    if(typeof obj[i] === typeof {}) {
+                        return __checkConditions(obj[i], key, value);
+                    } else {
+                        if(i === key) {
+                            if(obj[i] === value) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        };
     },
 
     gadget : function(gadget, keep_alive) {
         var me = this;
         me.gadget = gadget;
-        me.callbackName = inspector.__generateCallbackName();
-        me.stateCallbackName = inspector.__generateCallbackName();
         me.eventListener = {};
-        me.stateScript = null;
         me.basicUrl = inspector.commandAddress + gadget + '/';
         me.timeouts = 0;
         me.keep_alive = keep_alive || 200;
         me.__destroyed = false;
         me.__initial = false;
+        me.__error = null;
         me.__initialQueue = [];
 
         me.__constructor = function() {
@@ -218,39 +235,45 @@ var inspector = {
 
         me.__destroy = function() {
             // Send destroy command.
-            try {
-                delete window[me.stateCallbackName];
-                me.stateCallbackName = null;
-            } catch(e) {}
-            try {
-                me.stateScript.parentNode.removeChild(me.stateScript);
-                me.stateScript = null;
-            } catch(e) {}
-
             delete inspector.connections[me.gadget];
             if(Object.keys(inspector.connections).length === 0) {
                 inspector.state_stream.stop();
             }
+            me.__initialQueue = [];
             me.eventListener = {};
             me.__initial = false;
             me.__destroyed = true;
         };
 
         me.on = function(event, callback, conditions) {
-            if(!(event in me.eventListener)) {
-                me.eventListener[event] = [];
+            if(!me.__destroyed) {
+                if(!(event in me.eventListener)) {
+                    me.eventListener[event] = [];
+                }
+                me.eventListener[event].push({
+                    "id" : me.eventListener[event].length,
+                    "callback" : callback,
+                    "conditions" : conditions
+                });
+                return me.eventListener[event].length - 1;
+            } else {
+                if(me.__error) {
+                    throw me.__error;
+                }
+                return false;
             }
-            me.eventListener[event].push({
-                "id" : me.eventListener[event].length,
-                "callback" : callback,
-                "conditions" : conditions
-            });
-            return me.eventListener[event].length - 1;
         };
 
         me.off = function(event, id) {
-            var element = me.eventListener[event].findAttribute("id", id);
-            return !!(me.eventListener[event].splice(element, 1));
+            if(!me.__destroyed) {
+                var element = me.eventListener[event].findAttribute("id", id);
+                return !!(me.eventListener[event].splice(element, 1));
+            } else {
+                if(me.__error) {
+                    throw me.__error;
+                }
+                return false;
+            }
         };
 
         me.submit = function(params, callback) {
@@ -260,6 +283,11 @@ var inspector = {
                     return;
                 }
                 __sendCommand(params, callback);
+            } else {
+                if(me.__error) {
+                    throw me.__error;
+                }
+                return false;
             }
         };
 
@@ -278,7 +306,6 @@ var inspector = {
                             params = data.request;
                             params.permission = accept;
                         }
-                        // TODO: Send original params!!!!
                         __sendCommand(params, __callback);
                     }
                 }
@@ -291,9 +318,6 @@ var inspector = {
             var cbName = inspector.__generateCallbackName();
             var url = me.basicUrl + "?callback=" + cbName;
 
-            if(!inspector.__id) {
-                inspector.__id = inspector.__generateUID();
-            }
             params.browserid = inspector.__id;
             for(var key in params) {
                 if(params.hasOwnProperty(key)) {
@@ -310,6 +334,8 @@ var inspector = {
                     window.setTimeout(function() {
                         __sendCommand(params, callback);
                     }, me.timeouts * 50);
+                } else {
+                    me.timeouts = 0;
                 }
             };
             if(!me.__destroyed) {
@@ -332,41 +358,48 @@ var inspector = {
         };
 
         var __requestState = function() {
-            if(!inspector.__id) {
-                inspector.__id = inspector.__generateUID();
-            }
-            var url = me.basicUrl + "keep-alive/?callback=" + me.stateCallbackName + "&browserid=" + inspector.__id;
-            me.stateScript = document.createElement("script");
-            me.stateScript.src = url;
-            me.stateScript.onerror = function(e) {
+            var cbName = inspector.__generateCallbackName();
+            var url = me.basicUrl + "keep-alive/?callback=" + cbName + "&browserid=" + inspector.__id;
+
+            stateScript = document.createElement("script");
+            stateScript.src = url;
+            stateScript.onerror = function(e) {
                 me.timeouts += 1;
-                me.stateScript.parentNode.removeChild(me.stateScript);
+                stateScript.parentNode.removeChild(stateScript);
                 if(me.timeouts < inspector.max_timeouts) {
                     window.setTimeout(function() {
                         __requestState();
                     }, me.timeouts * 50);
+                } else {
+                    me.timeouts = 0;
                 }
             };
-            if(me.stateCallbackName && !me.__destroyed) {
-                window[me.stateCallbackName] = __stateCallback;
-                document.body.appendChild(me.stateScript);
+            if(!me.__destroyed) {
+                window[cbName] = function(data) {
+                    try {
+                        if(!me.__destroyed) {
+                            window.setTimeout(function() {
+                                __requestState();
+                            }, me.keep_alive);
+                        }
+                    } catch(e) {
+                    } finally {
+                        stateScript.parentNode.removeChild(stateScript);
+                        delete window[cbName];
+                    }
+                };
+                document.body.appendChild(stateScript);
             }
         };
 
-        var __stateCallback = function(data) {
-            try {
-                me.stateCallbackName = inspector.__generateCallbackName();
-                window.setTimeout(function() {
-                    __requestState();
-                }, me.keep_alive);
-            } catch(e) {
-            } finally {
-                me.stateScript.parentNode.removeChild(me.stateScript);
-            }
-        }
-
         var __callback = function(response) {
             try {
+                if(response.event === 'error') {
+                    if(response.request && response.request['inspector-cmd']) {
+                        me.__destroy();
+                        me.__error = new Error(response.data.message);
+                    }
+                }
                 if (response.data === 'initial') {
                     me.__initial = true;
                 }

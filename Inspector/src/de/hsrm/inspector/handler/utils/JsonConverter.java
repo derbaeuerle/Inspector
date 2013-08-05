@@ -35,9 +35,10 @@ public class JsonConverter {
 		map.put(context.getString(R.string.exception_stacktrace), b.toString());
 		if (e instanceof GadgetException) {
 			map.put(context.getString(R.string.exception_error_code), ((GadgetException) e).getErrorCode() + "");
-		}
-		if (((GadgetException) e).getRequest() != null) {
-			map.put(context.getString(R.string.exception_request), ((GadgetException) e).getRequest());
+
+			if (((GadgetException) e).getRequest() != null) {
+				map.put(context.getString(R.string.exception_request), ((GadgetException) e).getRequest());
+			}
 		}
 		errorObject.add("data", mGson.toJsonTree(map));
 		return errorObject;

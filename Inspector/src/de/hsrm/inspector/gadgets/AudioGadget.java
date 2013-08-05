@@ -2,13 +2,12 @@ package de.hsrm.inspector.gadgets;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
 import de.hsrm.inspector.constants.AudioConstants;
@@ -18,6 +17,7 @@ import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer;
+import de.hsrm.inspector.gadgets.utils.audio.GadgetAudioPlayer.STATE;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 
 /**
@@ -28,19 +28,32 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 	private static final int UPDATE_DELAY = 250;
 
-	private ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>> mPlayers;
+	/** All running {@link GadgetAudioPlayer} based on their player id. */
+	private ConcurrentHashMap<String, GadgetAudioPlayer> mPlayers;
+	/**
+	 * {@link ScheduledExecutorService} to publish all states in a defined
+	 * interval.
+	 */
 	private ScheduledExecutorService mStateHandler;
+	/**
+	 * Latch to use timeout mechanism of {@link GadgetAudioPlayer} or not.
+	 */
 	private boolean mUseTimeout;
+	/**
+	 * Identicator for running {@link GadgetAudioPlayer} instances inside
+	 * {@link #mPlayers}.
+	 */
+	private AtomicInteger mRunningInstances;
 
 	@Override
 	public void onCreate(Context context) throws Exception {
 		super.onCreate(context);
-		mPlayers = new ConcurrentHashMap<String, Map<String, GadgetAudioPlayer>>();
+		mPlayers = new ConcurrentHashMap<String, GadgetAudioPlayer>();
+		mRunningInstances = new AtomicInteger(0);
 	}
 
-	@SuppressLint("HandlerLeak")
 	@Override
-	public void onProcessStart() {
+	public void onProcessStart() throws Exception {
 		super.onProcessStart();
 		mStateHandler = Executors.newScheduledThreadPool(1);
 		mStateHandler.scheduleAtFixedRate(new Runnable() {
@@ -49,7 +62,10 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 			public void run() {
 				if (isProcessing()) {
 					if (mPlayers.size() > 0) {
-						notifyGadgetEvent(new GadgetEvent(AudioGadget.this, getPlayerStates(), EVENT_TYPE.DATA));
+						Map<String, Object> states = getPlayerStates();
+						if (!states.isEmpty()) {
+							notifyGadgetEvent(new GadgetEvent(AudioGadget.this, states, EVENT_TYPE.DATA));
+						}
 					}
 				}
 			}
@@ -57,17 +73,15 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	}
 
 	@Override
-	public void onProcessEnd() {
+	public void onProcessEnd() throws Exception {
 		super.onProcessEnd();
-		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
-			for (GadgetAudioPlayer mp : instances.values()) {
-				try {
-					if (useTimeout()) {
-						mp.stop();
-						mp.release();
-					}
-				} catch (IllegalStateException e) {
+		for (GadgetAudioPlayer mp : mPlayers.values()) {
+			try {
+				if (useTimeout()) {
+					mp.stop(true);
+					mp.release();
 				}
+			} catch (IllegalStateException e) {
 			}
 		}
 		if (mStateHandler != null && !mStateHandler.isShutdown()) {
@@ -79,12 +93,10 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	@Override
 	public void onKeepAlive(InspectorRequest iRequest) {
 		if (mPlayers != null) {
-			if (mPlayers.containsKey(iRequest.getBrowserId())) {
-				for (GadgetAudioPlayer mp : mPlayers.get(iRequest.getBrowserId()).values()) {
-					mp.stopTimeout();
-					if (useTimeout()) {
-						mp.startTimeout();
-					}
+			for (GadgetAudioPlayer mp : mPlayers.values()) {
+				mp.stopTimeout();
+				if (useTimeout()) {
+					mp.startTimeout();
 				}
 			}
 		}
@@ -97,11 +109,9 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
 		GadgetAudioPlayer mp = null;
 		String playerId = iRequest.getParameter(AudioConstants.PARAM_PLAYERID).toString();
-		if (!mPlayers.containsKey(iRequest.getBrowserId())) {
-			mPlayers.put(iRequest.getBrowserId(), new HashMap<String, GadgetAudioPlayer>());
-		}
-		if (mPlayers.get(iRequest.getBrowserId()).containsKey(playerId)) {
-			mp = mPlayers.get(iRequest.getBrowserId()).get(playerId);
+		if (mPlayers.containsKey(playerId) && !mPlayers.get(playerId).getState().equals(STATE.STOPPED)
+				&& !mPlayers.get(playerId).getState().equals(STATE.COMPLETED)) {
+			mp = mPlayers.get(playerId);
 		} else {
 			if (iRequest.getParameter(AudioConstants.PARAM_COMMAND).equals(AudioConstants.COMMAND_PLAY)) {
 				boolean loop = false;
@@ -114,7 +124,7 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 				mp.setAutoplay(true);
 
 				mp.setDataSource(Uri.decode(iRequest.getParameter(AudioConstants.PARAM_AUDIOFILE).toString()));
-				mPlayers.get(iRequest.getBrowserId()).put(playerId, mp);
+				mPlayers.put(playerId, mp);
 			}
 		}
 		if (mp != null) {
@@ -157,15 +167,17 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 			if (useTimeout()) {
 				mp.startTimeout();
 			}
+			mRunningInstances.incrementAndGet();
 		} else if (command.equals(AudioConstants.COMMAND_PAUSE)) {
 			if (mp.isPlaying()) {
 				mp.pause();
 			}
 		} else if (command.equals(AudioConstants.COMMAND_STOP)) {
-			mp.stop();
+			mp.stop(false);
 			mp.release();
 			mp.stopTimeout();
 			onPlayerDestroy(mp);
+			mRunningInstances.decrementAndGet();
 		} else if (command.equals(AudioConstants.COMMAND_SEEK)) {
 			if (iRequest.hasParameter(AudioConstants.PARAM_SEEK_TO)) {
 				mp.seekTo(Integer.parseInt(iRequest.getParameter(AudioConstants.PARAM_SEEK_TO).toString()));
@@ -193,10 +205,8 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	 */
 	private HashMap<String, Object> getPlayerStates() {
 		HashMap<String, Object> players = new HashMap<String, Object>();
-		for (Map<String, GadgetAudioPlayer> instances : mPlayers.values()) {
-			for (GadgetAudioPlayer p : instances.values()) {
-				players.put(p.getPlayerId(), p.getPlayerState());
-			}
+		for (String id : mPlayers.keySet()) {
+			players.put(id, mPlayers.get(id).getPlayerState());
 		}
 		return players;
 	}
@@ -209,21 +219,11 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	 *            {@link GadgetAudioPlayer}
 	 */
 	public void onPlayerDestroy(GadgetAudioPlayer mp) {
-		int size = 0;
-		for (Map<String, GadgetAudioPlayer> i : mPlayers.values()) {
-			while (i.containsValue(mp)) {
-				for (Entry<String, GadgetAudioPlayer> entry : i.entrySet()) {
-					if (i.get(entry.getKey()).equals(mp)) {
-						i.remove(entry.getKey());
-						break;
-					}
-				}
-			}
-			size += i.size();
-		}
-		if (size == 0) {
-			notifyGadgetEvent(new GadgetEvent(this, null, EVENT_TYPE.DESTROY));
-		}
+		mRunningInstances.decrementAndGet();
+	}
+
+	public void onPlayerError(GadgetAudioPlayer mp) {
+		mRunningInstances.decrementAndGet();
 	}
 
 	/**

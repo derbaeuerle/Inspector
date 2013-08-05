@@ -3,17 +3,17 @@
 
     <PreferenceCategory
         android:key="AUDIO"
-        android:title="Audio" >
+        android:title="@string/pref_title_audio" >
         <EditTextPreference
             android:defaultValue="5"
             android:inputType="number"
             android:key="audio:mTimeout"
-            android:title="Timeout (sec.)" />
+            android:title="@string/pref_attr_timeout" />
 
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="audio:mUseTimeout"
-            android:title="Use player timeout" />
+            android:title="@string/pref_attr_use_player_timeout" />
 
         <ListPreference
             android:defaultValue="1"

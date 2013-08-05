@@ -57,7 +57,11 @@ public class TimeoutTimer {
 
 		@Override
 		public void run() {
-			TimeoutTimer.this.mGadget.onProcessEnd();
+			try {
+				TimeoutTimer.this.mGadget.onProcessEnd();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			try {
 				TimeoutTimer.this.mGadget.onDestroy();
 			} catch (Exception e) {

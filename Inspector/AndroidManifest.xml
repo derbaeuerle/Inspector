@@ -40,11 +40,6 @@
             android:name="de.hsrm.inspector.activities.SettingsActivity"
             android:label="@string/title_activity_settings" >
         </activity>
-        <activity
-            android:name="de.hsrm.inspector.activities.DialogActivity"
-            android:label="@string/dialog_title"
-            android:theme="@android:style/Theme.Dialog" >
-        </activity>
 
         <service
             android:name="de.hsrm.inspector.services.ServerService"

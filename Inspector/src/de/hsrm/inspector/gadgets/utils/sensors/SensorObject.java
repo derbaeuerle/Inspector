@@ -6,6 +6,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import de.hsrm.inspector.exceptions.GadgetException;
+import de.hsrm.inspector.exceptions.constants.GadgetExceptionConstants;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
@@ -54,10 +55,15 @@ public class SensorObject implements SensorEventListener {
 	/**
 	 * Registers {@link SensorEventListener} to configured
 	 * {@link SensorObject#mSensor}.
+	 * 
+	 * @throws {@link GadgetException}
 	 */
-	public void registerListener() {
+	public void registerListener() throws GadgetException {
 		if (mSensor != null) {
-			mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
+			if (!mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL)) {
+				throw new GadgetException("Your device doesn't support this sensor!",
+						GadgetExceptionConstants.SENSOR_NOT_SUPPORTED);
+			}
 		}
 	}
 
@@ -82,11 +88,10 @@ public class SensorObject implements SensorEventListener {
 		if (SENSOR_TYPE == -1) {
 			SENSOR_TYPE = type;
 			mSensor = mSensorManager.getDefaultSensor(SENSOR_TYPE);
-		} else {
-			throw new UnsupportedOperationException();
 		}
 		if (mSensor == null) {
-			throw new GadgetException("Your device doesn't support this sensor!");
+			throw new GadgetException("Your device doesn't support this sensor!",
+					GadgetExceptionConstants.SENSOR_NOT_SUPPORTED);
 		}
 	}
 

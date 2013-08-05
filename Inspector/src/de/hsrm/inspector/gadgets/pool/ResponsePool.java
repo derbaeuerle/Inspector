@@ -2,6 +2,7 @@ package de.hsrm.inspector.gadgets.pool;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +36,9 @@ public class ResponsePool {
 		if (!mBrowserInstances.containsKey(id)) {
 			mBrowserInstances.put(id, new HashSet<Gadget>());
 		}
-		mBrowserInstances.get(id).add(gadget);
+		if (!mBrowserInstances.get(id).contains(gadget)) {
+			mBrowserInstances.get(id).add(gadget);
+		}
 	}
 
 	/**
@@ -44,8 +47,27 @@ public class ResponsePool {
 	 */
 	public void removeGadget(Gadget gadget) {
 		synchronized (mBrowserInstances) {
-			for (Set<Gadget> set : mBrowserInstances.values()) {
-				set.remove(gadget);
+			for (String id : mBrowserInstances.keySet()) {
+				// Remove events from browser instance.
+				if (mBrowserInstances.get(id).contains(gadget)) {
+					synchronized (mDataEvents) {
+						if (mDataEvents.containsKey(id)) {
+							mDataEvents.get(id).remove(gadget);
+						}
+					}
+					synchronized (mResponsePool) {
+						if (mResponsePool.containsKey(id)) {
+							Iterator<GadgetEvent> i = mResponsePool.get(id).iterator();
+							while (i.hasNext()) {
+								GadgetEvent ev = i.next();
+								if (ev.getGadget().equals(gadget)) {
+									i.remove();
+								}
+							}
+						}
+					}
+				}
+				mBrowserInstances.get(id).remove(gadget);
 			}
 		}
 	}

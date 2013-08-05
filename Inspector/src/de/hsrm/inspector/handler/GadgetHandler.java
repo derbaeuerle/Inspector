@@ -19,6 +19,7 @@ import org.apache.http.protocol.HttpRequestHandler;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -31,8 +32,8 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent;
-import de.hsrm.inspector.gadgets.pool.ResponsePool;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
+import de.hsrm.inspector.gadgets.pool.ResponsePool;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.handler.utils.JsonConverter;
 import de.hsrm.inspector.services.ServerService;
@@ -118,6 +119,9 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	 *            {@link Gadget}
 	 */
 	private void checkKeepAlive(InspectorRequest iRequest, Gadget gadget) throws Exception {
+		if (iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
+			Log.e("GH", "keep-alive: " + gadget.getIdentifier());
+		}
 		if (!iRequest.getCommand().equals(GadgetConstants.COMMAND_KEEP_ALIVE)) {
 			checkPermission(iRequest, gadget);
 		} else if (gadget instanceof OnKeepAliveListener) {
@@ -218,6 +222,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 
 		content = obj.toString();
 		jsonContent = iRequest.getCallback() + "(" + content.toString() + ");";
+		Log.e("GH", jsonContent);
 
 		response.setHeader("Content-Type", "application/json");
 		response.addHeader("Access-Control-Allow-Origin", "*");
@@ -235,7 +240,7 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	@Override
 	public void onGadgetEvent(GadgetEvent event) {
 		if (mGadgets.containsKey(event.getGadget().getIdentifier())) {
-			if (event.getEvent() == EVENT_TYPE.DESTROY) {
+			if (event.getEvent().equals(EVENT_TYPE.DESTROY)) {
 				event.getGadget().removeObserver();
 				mResponsePool.removeGadget(event.getGadget());
 				mRunningInstances.decrementAndGet();
@@ -272,11 +277,23 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 	 * @throws GadgetException
 	 */
 	public void initGadget(Gadget gadget) throws Exception {
-		if (!gadget.isRunning()) {
-			gadget.onCreate(mContext);
-			gadget.setObserver(this);
-			gadget.onProcessStart();
-			mRunningInstances.incrementAndGet();
+		try {
+			if (!gadget.isRunning()) {
+				gadget.onCreate(mContext);
+				gadget.setObserver(this);
+				gadget.onProcessStart();
+				mRunningInstances.incrementAndGet();
+			}
+		} catch (Exception e) {
+			try {
+				gadget.onProcessEnd();
+			} catch (Exception e1) {
+			}
+			try {
+				gadget.onDestroy();
+			} catch (Exception e2) {
+			}
+			throw e;
 		}
 	}
 

@@ -83,7 +83,7 @@ public abstract class Gadget {
 	 * Gets called when a instance of this gadget gets registered to runtime
 	 * process.
 	 */
-	public void onProcessStart() {
+	public void onProcessStart() throws Exception {
 		mProcessing.set(true);
 	}
 
@@ -91,7 +91,7 @@ public abstract class Gadget {
 	 * Gets called when a instance of this gadget gets unregistered to runtime
 	 * process.
 	 */
-	public void onProcessEnd() {
+	public void onProcessEnd() throws Exception {
 		mProcessing.set(false);
 	}
 
