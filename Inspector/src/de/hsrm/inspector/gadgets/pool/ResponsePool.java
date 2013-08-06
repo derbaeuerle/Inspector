@@ -33,11 +33,23 @@ public class ResponsePool {
 	 * @param gadget
 	 */
 	public void addBrowserGadget(String id, Gadget gadget) {
-		if (!mBrowserInstances.containsKey(id)) {
-			mBrowserInstances.put(id, new HashSet<Gadget>());
+		synchronized (mBrowserInstances) {
+			if (!mBrowserInstances.containsKey(id)) {
+				mBrowserInstances.put(id, new HashSet<Gadget>());
+			}
+			if (!mBrowserInstances.get(id).contains(gadget)) {
+				mBrowserInstances.get(id).add(gadget);
+			}
 		}
-		if (!mBrowserInstances.get(id).contains(gadget)) {
-			mBrowserInstances.get(id).add(gadget);
+		synchronized (mResponsePool) {
+			if (!mResponsePool.contains(id)) {
+				mResponsePool.put(id, new ConcurrentLinkedQueue<GadgetEvent>());
+			}
+		}
+		synchronized (mDataEvents) {
+			if (!mDataEvents.containsKey(id)) {
+				mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
+			}
 		}
 	}
 
@@ -60,8 +72,10 @@ public class ResponsePool {
 							Iterator<GadgetEvent> i = mResponsePool.get(id).iterator();
 							while (i.hasNext()) {
 								GadgetEvent ev = i.next();
-								if (ev.getGadget().equals(gadget)) {
-									i.remove();
+								if (ev instanceof GadgetEvent) {
+									if (ev.getGadget().equals(gadget)) {
+										i.remove();
+									}
 								}
 							}
 						}
@@ -85,10 +99,11 @@ public class ResponsePool {
 		// notified.
 		if (response instanceof SystemEvent) {
 			for (String id : mBrowserInstances.keySet()) {
-				if (!mResponsePool.contains(id)) {
-					mResponsePool.put(id, new ConcurrentLinkedQueue<GadgetEvent>());
+				synchronized (mResponsePool) {
+					if (mResponsePool.containsKey(id)) {
+						mResponsePool.get(id).add((SystemEvent) response);
+					}
 				}
-				mResponsePool.get(id).add((SystemEvent) response);
 			}
 		} else {
 			for (String id : mBrowserInstances.keySet()) {
@@ -96,15 +111,17 @@ public class ResponsePool {
 				if (mBrowserInstances.get(id).contains(response.getGadget())) {
 					// If event is data event.
 					if (response.getEvent().equals(EVENT_TYPE.DATA)) {
-						if (!mDataEvents.containsKey(id)) {
-							mDataEvents.put(id, new ConcurrentHashMap<Gadget, GadgetEvent>());
+						synchronized (mDataEvents) {
+							if (mDataEvents.containsKey(id)) {
+								mDataEvents.get(id).put(response.getGadget(), response);
+							}
 						}
-						mDataEvents.get(id).put(response.getGadget(), response);
 					} else {
-						if (!mResponsePool.contains(id)) {
-							mResponsePool.put(id, new ConcurrentLinkedQueue<GadgetEvent>());
+						synchronized (mResponsePool) {
+							if (mResponsePool.containsKey(id)) {
+								mResponsePool.get(id).add(response);
+							}
 						}
-						mResponsePool.get(id).add(response);
 					}
 				}
 			}
@@ -161,8 +178,14 @@ public class ResponsePool {
 	 * @return {@link Boolean}
 	 */
 	public boolean hasItems(String id) {
-		return (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty())
-				|| (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
+		boolean has = false;
+		synchronized (mResponsePool) {
+			has = (mResponsePool.containsKey(id) && !mResponsePool.get(id).isEmpty());
+		}
+		synchronized (mDataEvents) {
+			has = has || (mDataEvents.containsKey(id) && !mDataEvents.get(id).isEmpty());
+		}
+		return has;
 	}
 
 	/**

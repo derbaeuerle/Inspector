@@ -29,7 +29,7 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		BUFFERING, PREPARED, PLAYING, PAUSED, STOPPED, COMPLETED, ERROR
 	};
 
-	private static final int TIMEOUT = 2500;
+	private static final int TIMEOUT = 5000;
 
 	private String mPlayerId;
 	private boolean mPrepared = false;;

@@ -16,7 +16,8 @@ Array.prototype.findAttribute = function(key, value) {
 
 var inspector = {
     intents: {
-        init: 'inspector://init/'
+        init: 'inspector://init/',
+        settings: 'inspector://settings/'
     },
     events: {
         data: 'DATA',
@@ -39,6 +40,10 @@ var inspector = {
         var event = document.createEvent("Event");
         event.initEvent("inspector-ready", true, true);
         window.dispatchEvent(event);
+    },
+
+    openSettings: function() {
+        inspector.sendIntent(inspector.intents.settings);
     },
 
     sendIntent: function(intent) {
