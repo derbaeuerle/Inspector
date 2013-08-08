@@ -386,6 +386,12 @@ var inspector = {
                             window.setTimeout(function() {
                                 __requestState();
                             }, me.keep_alive);
+                            if(me.__initial && me.__initialQueue.length > 0) {
+                                for(var i=0; i<me.__initialQueue.length; i++) {
+                                    var next = me.__initialQueue.splice(0, 1)[0];
+                                    __sendCommand(next.params, next.callback);
+                                }
+                            }
                         }
                     } catch(e) {
                     } finally {
@@ -407,12 +413,6 @@ var inspector = {
                 }
                 if (response.data === 'initial') {
                     me.__initial = true;
-                }
-                if(me.__initialQueue.length > 0) {
-                    var next = me.__initialQueue.splice(0, 1)[0];
-                    __sendCommand(next.params, next.callback);
-                }
-                if (response.data === 'initial') {
                     window.setTimeout(function() {
                         __requestState();
                     }, me.keep_alive);

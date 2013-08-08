@@ -21,7 +21,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
-import android.util.Log;
 import de.hsrm.inspector.R;
 import de.hsrm.inspector.activities.SettingsActivity;
 import de.hsrm.inspector.broadcasts.SystemIntentReceiver;
@@ -83,7 +82,6 @@ public class ServerService extends IntentService {
 	protected void onHandleIntent(Intent intent) {
 		String command = Uri.parse(intent.toURI()).getHost();
 		if (command.equals(CMD_INIT)) {
-			Log.e("", "Init inspector server ...");
 			init();
 			start();
 		} else if (command.equals(CMD_DESTROY)) {

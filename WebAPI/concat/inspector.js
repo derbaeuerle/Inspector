@@ -1,4 +1,4 @@
-/*! PROJECT_NAME - v0.1.0 - 2013-08-05
+/*! PROJECT_NAME - v0.1.0 - 2013-08-08
 * http://PROJECT_WEBSITE/
 * Copyright (c) 2013 YOUR_NAME; Licensed MIT */
 Array.prototype.findAttribute = function(key, value) {
@@ -389,6 +389,12 @@ var inspector = {
                             window.setTimeout(function() {
                                 __requestState();
                             }, me.keep_alive);
+                            if(me.__initial && me.__initialQueue.length > 0) {
+                                for(var i=0; i<me.__initialQueue.length; i++) {
+                                    var next = me.__initialQueue.splice(0, 1)[0];
+                                    __sendCommand(next.params, next.callback);
+                                }
+                            }
                         }
                     } catch(e) {
                     } finally {
@@ -410,12 +416,6 @@ var inspector = {
                 }
                 if (response.data === 'initial') {
                     me.__initial = true;
-                }
-                if(me.__initialQueue.length > 0) {
-                    var next = me.__initialQueue.splice(0, 1)[0];
-                    __sendCommand(next.params, next.callback);
-                }
-                if (response.data === 'initial') {
                     window.setTimeout(function() {
                         __requestState();
                     }, me.keep_alive);
@@ -478,6 +478,13 @@ inspector.audio = {
                 state: 'STOPPED'
             });
         }
+
+        // Dispatch event, what was done!
+        var event = document.createEvent("Event");
+        event.initEvent('action', true, true);
+        event.detail = params;
+        el.dispatchEvent(event);
+
         inspector.audio.checkInstances();
     },
 
@@ -524,16 +531,17 @@ inspector.audio = {
     },
 
     updateState: function(data) {
-        console.log("update: " + data.playerid + ", " + data.state.toLowerCase());
-        var id = data.playerid;
-        var el = inspector.audio.elements[id];
-        if(el.className.indexOf('error') === -1 && (data.state.toLowerCase() !== 'buffering' || data.state.toLowerCase() !== 'playing')) {
-            el.className = data.state.toLowerCase();
-        }
-        el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
-        el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
-        if(data.state === "COMPLETED" || data.state === "STOPPED" || data.state === "ERROR") {
-            delete inspector.audio.instances[id];
+        if(data) {
+            var id = data.playerid;
+            var el = inspector.audio.elements[id];
+            if(el.className.indexOf('error') === -1 && (data.state.toLowerCase() !== 'buffering' || data.state.toLowerCase() !== 'playing')) {
+                el.className = data.state.toLowerCase();
+            }
+            el.getElementsByClassName("position")[0].innerHTML = inspector.audio.milliToTime(data.position);
+            el.getElementsByClassName("duration")[0].innerHTML = inspector.audio.milliToTime(data.duration);
+            if(data.state === "COMPLETED" || data.state === "STOPPED" || data.state === "ERROR") {
+                delete inspector.audio.instances[id];
+            }
         }
     },
 
@@ -601,6 +609,50 @@ inspector.audio = {
         }
     },
 
+    seek: function(to) {
+        if(inspector.audio.gadget) {
+            inspector.audio.gadget.submit({
+                "audiofile" : this.getAttribute('src'),
+                "do" : "seek",
+                "playerid" : this.getAttribute('inspector-playerid'),
+                "seekto" : to
+            }, function(response) {});
+        }
+    },
+
+    volume: function(volume) {
+        if(inspector.audio.gadget) {
+            inspector.audio.gadget.submit({
+                "audiofile" : this.getAttribute('src'),
+                "do" : "volume",
+                "playerid" : this.getAttribute('inspector-playerid'),
+                "volume" : volume
+            }, function(response) {});
+        }
+    },
+
+    leftVolume: function(volume) {
+        if(inspector.audio.gadget) {
+            inspector.audio.gadget.submit({
+                "audiofile" : this.getAttribute('src'),
+                "do" : "volume",
+                "playerid" : this.getAttribute('inspector-playerid'),
+                "volume-left" : volume
+            }, function(response) {});
+        }
+    },
+
+    rightVolume: function(volume) {
+        if(inspector.audio.gadget) {
+            inspector.audio.gadget.submit({
+                "audiofile" : this.getAttribute('src'),
+                "do" : "volume",
+                "playerid" : this.getAttribute('inspector-playerid'),
+                "volume-right" : volume
+            }, function(response) {});
+        }
+    },
+
     check: function() {
         var audios = document.getElementsByTagName('audio');
         for(var i=0; i<audios.length; i++) {
@@ -627,62 +679,10 @@ inspector.audio = {
                 iaudio.stop = inspector.audio.stop;
                 iaudio.update = inspector.audio.update;
 
-                /*iaudio.seek = function(to) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "seek",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "seekto" : to
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.volume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.leftVolume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume-left" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };
-                iaudio.rightVolume = function(volume) {
-                    inspector.call(inspector.gadgets.AUDIO, {
-                        "audiofile" : iaudio.getAttribute('src'),
-                        "do" : "volume",
-                        "playerid" : iaudio.getAttribute('inspector-playerid'),
-                        "volume-right" : volume
-                    }, function(data) {
-                        var event = document.createEvent("Event");
-                        event.initEvent('state', true, true);
-                        event.detail = data;
-                        iaudio.dispatchEvent(event);
-                        inspector.audio.updateState(iaudio, data);
-                    });
-                };*/
+                iaudio.seek = inspector.audio.seek;
+                iaudio.volume = inspector.audio.volume;
+                iaudio.leftVolume = inspector.audio.leftVolume;
+                iaudio.rightVolume = inspector.audio.rightVolume;
 
                 audio.parentNode.replaceChild(iaudio, audio);
                 inspector.audio.elements[id] = iaudio;

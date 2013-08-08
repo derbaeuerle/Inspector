@@ -62,22 +62,25 @@
     inspector-audio.error small.state {
         background-color:red;
     }
+    inspector-audio[loop].playing small.state {
+        background:url(img/audio.png) -7px -24px no-repeat;
+    }
 </style>
 </head>
 <body>
     <h1>Styled</h1>
-    <audio controls>
+    <audio controls autoplay>
         <source src="test.mp3" type="audio/mp3">
     </audio>
     <audio controls>
         <source src="http://derbaeuerle.de/inspector/steve.mp3" type="audio/mp3">
     </audio>
-    <!--<h1>Autoplay &amp; Loop</h1>
+    <h1>Autoplay &amp; Loop</h1>
     <audio controls autoplay loop>
         <source src="aotr.mp3" type="audio/mp3">
-    </audio>-->
+    </audio>
     <h1>Error</h1>
-    <audio controls>
+    <audio controls autoplay>
         <source src="aotr.ogg" type="audio/ogg">
     </audio>
     <div id="cons"></div>

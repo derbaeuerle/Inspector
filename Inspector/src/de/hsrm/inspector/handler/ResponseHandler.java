@@ -16,7 +16,6 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -84,7 +83,6 @@ public class ResponseHandler implements HttpRequestHandler {
 	 */
 	private void response(final String content, InspectorRequest iRequest, HttpResponse response) {
 		final String jsonContent = iRequest.getCallback() + "(" + content + ");";
-		Log.d("STREAM", jsonContent);
 		response.setHeader("Content-Type", "application/json");
 		response.addHeader("Access-Control-Allow-Origin", "*");
 		response.addHeader("Access-Control-Allow-Methods", "*");
