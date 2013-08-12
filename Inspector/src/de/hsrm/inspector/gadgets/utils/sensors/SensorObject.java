@@ -17,11 +17,17 @@ import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
  */
 public class SensorObject implements SensorEventListener {
 
+	/** Integer value of sensor based on {@link SensorManager} attributes. */
 	private int SENSOR_TYPE = -1;
+	/** {@link Sensor} object to be used. */
 	private Sensor mSensor;
+	/** {@link SensorManager} instance. */
 	private SensorManager mSensorManager;
+	/** Parent {@link Gadget} object. */
 	private Gadget mGadget;
+	/** Timestamp of last event notification. */
 	private long mLastEvent;
+	/** Rate in milliseconds to notify new {@link GadgetEvent}. */
 	private long mRate = 30;
 
 	/**
@@ -38,6 +44,10 @@ public class SensorObject implements SensorEventListener {
 		setSensorType(type);
 	}
 
+	/**
+	 * Notifies {@link #mGadget} if current {@link #mLastEvent} is older than
+	 * {@link #mRate}. {@link SensorEventListener#onSensorChanged(SensorEvent)}
+	 */
 	@Override
 	public void onSensorChanged(SensorEvent sensorEvent) {
 		if (System.currentTimeMillis() - mLastEvent > mRate) {
@@ -46,10 +56,11 @@ public class SensorObject implements SensorEventListener {
 		}
 	}
 
+	/**
+	 * {@link SensorEventListener#onAccuracyChanged(Sensor, int)}
+	 */
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int i) {
-		// mGadget.notifyGadgetEvent(new GadgetEvent(mGadget, i,
-		// EVENT_TYPE.FEEDBACK));
 	}
 
 	/**
@@ -83,6 +94,7 @@ public class SensorObject implements SensorEventListener {
 	 * @param type
 	 *            {@link Integer}
 	 * @throws UnsupportedOperationException
+	 * @throws {@link GadgetException}
 	 */
 	public void setSensorType(int type) throws UnsupportedOperationException, GadgetException {
 		if (SENSOR_TYPE == -1) {
@@ -95,6 +107,12 @@ public class SensorObject implements SensorEventListener {
 		}
 	}
 
+	/**
+	 * Sets {@link #mRate} in milliseconds.
+	 * 
+	 * @param rate
+	 *            {@link Integer}
+	 */
 	public void setRate(int rate) {
 		mRate = rate;
 	}

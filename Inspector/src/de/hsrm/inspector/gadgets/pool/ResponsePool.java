@@ -16,11 +16,26 @@ import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
  * {@link GadgetEvent} of a {@link Gadget} to avoid redundant data transfers.
  */
 public class ResponsePool {
-
+	/**
+	 * {@link ConcurrentHashMap} for all {@link GadgetEvent} and
+	 * {@link SystemEvent} which are not {@link EVENT_TYPE#DATA}.
+	 */
 	private ConcurrentHashMap<String, ConcurrentLinkedQueue<GadgetEvent>> mResponsePool;
+	/**
+	 * {@link ConcurrentHashMap} of all {@link GadgetEvent} with
+	 * {@link EVENT_TYPE#DATA}.
+	 */
 	private ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>> mDataEvents;
+	/**
+	 * {@link ConcurrentHashMap} to manage all browser instances and their used
+	 * {@link Gadget}.
+	 */
 	private ConcurrentHashMap<String, Set<Gadget>> mBrowserInstances;
 
+	/**
+	 * Default constructor which creates {@link #mResponsePool},
+	 * {@link #mDataEvents} and {@link #mBrowserInstances}.
+	 */
 	public ResponsePool() {
 		mResponsePool = new ConcurrentHashMap<String, ConcurrentLinkedQueue<GadgetEvent>>();
 		mDataEvents = new ConcurrentHashMap<String, ConcurrentHashMap<Gadget, GadgetEvent>>();
@@ -28,9 +43,13 @@ public class ResponsePool {
 	}
 
 	/**
+	 * Adds a new {@link Gadget} to browser instance to
+	 * {@link #mBrowserInstances}.
 	 * 
 	 * @param id
+	 *            {@link String}
 	 * @param gadget
+	 *            {@link Gadget}
 	 */
 	public void addBrowserGadget(String id, Gadget gadget) {
 		synchronized (mBrowserInstances) {
@@ -54,8 +73,11 @@ public class ResponsePool {
 	}
 
 	/**
+	 * Removes {@link Gadget} from all using browser instances in
+	 * {@link #mBrowserInstances}.
 	 * 
 	 * @param gadget
+	 *            {@link Gadget}
 	 */
 	public void removeGadget(Gadget gadget) {
 		synchronized (mBrowserInstances) {

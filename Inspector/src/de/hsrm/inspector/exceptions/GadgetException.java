@@ -1,5 +1,7 @@
 package de.hsrm.inspector.exceptions;
 
+import org.apache.http.HttpRequest;
+
 import de.hsrm.inspector.gadgets.intf.Gadget;
 
 /**
@@ -10,7 +12,12 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
 public class GadgetException extends Exception {
 
 	private static final long serialVersionUID = 2788066028132522302L;
+	/**
+	 * {@link Integer} value to identify {@link GadgetException} in web-browser
+	 * api.
+	 */
 	private int mErrorCode = Integer.MIN_VALUE;
+	/** Calling {@link HttpRequest} attributes. */
 	private Object mRequest;
 
 	/**

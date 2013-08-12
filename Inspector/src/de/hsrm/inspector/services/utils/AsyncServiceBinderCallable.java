@@ -4,39 +4,75 @@ import android.app.Service;
 import android.content.ServiceConnection;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 /**
  * Default {@link Callable} class to process request and convert processed data
  * on {@link #call()}.
- *
+ * 
  * @author Dominic Baeuerle
  */
 public abstract class AsyncServiceBinderCallable implements Callable<Object> {
 
-    private Service mService;
-    private ServiceConnection mConnection;
+	/** Bound {@link Service}. */
+	private Service mService;
+	/** {@link ServiceConnection} of bound {@link Service}. */
+	private ServiceConnection mConnection;
 
-    @Override
-    public Object call() throws Exception {
-        return onCall();
-    }
+	/**
+	 * Returns return value of {@link #onCall()}.
+	 * 
+	 * @return {@link Object}
+	 */
+	@Override
+	public Object call() throws Exception {
+		return onCall();
+	}
 
-    public abstract Object onCall();
+	/**
+	 * Abstract method which will be called if {@link FutureTask} is finished
+	 * running.
+	 * 
+	 * @return {@link Object}
+	 */
+	public abstract Object onCall();
 
-    public Service getService() {
-        return mService;
-    }
+	/**
+	 * Returns {@link #mService}.
+	 * 
+	 * @return {@link Service}
+	 */
+	public Service getService() {
+		return mService;
+	}
 
-    public void setService(Service s) {
-        mService = s;
-    }
+	/**
+	 * Sets {@link #mService} to given {@link Service}.
+	 * 
+	 * @param s
+	 *            {@link Service}.
+	 */
+	public void setService(Service s) {
+		mService = s;
+	}
 
-    public ServiceConnection getConnection() {
-        return mConnection;
-    }
+	/**
+	 * Returns {@link #mConnection}.
+	 * 
+	 * @return {@link ServiceConnection}
+	 */
+	public ServiceConnection getConnection() {
+		return mConnection;
+	}
 
-    public void setServiceConnection(ServiceConnection c) {
-        mConnection = c;
-    }
+	/**
+	 * Sets {@link #mConnection} to given {@link ServiceConnection}.
+	 * 
+	 * @param c
+	 *            {@link ServiceConnection}
+	 */
+	public void setServiceConnection(ServiceConnection c) {
+		mConnection = c;
+	}
 
 }

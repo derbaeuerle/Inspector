@@ -19,12 +19,18 @@ import de.hsrm.inspector.web.HttpServer;
  */
 public class InspectorRequest {
 
+	/** Key for referer in HTTP header. */
 	private static final String REFERER_KEY = "Referer";
 
+	/** URL queries inside an {@link UrlQuerySanitizer}. */
 	private UrlQuerySanitizer mQuery;
+	/** All path segments of request inside a {@link List} of {@link String}. */
 	private List<String> mSegments;
+	/** Name of JSONP callback function. */
 	private String mCallback;
+	/** Referer url of calling web application. */
 	private String mReferer;
+	/** Identification of calling browser instance. */
 	private String mBrowserId;
 
 	/**
@@ -155,6 +161,12 @@ public class InspectorRequest {
 		return params;
 	}
 
+	/**
+	 * Returns all {@link #mSegments}, {@link #mReferer} and URL parameter of
+	 * {@link #mQuery} as String.
+	 * 
+	 * @return {@link String}
+	 */
 	@Override
 	public String toString() {
 		StringBuilder b = new StringBuilder();

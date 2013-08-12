@@ -11,8 +11,12 @@ import de.hsrm.inspector.R;
 import de.hsrm.inspector.exceptions.GadgetException;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 
+/**
+ * Helper class to convert objects into JSON format using {@link Gson} library.
+ */
 public class JsonConverter {
 
+	/** {@link Gson} isntance. */
 	private static final Gson mGson = new Gson();
 
 	/**

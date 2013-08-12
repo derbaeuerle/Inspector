@@ -3,9 +3,8 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector Test</title>
-<!-- <script type="text/javascript" src="js/libs/inspector.js"></script>
-<script type="text/javascript" src="js/libs/inspector.audio.js"></script> -->
-<script type="text/javascript" src="concat/inspector.js"></script>
+<script type="text/javascript" src="libs/inspector.js"></script>
+<script type="text/javascript" src="libs/inspector.audio.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
 <style type="text/css">
     inspector-audio {
@@ -83,13 +82,5 @@
     <audio controls autoplay>
         <source src="aotr.ogg" type="audio/ogg">
     </audio>
-    <div id="cons"></div>
-<script type="text/javascript">
-    console = {
-        log : function(msg) {
-            $('#cons').append(JSON.stringify(msg) + '<br/>');
-        }
-    }
-</script>
 </body>
 </html>

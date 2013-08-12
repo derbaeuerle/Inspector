@@ -26,6 +26,7 @@ import de.hsrm.inspector.handler.utils.InspectorRequest;
  */
 public class AudioGadget extends Gadget implements OnKeepAliveListener {
 
+	/** Interval to notify {@link GadgetAudioPlayer} states in milliseconds. */
 	private static final int UPDATE_DELAY = 250;
 
 	/** All running {@link GadgetAudioPlayer} based on their player id. */
@@ -45,6 +46,12 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	 */
 	private AtomicInteger mRunningInstances;
 
+	/**
+	 * Implementation of {@link Gadget#onCreate(Context)} to create
+	 * {@link #mPlayers} and {@link #mRunningInstances}.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.Gadget#onCreate(android.content.Context)
+	 */
 	@Override
 	public void onCreate(Context context) throws Exception {
 		super.onCreate(context);
@@ -52,6 +59,12 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		mRunningInstances = new AtomicInteger(0);
 	}
 
+	/**
+	 * Implementation of {@link Gadget#onProcessStart()} to create and start
+	 * {@link #mStateHandler}.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.Gadget#onProcessStart()
+	 */
 	@Override
 	public void onProcessStart() throws Exception {
 		super.onProcessStart();
@@ -72,6 +85,14 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		}, 0, UPDATE_DELAY, TimeUnit.MILLISECONDS);
 	}
 
+	/**
+	 * Implementation of {@link Gadget#onProcessEnd()} to stop all
+	 * {@link GadgetAudioPlayer} in {@link #mPlayers} and call
+	 * {@link ScheduledExecutorService#shutdown()} on {@link #mStateHandler}.
+	 * {@link #mPlayers} and {@link #mRunningInstances}.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.Gadget#onProcessEnd()
+	 */
 	@Override
 	public void onProcessEnd() throws Exception {
 		super.onProcessEnd();
@@ -90,6 +111,14 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		mPlayers.clear();
 	}
 
+	/**
+	 * Implementation of
+	 * {@link OnKeepAliveListener#onKeepAlive(InspectorRequest)} to stop timeout
+	 * timer on {@link GadgetAudioPlayer} inside {@link #mPlayers}.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.OnKeepAliveListener#onKeepAlive(de.hsrm
+	 *      .inspector.handler.utils.InspectorRequest)
+	 */
 	@Override
 	public void onKeepAlive(InspectorRequest iRequest) {
 		if (mPlayers != null) {
@@ -102,6 +131,15 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 		}
 	}
 
+	/**
+	 * Implementation of {@link Gadget#gogo(InspectorRequest)} to parse given
+	 * {@link InspectorRequest} and call
+	 * {@link #doCommand(InspectorRequest, GadgetAudioPlayer)}. If
+	 * {@link #mPlayers} doesn't contain {@link AudioConstants#PARAM_PLAYERID} a
+	 * new {@link GadgetAudioPlayer} will be created for given id.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.Gadget#gogo(de.hsrm.inspector.handler.utils.InspectorRequest)
+	 */
 	@Override
 	public void gogo(InspectorRequest iRequest) throws Exception {
 		if (!iRequest.hasParameter(AudioConstants.PARAM_PLAYERID))
@@ -218,10 +256,16 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	 * @param mp
 	 *            {@link GadgetAudioPlayer}
 	 */
+	/**
+	 * @param mp
+	 */
 	public void onPlayerDestroy(GadgetAudioPlayer mp) {
 		mRunningInstances.decrementAndGet();
 	}
 
+	/**
+	 * @param mp
+	 */
 	public void onPlayerError(GadgetAudioPlayer mp) {
 		mRunningInstances.decrementAndGet();
 	}
@@ -230,6 +274,9 @@ public class AudioGadget extends Gadget implements OnKeepAliveListener {
 	 * Returns {@link #mUseTimeout}
 	 * 
 	 * @return {@link Boolean}
+	 */
+	/**
+	 * @return
 	 */
 	public boolean useTimeout() {
 		return mUseTimeout;

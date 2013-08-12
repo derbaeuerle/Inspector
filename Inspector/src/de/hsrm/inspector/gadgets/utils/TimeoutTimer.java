@@ -12,8 +12,16 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
  */
 public class TimeoutTimer {
 
+	/** Parent {@link Gadget} of this {@link TimeoutTimer}. */
 	private Gadget mGadget;
+	/**
+	 * {@link AtomicBoolean} to identify whether this {@link TimeoutTimer} is
+	 * started.
+	 */
 	private AtomicBoolean mStarted;
+	/**
+	 * {@link Timer} to count down configured timeout time of {@link #mGadget}.
+	 */
 	private Timer mTimer;
 
 	/**
@@ -30,7 +38,8 @@ public class TimeoutTimer {
 	}
 
 	/**
-	 * Starts the {@link #mTimer} {@link Timer}.
+	 * Starts the {@link #mTimer} {@link Timer} and sets {@link #mStarted} to
+	 * <code>true</code>.
 	 */
 	public void start() {
 		if (!mStarted.get() && mGadget.getTimeout() > 0) {
@@ -41,7 +50,8 @@ public class TimeoutTimer {
 	}
 
 	/**
-	 * Cancels current {@link #mTimer}.
+	 * Cancels current {@link #mTimer} and sets {@link #mStarted} to
+	 * <code>false</code>.
 	 */
 	public void cancel() {
 		if (mTimer != null) {
@@ -55,6 +65,11 @@ public class TimeoutTimer {
 	 */
 	private class TimeoutTimerTask extends TimerTask {
 
+		/**
+		 * Calls {@link Gadget#onProcessEnd()} and {@link Gadget#onDestroy()} on
+		 * {@link TimeoutTimer#mGadget} and sets {@link TimeoutTimer#mStarted}
+		 * to <code>false</code>.
+		 */
 		@Override
 		public void run() {
 			try {

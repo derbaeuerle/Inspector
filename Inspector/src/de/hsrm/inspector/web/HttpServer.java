@@ -40,25 +40,52 @@ import de.hsrm.inspector.handler.ResponseHandler;
  */
 public class HttpServer extends Thread {
 
+	/** Name of web server. */
 	public static final String SERVER_NAME = "html5audio";
+	/** Port of managing commands. */
 	public static final int SERVER_PORT = 9090;
+	/** Port of long polling messages. */
 	public static final int STATE_PORT = 9191;
+	/** Backlog length of web server. */
 	public static final int SERVER_BACKLOG = 50;
+	/** Default URL pattern of managing commands. */
 	private static final String DEFAULT_PATTERN = "/inspector/*";
+	/** URL pattern of long polling requests. */
 	private static final String STATE_PATTERN = "/state/*";
+	/** {@link ServerSocket} for managing commands and long polling requests. */
 	private ServerSocket mCommandSocket, mResponseSocket;
 
+	/** {@link BasicHttpProcessor} to configure both {@link ServerSocket}. */
 	private final BasicHttpProcessor mHttpProcessor;
+	/** {@link HttpParams} to configure both {@link ServerSocket}. */
 	private final HttpParams mHttpParams;
+	/**
+	 * {@link HttpRequestHandlerRegistry} will contain {@link #mGadgetHandler}
+	 * and {@link #mResponseHandler}.
+	 */
 	private final HttpRequestHandlerRegistry mHttpRegistry;
+	/** {@link ConnectionReuseStrategy} to reuse ports. */
 	private final ConnectionReuseStrategy mReuseStrat;
+	/** {@link GadgetHandler} to handle all managing commands. */
 	private GadgetHandler mGadgetHandler;
+	/** {@link ResponseHandler} to handle all long polling requests. */
 	private ResponseHandler mResponseHandler;
+	/**
+	 * {@link Thread} worker for {@link #mGadgetHandler} and
+	 * {@link #mResponseHandler}.
+	 */
 	private volatile Thread mCommandWorker, mResponseWorker;
+	/**
+	 * {@link ResponsePool} to inject into {@link #mGadgetHandler} and
+	 * {@link #mResponseHandler}.
+	 */
 	private ResponsePool mResponsePool;
 
+	/** {@link ConcurrentHashMap} of configured {@link Gadget} instances. */
 	private ConcurrentHashMap<String, Gadget> mConfiguration;
+	/** Milliseconds to timeout server on no registered {@link Gadget}. */
 	private long mTimeout = 60;
+	/** {@link Timer} for timeout mechanism. */
 	private Timer mTimeoutTimer;
 
 	/**
@@ -236,17 +263,36 @@ public class HttpServer extends Thread {
 	 */
 	public class RequestWorker implements Runnable {
 
+		/** {@link ServerSocket} of worker. */
 		private ServerSocket mSocket;
+		/** Worker {@link Thread}. */
 		private Thread mWorkerThread;
 
+		/**
+		 * Default constructor sets {@link #mSocket} to given
+		 * {@link ServerSocket}.
+		 * 
+		 * @param socket
+		 *            {@link ServerSocket}
+		 */
 		public RequestWorker(ServerSocket socket) {
 			mSocket = socket;
 		}
 
+		/**
+		 * Sets {@link #mWorkerThread} to given {@link Thread}.
+		 * 
+		 * @param workerThread
+		 *            {@link Thread}.
+		 */
 		public void setWorkerThread(Thread workerThread) {
 			mWorkerThread = workerThread;
 		}
 
+		/**
+		 * Calls {@link #accept()} if {@link #mSocket} is still running and
+		 * {@link #mWorkerThread} is currently active.
+		 */
 		@Override
 		public void run() {
 			Log.d("Server", "Server: " + mSocket.getInetAddress().toString() + ":" + mSocket.getLocalPort());
@@ -263,8 +309,8 @@ public class HttpServer extends Thread {
 		}
 
 		/**
-		 * Accepting new HTTP-Connections, creating {@link Worker} threads and
-		 * start them.
+		 * Accepting new HTTP connections and starts handling
+		 * {@link DefaultHttpServerConnection}.
 		 * 
 		 * @throws IOException
 		 */

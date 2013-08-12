@@ -29,22 +29,47 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		BUFFERING, PREPARED, PLAYING, PAUSED, STOPPED, COMPLETED, ERROR
 	};
 
+	/**
+	 * Milliseconds to stop {@link MediaPlayer} if no keep-alive messages were
+	 * received of {@link #mHolder}.
+	 */
 	private static final int TIMEOUT = 5000;
 
+	/** Identification name of this {@link GadgetAudioPlayer}. */
 	private String mPlayerId;
+	/** {@link Boolean} if this {@link MediaPlayer} is prepared. */
 	private boolean mPrepared = false;;
+	/**
+	 * {@link Boolean} if this {@link MediaPlayer} should start on finished
+	 * preparation.
+	 */
 	private boolean mAutoPlay = false;
+	/** {@link Boolean} if this {@link MediaPlayer} is stopped. */
 	private boolean mStopped = false;
+	/** Duration of {@link MediaPlayer} source in milliseconds. */
 	private int mDuration;
+	/** Percentage buffered of {@link MediaPlayer} source. */
 	private int mBuffered;
+	/** {@link STATE} of this {@link GadgetAudioPlayer}. */
 	private STATE mState = STATE.BUFFERING;
+	/** Milliseconds to seek to inside {@link MediaPlayer} source. */
 	private int mSeekTo = Integer.MIN_VALUE;
+	/** Volume of left or right channel. */
 	private float mLeftVolume = 1f, mRightVolume = 1f;
+	/** {@link Timer} to realize timeout mechanism. */
 	private Timer mTimoutTimer;
+	/**
+	 * {@link AudioGadget} containing this {@link GadgetAudioPlayer} to notify
+	 * events.
+	 */
 	private AudioGadget mHolder;
 
 	/**
 	 * Default constructor.
+	 */
+	/**
+	 * @param id
+	 * @param gadget
 	 */
 	public GadgetAudioPlayer(String id, AudioGadget gadget) {
 		super();
@@ -56,6 +81,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		setOnErrorListener(this);
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#start()} to start playback and set
+	 * {@link #mState} to {@link STATE#PLAYING} if {@link #mState} isn't
+	 * {@link STATE#ERROR}.
+	 * 
+	 * @see android.media.MediaPlayer#start()
+	 */
 	@Override
 	public void start() throws IllegalStateException {
 		if (!mState.equals(STATE.ERROR)) {
@@ -64,17 +96,37 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#pause()} to pause playback and set
+	 * {@link #mState} to {@link STATE#PAUSED}.
+	 * 
+	 * @see android.media.MediaPlayer#pause()
+	 */
 	@Override
 	public void pause() throws IllegalStateException {
 		super.pause();
 		mState = STATE.PAUSED;
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#stop()} only callst
+	 * {@link #stop(boolean)} with <code>false</code> as parameter.
+	 * 
+	 * @see android.media.MediaPlayer#stop()
+	 */
 	@Override
 	public void stop() throws IllegalStateException {
 		this.stop(false);
 	}
 
+	/**
+	 * Stops the playback and sets {@link #mStopped} to <code>true</code>. If
+	 * given parameter is <code>true</code> then the playback has been completed
+	 * and {@link #mState} is set to {@link STATE#COMPLETED} else
+	 * {@link #mState} will be {@link STATE#STOPPED}.
+	 * 
+	 * @param completed
+	 */
 	public void stop(boolean completed) {
 		try {
 			super.stop();
@@ -84,6 +136,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		mState = (completed) ? STATE.COMPLETED : STATE.STOPPED;
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#release()} to release
+	 * {@link MediaPlayer} source and set {@link #mPrepared} to
+	 * <code>false</code>.
+	 * 
+	 * @see android.media.MediaPlayer#release()
+	 */
 	@Override
 	public void release() {
 		try {
@@ -94,6 +153,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#prepare()} to prepare
+	 * {@link MediaPlayer} source and set {@link #mState} to
+	 * {@link STATE#BUFFERING} if {@link #mState} isn't {@link STATE#ERROR}.
+	 * 
+	 * @see android.media.MediaPlayer#prepare()
+	 */
 	@Override
 	public void prepare() throws IOException, IllegalStateException {
 		if (!mState.equals(STATE.ERROR)) {
@@ -102,6 +168,13 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#prepareAsync()} to prepare
+	 * {@link MediaPlayer} source asynchronously and set {@link #mState} to
+	 * {@link STATE#BUFFERING} if {@link #mState} isn't {@link STATE#ERROR}.
+	 * 
+	 * @see android.media.MediaPlayer#prepareAsync()
+	 */
 	@Override
 	public void prepareAsync() throws IllegalStateException {
 		if (!mState.equals(STATE.ERROR)) {
@@ -110,11 +183,29 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#isPlaying()} to return if
+	 * {@link #mState} is {@link STATE#PLAYING}.
+	 * 
+	 * @see android.media.MediaPlayer#isPlaying()
+	 */
 	@Override
 	public boolean isPlaying() {
 		return mState.equals(STATE.PLAYING);
 	}
 
+	/**
+	 * Implementation of {@link OnPreparedListener#onPrepared(MediaPlayer)} to
+	 * set {@link #mPrepared} to <code>true</code>, {@link #mState} to
+	 * {@link STATE#PREPARED} and {@link #mDuration} to value of
+	 * {@link MediaPlayer#getDuration()}. If {@link #mSeekTo} isn't
+	 * {@link Integer#MIN_VALUE} {@link MediaPlayer#seekTo(int)} will be called
+	 * with its value. Else {@link #start()} will be called if
+	 * {@link #mAutoPlay} is <code>true</code>.
+	 * 
+	 * @see android.media.MediaPlayer.OnPreparedListener#onPrepared(android.media
+	 *      .MediaPlayer)
+	 */
 	@Override
 	public void onPrepared(MediaPlayer mp) {
 		mPrepared = true;
@@ -133,6 +224,17 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link OnCompletionListener#onCompletion(MediaPlayer)}
+	 * to call {@link #stop(boolean)} with <code>false</code> as parameter,
+	 * {@link #release()} and call
+	 * {@link AudioGadget#onPlayerDestroy(GadgetAudioPlayer)} on
+	 * {@link #mHolder} if {@link MediaPlayer#isLooping()} returns
+	 * <code>false</code>.
+	 * 
+	 * @see android.media.MediaPlayer.OnCompletionListener#onCompletion(android.media
+	 *      .MediaPlayer)
+	 */
 	@Override
 	public void onCompletion(MediaPlayer mp) {
 		try {
@@ -145,11 +247,28 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of
+	 * {@link OnBufferingUpdateListener#onBufferingUpdate(MediaPlayer, int)}
+	 * sets {@link #mBuffered} to given value.
+	 * 
+	 * @see android.media.MediaPlayer.OnBufferingUpdateListener#onBufferingUpdate
+	 *      (android.media.MediaPlayer, int)
+	 */
 	@Override
 	public void onBufferingUpdate(MediaPlayer mp, int percent) {
 		mBuffered = percent;
 	}
 
+	/**
+	 * Implementation of
+	 * {@link OnSeekCompleteListener#onSeekComplete(MediaPlayer)} calls
+	 * {@link #start()} if {@link #isPrepared()} and {@link #mAutoPlay} returns
+	 * <code>true</code>.
+	 * 
+	 * @see android.media.MediaPlayer.OnSeekCompleteListener#onSeekComplete(android
+	 *      .media.MediaPlayer)
+	 */
 	@Override
 	public void onSeekComplete(MediaPlayer mp) {
 		if (isPrepared()) {
@@ -159,6 +278,16 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		}
 	}
 
+	/**
+	 * Implementation of {@link OnErrorListener#onError(MediaPlayer, int, int)}
+	 * to call {@link #stop(boolean)} with true, {@link #release()} and set
+	 * {@link #mState} to {@link STATE#ERROR}. Also calls
+	 * {@link AudioGadget#onPlayerError(GadgetAudioPlayer)} on {@link #mHolder}
+	 * to publish any error.
+	 * 
+	 * @see android.media.MediaPlayer.OnErrorListener#onError(android.media.MediaPlayer
+	 *      , int, int)
+	 */
 	@Override
 	public boolean onError(MediaPlayer mp, int what, int extra) {
 		stop(true);
@@ -168,6 +297,12 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		return false;
 	}
 
+	/**
+	 * Implementation of {@link MediaPlayer#setVolume(float, float)} to set
+	 * volume based on {@link #mLeftVolume} and {@link #mRightVolume}.
+	 * 
+	 * @see android.media.MediaPlayer#setVolume(float, float)
+	 */
 	@Override
 	public void setVolume(float leftVolume, float rightVolume) {
 		super.setVolume(leftVolume, rightVolume);
@@ -233,10 +368,20 @@ public class GadgetAudioPlayer extends MediaPlayer implements OnPreparedListener
 		return map;
 	}
 
+	/**
+	 * Returns {@link #mState}.
+	 * 
+	 * @return {@link STATE}
+	 */
 	public STATE getState() {
 		return mState;
 	}
 
+	/**
+	 * Returns {@link #mPlayerId}.
+	 * 
+	 * @return {@link String}
+	 */
 	public String getPlayerId() {
 		return mPlayerId;
 	}

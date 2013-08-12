@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.http.protocol.HttpRequestHandler;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
@@ -35,19 +36,35 @@ import de.hsrm.inspector.web.HttpServer;
  */
 public class ServerService extends IntentService {
 
+	/** {@link HttpServer} to manage. */
 	private static HttpServer mServer;
+	/**
+	 * {@link ResponsePool} instance to inject to all {@link HttpRequestHandler}
+	 * and {@link HttpServer}.
+	 */
 	private ResponsePool mResponsePool;
 
+	/** Command name to initialize {@link HttpServer} and settings. */
 	public static final String CMD_INIT = "init";
+	/** Command name to destroy {@link HttpServer}. */
 	public static final String CMD_DESTROY = "destroy";
+	/** Command name to show {@link SettingsActivity}. */
 	public static final String CMD_SETTINGS = "settings";
+	/**
+	 * Command name to refresh all settings in runtime {@link Gadget} instances.
+	 */
 	public static final String CMD_REFRESH = "refresh";
+	/** Command name to start timeout of {@link HttpServer}. */
 	public static final String CMD_START_TIMEOUT = "start-timeout";
+	/** Command name to stop timeout of {@link HttpServer}. */
 	public static final String CMD_STOP_TIMEOUT = "stop-timeout";
+	/** Command name to change specific attribute of {@link Gadget} instance. */
 	public static final String CMD_PREFERENCE_CHANGED = "preference-changed";
 
+	/** Key for changed value in {@link SharedPreferences}. */
 	public static final String DATA_CHANGED_PREFERENCE = "preference:changed";
 
+	/** Key for {@link PreferenceScreen} files in {@link Intent} extras. */
 	public static final String EXTRA_PREFERENCES = "preferences";
 
 	/**
@@ -57,11 +74,17 @@ public class ServerService extends IntentService {
 		super("HttpService");
 	}
 
+	/**
+	 * Implementation of {@link IntentService#onCreate()} to create
+	 * {@link #mResponsePool} and register {@link SystemIntentReceiver}.
+	 * 
+	 * @see android.app.IntentService#onCreate()
+	 */
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		mResponsePool = new ResponsePool();
-		android.os.Debug.waitForDebugger();
+		// android.os.Debug.waitForDebugger();
 		IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_ON);
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
 		filter.addAction(Intent.ACTION_POWER_CONNECTED);
@@ -70,6 +93,13 @@ public class ServerService extends IntentService {
 		registerReceiver(mReceiver, filter);
 	}
 
+	/**
+	 * Implementation of {@link IntentService#onStartCommand(Intent, int, int)}
+	 * to call {@link #onHandleIntent(Intent)} with given {@link Intent}.
+	 * 
+	 * @see android.app.IntentService#onStartCommand(android.content.Intent,
+	 *      int, int)
+	 */
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if (intent != null) {
@@ -78,6 +108,12 @@ public class ServerService extends IntentService {
 		return START_STICKY;
 	}
 
+	/**
+	 * Parses given {@link Intent} and calls method based on command inside the
+	 * {@link Intent}.
+	 * 
+	 * @see android.app.IntentService#onHandleIntent(android.content.Intent)
+	 */
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		String command = Uri.parse(intent.toURI()).getHost();

@@ -1,5 +1,6 @@
 package de.hsrm.inspector.activities;
 
+import de.hsrm.inspector.services.ServerService;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -8,11 +9,16 @@ import android.util.Log;
 /**
  * {@link Activity} as proxy object. This activity gets registered on
  * {@link Intent#CATEGORY_BROWSABLE} {@link Intent} to receive intents from
- * local browser. Also a {@link ScreenReceiver} is initialized and bound to
- * {@link Intent#ACTION_SCREEN_OFF} and {@link Intent#ACTION_SCREEN_ON} intents.
+ * local browser.
  */
 public class BroadcastProxyActivity extends Activity {
 
+	/**
+	 * Parses calling {@link Intent} and dispatches new {@link Intent} to
+	 * {@link ServerService}.
+	 * 
+	 * @see android.app.Activity#onResume()
+	 */
 	@Override
 	protected void onResume() {
 		super.onResume();

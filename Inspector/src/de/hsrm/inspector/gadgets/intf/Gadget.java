@@ -8,8 +8,10 @@ import android.app.Service;
 import android.content.Context;
 import android.content.ServiceConnection;
 import android.preference.PreferenceScreen;
+import de.hsrm.inspector.R;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
+import de.hsrm.inspector.gadgets.pool.SystemEvent;
 import de.hsrm.inspector.gadgets.utils.TimeoutTimer;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
 import de.hsrm.inspector.services.utils.AsyncServiceBinder;
@@ -21,18 +23,37 @@ import de.hsrm.inspector.services.utils.ServiceBinder;
  */
 public abstract class Gadget {
 
+	/**
+	 * {@link GadgetObserver} of this gadget which gets all {@link GadgetEvent}
+	 * and {@link SystemEvent} notified by
+	 * {@link #notifyGadgetEvent(GadgetEvent)}.
+	 */
 	private GadgetObserver mObserver;
 
+	/** Identification name of this {@link Gadget}. */
 	private String mIdentifier;
+	/** Name of {@link PreferenceScreen} file bound to this {@link Gadget}. */
 	private String mPreferences;
+	/** Old attribute to keep {@link Gadget} alive on timeout. */
+	@Deprecated
 	private boolean mKeepAlive;
+	/** Timeout time for this {@link Gadget} in milliseconds. */
 	private long mTimeout;
+	/** Permission type based on {@link R.array#auth_types} */
 	private int mPermissionType;
+	/** {@link TimeoutTimer} for this {@link Gadget}. */
 	private TimeoutTimer mTimeoutTimer;
+	/**
+	 * {@link AtomicBoolean} to identify if this {@link Gadget} is registered
+	 * and/or processing.
+	 */
 	private AtomicBoolean mRunning, mProcessing;
+	/** {@link HashMap} of all bound {@link Service} to this {@link Gadget}. */
 	private HashMap<Service, ServiceConnection> mServicesBound;
+	/** Current application {@link Context}. */
 	private Context mContext;
 
+	/** Default constructor */
 	public Gadget() {
 		this("");
 	}
@@ -239,6 +260,7 @@ public abstract class Gadget {
 	 * 
 	 * @return {@link Boolean}
 	 */
+	@Deprecated
 	public boolean isKeepAlive() {
 		return mKeepAlive;
 	}
@@ -249,6 +271,7 @@ public abstract class Gadget {
 	 * @param keepAlive
 	 *            {@link Boolean} to set.
 	 */
+	@Deprecated
 	public void setKeepAlive(boolean keepAlive) {
 		this.mKeepAlive = keepAlive;
 	}

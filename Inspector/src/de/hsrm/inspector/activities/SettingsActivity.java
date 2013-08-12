@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceScreen;
 import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.services.ServerService;
 
@@ -17,6 +18,12 @@ import de.hsrm.inspector.services.ServerService;
  */
 public class SettingsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener {
 
+	/**
+	 * Adds {@link PreferenceScreen} to this {@link PreferenceActivity} based on
+	 * {@link String} array in calling {@link Intent}.
+	 * 
+	 * @see android.preference.PreferenceActivity#onCreate(android.os.Bundle)
+	 */
 	@SuppressWarnings("static-access")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +41,12 @@ public class SettingsActivity extends PreferenceActivity implements OnSharedPref
 		shared.registerOnSharedPreferenceChangeListener(this);
 	}
 
+	/**
+	 * Sends {@link Intent} to {@link ServerService} to call refresh runtime
+	 * settings.
+	 * 
+	 * @see android.app.Activity#onPause()
+	 */
 	@Override
 	protected void onPause() {
 		super.onPause();
@@ -43,6 +56,14 @@ public class SettingsActivity extends PreferenceActivity implements OnSharedPref
 		startService(request);
 	}
 
+	/**
+	 * Sends {@link Intent} to {@link ServerService} to change runtim setting
+	 * based on changed key.
+	 * 
+	 * @see android.content.SharedPreferences.OnSharedPreferenceChangeListener#
+	 *      onSharedPreferenceChanged(android.content.SharedPreferences,
+	 *      java.lang.String)
+	 */
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
 		String uri = "inspect://" + ServerService.CMD_PREFERENCE_CHANGED;

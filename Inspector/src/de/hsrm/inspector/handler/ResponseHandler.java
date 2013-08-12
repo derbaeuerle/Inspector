@@ -34,16 +34,40 @@ import de.hsrm.inspector.web.HttpServer;
  */
 public class ResponseHandler implements HttpRequestHandler {
 
+	/** Current application {@link Context}. */
 	private Context mContext;
+	/** {@link ResponsePool} instance. */
 	private ResponsePool mResponsePool;
+	/** {@link InspectorRequest} of pool request. */
 	private InspectorRequest mStateRequest;
+	/** Instance of {@link Gson} to serialize response messages. */
 	private Gson mGson = new Gson();
 
+	/**
+	 * Default constructor of {@link ResponseHandler}.
+	 * 
+	 * @param context
+	 *            {@link Context}
+	 * @param pool
+	 *            {@link ResponsePool}
+	 */
 	public ResponseHandler(Context context, ResponsePool pool) {
 		mContext = context;
 		mResponsePool = pool;
 	}
 
+	/**
+	 * Implementation of
+	 * {@link HttpRequestHandler#handle(HttpRequest, HttpResponse, HttpContext)}
+	 * to process state request of web-browser api. If {@link #mResponsePool}
+	 * has events for given browser instance, they will be responded in
+	 * {@link #response(String, InspectorRequest, HttpResponse)}. Else a
+	 * {@link FutureTask} will be created with {@link QueueCallable} to wait a a
+	 * little time for events.
+	 * 
+	 * @see org.apache.http.protocol.HttpRequestHandler#handle(org.apache.http.HttpRequest,
+	 *      org.apache.http.HttpResponse, org.apache.http.protocol.HttpContext)
+	 */
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
@@ -130,9 +154,20 @@ public class ResponseHandler implements HttpRequestHandler {
 	 */
 	private class QueueCallable implements Callable<JsonArray> {
 
+		/** Maximal number of checks for events. */
 		private final int MAX_CHECKS = 2;
+		/** Number of checks already done. */
 		private int mChecks = 0;
 
+		/**
+		 * Implementatino of {@link Callable#call()} to check
+		 * {@link ResponseHandler#mResponsePool} for events for given browser
+		 * instance. If {@link #mChecks} reaches {@link #MAX_CHECKS} the
+		 * {@link ResponseHandler#processResponses()} will be called and return
+		 * an empty {@link JsonArray}.
+		 * 
+		 * @throws Exception
+		 */
 		@Override
 		public JsonArray call() throws Exception {
 			do {

@@ -8,6 +8,15 @@ import com.google.gson.Gson;
  */
 public class SystemEvent extends GadgetEvent {
 
+	/**
+	 * Constructor of {@link SystemEvent} calls <b>super</b> of
+	 * {@link GadgetEvent}.
+	 * 
+	 * @param response
+	 *            {@link Object}
+	 * @param event
+	 *            {@link EVENT_TYPE}
+	 */
 	public SystemEvent(Object response, EVENT_TYPE event) {
 		super(null, response, event);
 	}
@@ -21,6 +30,12 @@ public class SystemEvent extends GadgetEvent {
 		return "SYSTEM";
 	}
 
+	/**
+	 * Returns all attributes of this {@link SystemEvent} and
+	 * {@link #getResponse()} parsed into JSON format.
+	 * 
+	 * @return {@link String}
+	 */
 	@Override
 	public String toString() {
 		StringBuffer b = new StringBuffer();

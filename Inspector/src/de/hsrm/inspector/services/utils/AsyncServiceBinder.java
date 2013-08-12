@@ -21,12 +21,30 @@ import android.os.IBinder;
  */
 public class AsyncServiceBinder extends FutureTask<Object> {
 
+	/** Current application {@link Context}. */
 	private Context mApplicationContext;
+	/** {@link AtomicBoolean} to identify if {@link Service} is bound. */
 	private AtomicBoolean mServiceBound = new AtomicBoolean(false);
+	/** {@link Service} to bind. */
 	private Service mService;
+	/** {@link AsyncServiceBinderCallable} to call. */
 	private AsyncServiceBinderCallable mCallable;
+	/**
+	 * {@link ServiceConnection}
+	 */
 	private ServiceConnection mConnection = new ServiceConnection() {
 
+		/**
+		 * Sets {@link #mService} to bound {@link Service},
+		 * {@link #mServiceBound} to <code>true</code> and set
+		 * {@link ServiceConnection} and {@link Service} in {@link #mCallable}.
+		 * After setting all attributes {@link FutureTask#run()} will be called.
+		 * 
+		 * @param className
+		 *            {@link ComponentName}
+		 * @param binder
+		 *            {@link IBinder}
+		 */
 		public void onServiceConnected(ComponentName className, IBinder binder) {
 			if (binder instanceof ServiceBinder) {
 				mService = ((ServiceBinder) binder).getService();

@@ -31,6 +31,7 @@ import de.hsrm.inspector.gadgets.intf.Gadget;
 import de.hsrm.inspector.gadgets.intf.GadgetObserver;
 import de.hsrm.inspector.gadgets.intf.OnKeepAliveListener;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent;
+import de.hsrm.inspector.gadgets.pool.SystemEvent;
 import de.hsrm.inspector.gadgets.pool.GadgetEvent.EVENT_TYPE;
 import de.hsrm.inspector.gadgets.pool.ResponsePool;
 import de.hsrm.inspector.handler.utils.InspectorRequest;
@@ -47,16 +48,48 @@ import de.hsrm.inspector.web.HttpServer;
  */
 public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 
+	/**
+	 * {@link Integer} value of permission to request for {@link Gadget} based
+	 * on resource values.
+	 */
 	private final int PERMISSION_REQUEST;
+	/**
+	 * {@link Integer} value of disabled {@link Gadget} based on resource
+	 * values.
+	 */
 	private final int PERMISSION_DISABLED;
 
+	/**
+	 * {@link ConcurrentHashMap} of currently registered {@link Gadget}
+	 * instances.
+	 */
 	private ConcurrentHashMap<String, Gadget> mGadgets;
+	/**
+	 * {@link ConcurrentHashMap} of currently given permissions by user.
+	 * {@link Gadget#getIdentifier()} will be the key and the calling URL inside
+	 * the {@link ArrayList} as value.
+	 */
 	private ConcurrentHashMap<String, ArrayList<String>> mPermissions;
+	/**
+	 * {@link ResponsePool} to notify {@link GadgetEvent} and
+	 * {@link SystemEvent} to.
+	 */
 	private ResponsePool mResponsePool;
+	/** Current application {@link Context}. */
 	private Context mContext;
+	/** Number of currently running {@link Gadget} instances. */
 	private AtomicInteger mRunningInstances;
+	/** {@link Gson} instance to serialize responses. */
 	private Gson mGson;
 
+	/**
+	 * Constructor of {@link GadgetHandler}.
+	 * 
+	 * @param context
+	 *            {@link Context}
+	 * @param pool
+	 *            {@link ResponsePool}
+	 */
 	public GadgetHandler(Context context, ResponsePool pool) {
 		mResponsePool = pool;
 		mContext = context;
@@ -68,6 +101,16 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 		PERMISSION_DISABLED = Integer.parseInt(mContext.getString(R.string.auth_type_disabled));
 	}
 
+	/**
+	 * Implementation of
+	 * {@link HttpRequestHandler#handle(HttpRequest, HttpResponse, HttpContext)}
+	 * . Creates {@link InspectorRequest} based on given {@link HttpRequest} and
+	 * starts chain of tests for called {@link Gadget}.
+	 * 
+	 * 
+	 * @see org.apache.http.protocol.HttpRequestHandler#handle(org.apache.http.HttpRequest,
+	 *      org.apache.http.HttpResponse, org.apache.http.protocol.HttpContext)
+	 */
 	@Override
 	public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws HttpException,
 			IOException {
@@ -232,6 +275,15 @@ public class GadgetHandler implements HttpRequestHandler, GadgetObserver {
 		response.setEntity(entity);
 	}
 
+	/**
+	 * Implementation of {@link GadgetObserver#onGadgetEvent(GadgetEvent)} to
+	 * receive all {@link GadgetEvent} notified by running gadgets. If
+	 * {@link EVENT_TYPE} of {@link GadgetEvent} is {@link EVENT_TYPE#DESTROY}
+	 * the gadget will be destroyed and removed from running instances. All
+	 * other {@link GadgetEvent} will be given to {@link #mResponsePool}.
+	 * 
+	 * @see de.hsrm.inspector.gadgets.intf.GadgetObserver#onGadgetEvent(de.hsrm.inspector.gadgets.pool.GadgetEvent)
+	 */
 	@Override
 	public void onGadgetEvent(GadgetEvent event) {
 		if (mGadgets.containsKey(event.getGadget().getIdentifier())) {
