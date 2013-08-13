@@ -7,11 +7,34 @@
     <string name="start_server">Server starten</string>
     <string name="stop_server">Server stoppen</string>
     <string name="open_settings">Einstellungen</string>
+    <string name="request_state">request state</string>
 
+    <!-- WebServer Configuration keys -->
+    <string name="configuration">inspector.xml</string>
+    <string name="configuration_preferences">gadgets</string>
+    <string name="configuration_gadgets">Gadget</string>
+    <string name="configuration_identifiers">identifiers</string>
+    <string name="configuration_identifier">identifier</string>
+    <string name="configuration_timeout">timeout</string>
+    <string name="configuration_class">class</string>
+    <string name="configuration_keep_alive">keep-alive</string>
+    <string name="configuration_permission">permission</string>
+    <string name="configuration_preference_screen">preference</string>
+
+    <!-- WebServer MIME types -->
+    <string name="mime_json">application/json</string>
+
+    <!-- WebServer Exception keys -->
+    <string name="exception_data">data</string>
+    <string name="exception_message">message</string>
+    <string name="exception_stacktrace">stacktrace</string>
+    <string name="exception_error_code">errorCode</string>
+    <string name="exception_request">request</string>
     <!-- Preferences -->
     <string name="pref_title_audio">Audiounterstützung</string>
     <string name="pref_title_sensors">Sensoren</string>
     <string name="pref_attr_timeout">Timeout</string>
+    <string name="pref_attr_keep_alive">Keep alive</string>
     <string name="pref_title_auth_types">Berechtigung</string>
 
     <!-- Preferences: AudioGadget -->

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset=utf-8>
-<title>Inspector Test</title>
+<title>Inspector - HTML5 Audio Support</title>
 <script type="text/javascript" src="libs/inspector.js"></script>
 <script type="text/javascript" src="libs/inspector.audio.js"></script>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
@@ -68,19 +68,19 @@
 </head>
 <body>
     <h1>Styled</h1>
-    <audio controls autoplay>
-        <source src="test.mp3" type="audio/mp3">
+    <audio controls>
+        <source src="Sample_1.mp3" type="audio/mp3">
     </audio>
     <audio controls>
-        <source src="http://derbaeuerle.de/inspector/steve.mp3" type="audio/mp3">
+        <source src="Sample_2.mp3" type="audio/mp3">
     </audio>
     <h1>Autoplay &amp; Loop</h1>
     <audio controls autoplay loop>
-        <source src="aotr.mp3" type="audio/mp3">
+        <source src="Sample_4.mp3" type="audio/mp3">
     </audio>
     <h1>Error</h1>
     <audio controls autoplay>
-        <source src="aotr.ogg" type="audio/ogg">
+        <source src="Sample_4.ogg" type="audio/ogg">
     </audio>
 </body>
 </html>

@@ -95,8 +95,10 @@ public class ResponsePool {
 							while (i.hasNext()) {
 								GadgetEvent ev = i.next();
 								if (ev instanceof GadgetEvent) {
-									if (ev.getGadget().equals(gadget)) {
-										i.remove();
+									if(ev.getGadget() != null && gadget != null) {
+										if (ev.getGadget().equals(gadget)) {
+											i.remove();
+										}
 									}
 								}
 							}
