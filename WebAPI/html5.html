@@ -3,22 +3,43 @@
 <head>
 <meta charset=utf-8>
 <title>Inspector - HTML5 Audio</title>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+<script type="text/javascript">
+    var js_listener = false;
+    var gX, gY, gZ, ori;
+
+    function bindListener() {
+      if(!js_listener) {
+        gX = document.getElementById("gyroX");
+        gY = document.getElementById("gyroY");
+        gZ = document.getElementById("gyroZ");
+        ori = document.getElementById("orientation");
+        window.addEventListener('deviceorientation', onGyroscope);
+        window.addEventListener('orientationchange', onOrientation);
+        js_listener = true;
+      }
+    }
+    function onGyroscope(event) {
+      gX.innerHTML = JSON.stringify(event.beta);
+      gY.innerHTML = JSON.stringify(event.gamma);
+      gZ.innerHTML = JSON.stringify(event.alpha);
+      console.log(event);
+    }
+    function onOrientation() {
+      ori.innerHTML = window.orientation;
+      console.log(window.orientation);
+    }
+</script>
 </head>
 <body>
+    <h1>HTML5 Audio</h1>
     <audio controls>
         <source src="Sample_1.mp3" type="audio/mp3">
     </audio>
-    <audio controls>
-        <source src="Sample_2.mp3" type="audio/mp3">
-    </audio>
-    <h1>Autoplay &amp; Loop</h1>
-    <audio controls autoplay loop>
-        <source src="Sample_4.mp3" type="audio/mp3">
-    </audio>
-    <h1>Error</h1>
-    <audio controls autoplay>
-        <source src="Sample_4.ogg" type="audio/ogg">
-    </audio>
+    <h1>MotionSensor</h1>
+    <button style="padding:10px;font-weight:bold;" onclick="bindListener();">Starte den Sensorspa&szlig;</button>
+    <div id="gyro" class="smaller" style="margin-top:1em;line-height:2em;">
+        X-Axis: <span id="gyroX"></span>, Y-Axis: <span id="gyroY"></span>, Z-Axis: <span id="gyroZ"></span><br/>
+        Orientation: <span id="orientation"></span>
+    </div>
 </body>
 </html>
